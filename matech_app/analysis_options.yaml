@@ -1,0 +1,51 @@
+# ---------------------------------------------------------------------------
+# ANÁLISE ESTÁTICA
+# ---------------------------------------------------------------------------
+# Rode com:  flutter analyze
+#
+# O conjunto do flutter_lints é o recomendado pelo time do Flutter. As regras
+# abaixo são acréscimos escolhidos, não gosto pessoal: cada uma pega uma classe
+# de erro que este aplicativo pode cometer de verdade.
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # Usar `context` depois de um `await` sem conferir `mounted` é a causa
+    # número um de crash em Flutter. Neste aplicativo, onde quase toda ação
+    # passa por banco ou rede antes de mexer na tela, isso vira ERRO e não
+    # aviso — um crash no meio do erval custa a avaliação inteira.
+    use_build_context_synchronously: error
+
+    # Um Future esquecido sem await é silencioso e traiçoeiro: a gravação
+    # "acontece", ninguém espera, e a tela fecha antes de o SQLite terminar.
+    unawaited_futures: error
+
+linter:
+  rules:
+    # --- corretude ---------------------------------------------------------
+    unawaited_futures: true
+    avoid_slow_async_io: true
+    cancel_subscriptions: true
+    close_sinks: true
+    # Lançar String em vez de Exception faz o catch tipado passar batido.
+    only_throw_errors: true
+    throw_in_finally: true
+    # `==` entre tipos diferentes sempre é falso — e sempre é engano.
+    unrelated_type_equality_checks: true
+    no_adjacent_strings_in_list: true
+
+    # --- clareza -----------------------------------------------------------
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_final_locals: true
+    directives_ordering: true
+    require_trailing_commas: false
+    avoid_redundant_argument_values: true
+    unnecessary_parenthesis: true
+    unnecessary_await_in_return: true
+
+    # --- coisas que não podem chegar na versão final -----------------------
+    avoid_print: true
+    # `// TODO` vira aviso, para não passar despercebido numa entrega.
+    flutter_style_todos: true

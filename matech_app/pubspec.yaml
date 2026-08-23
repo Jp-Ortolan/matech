@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# MATECH · aplicativo móvel de avaliação em campo
+# ---------------------------------------------------------------------------
+# O escopo é deliberadamente estreito: login, produtores, avaliação no erval e
+# sincronização. Pesagem NÃO existe aqui — a balança é da empresa, fica no
+# pátio, e quem registra peso é o operador pela web.
+#
+# CINCO DEPENDÊNCIAS, E O MOTIVO DE CADA UMA:
+#
+#   sqflite       o banco local. É o que sustenta o funcionamento sem conexão.
+#   path          monta o caminho do arquivo do banco no sistema de arquivos.
+#   http          fala com a API REST.
+#   image_picker  abre a câmera. Não há como fotografar o erval sem isto.
+#   geolocator    lê o GPS. Não há como registrar a localização sem isto.
+#
+# O QUE NÃO ENTROU, DE PROPÓSITO:
+#
+#   provider / riverpod / bloc  — gerenciamento de estado. Em seis telas, o
+#       ChangeNotifier que já vem no Flutter resolve. Uma biblioteca de estado
+#       aqui custaria mais explicação na banca do que economiza de código.
+#   uuid        — o identificador de cliente é gerado em servicos/identificadores.dart
+#       com dart:math, em vinte linhas. Uma dependência inteira para isso não
+#       se justifica.
+#   connectivity_plus — detectar Wi-Fi não é detectar servidor. A fila
+#       simplesmente tenta enviar e reagenda quando falha, o que é mais
+#       confiável e uma dependência a menos.
+#   dio         — o http do próprio time do Dart dá conta do que este app faz.
+
+name: matech_app
+description: Coleta de avaliações de erva-mate em campo, com funcionamento offline.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  # 3.7 e não 3.5: o tema usa CardThemeData e Color.withValues, que chegaram
+  # no Flutter 3.29. Com um SDK mais velho o erro apareceria no meio do tema,
+  # longe da causa.
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.4.1
+  path: ^1.9.0
+  http: ^1.2.2
+  image_picker: ^1.1.2
+  geolocator: ^13.0.2
+
+dev_dependencies:
+  # Vem do próprio SDK — não é download do pub.dev, não é dependência externa.
+  # É o que permite `flutter test` rodar os testes de test/, sem emulador.
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
