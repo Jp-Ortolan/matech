@@ -1,0 +1,98 @@
+// ---------------------------------------------------------------------------
+// API · funções por assunto
+// ---------------------------------------------------------------------------
+// Cada função aqui corresponde a uma rota do back-end. As telas chamam estas
+// funções e nunca escrevem o endereço da rota direto — assim, se uma rota
+// mudar de endereço, só este arquivo muda.
+
+import { api, guardarSessao, limparSessao } from './client'
+
+/**
+ * Monta a query string só com os filtros que foram preenchidos.
+ * Sem isso, um filtro vazio viraria "?produtorId=undefined" e o back-end
+ * tentaria buscar um produtor chamado "undefined".
+ */
+function montarQuery(filtros = {}) {
+  const params = new URLSearchParams()
+  Object.entries(filtros).forEach(([chave, valor]) => {
+    if (valor !== undefined && valor !== null && valor !== '') params.append(chave, valor)
+  })
+  const qs = params.toString()
+  return qs ? `?${qs}` : ''
+}
+
+// ---------------------------- autenticação ----------------------------
+export const auth = {
+  async entrar(usuario, senha) {
+    const dados = await api.post('/api/auth/login', { usuario, senha }, { semToken: true })
+    guardarSessao(dados.token, dados.usuario)
+    return dados.usuario
+  },
+  sair() {
+    limparSessao()
+  },
+  eu: () => api.get('/api/auth/eu'),
+}
+
+// ---------------------------- produtores ------------------------------
+export const produtores = {
+  listar: (busca) => api.get('/api/produtores' + montarQuery({ busca })),
+  buscar: (id) => api.get(`/api/produtores/${id}`),
+  criar: (dados) => api.post('/api/produtores', dados),
+  atualizar: (id, dados) => api.put(`/api/produtores/${id}`, dados),
+}
+
+// ------------------------------ cargas --------------------------------
+export const cargas = {
+  listar: (filtros = {}) => api.get('/api/cargas' + montarQuery(filtros)),
+  buscar: (id) => api.get(`/api/cargas/${id}`),
+  calculo: (id) => api.get(`/api/cargas/${id}/calculo`),
+  registrar: (dados) => api.post('/api/cargas', dados),
+}
+
+// ---------------------------- motoristas ------------------------------
+// Cadastrados na balança, por quem está lá: o motorista aparece na hora, e
+// mandar a pessoa procurar o administrativo pararia a fila.
+export const motoristas = {
+  listar: (busca) => api.get('/api/motoristas' + montarQuery({ busca })),
+  criar: (dados) => api.post('/api/motoristas', dados),
+  atualizar: (id, dados) => api.put(`/api/motoristas/${id}`, dados),
+  adicionarVeiculo: (id, veiculo) => api.post(`/api/motoristas/${id}/veiculos`, veiculo),
+}
+
+// ------------------------ avaliações de campo -------------------------
+// O que o aplicativo produziu no erval. Só leitura: a única porta de entrada
+// de uma avaliação é a sincronização.
+export const avaliacoesCampo = {
+  listar: (filtros = {}) => api.get('/api/avaliacoes' + montarQuery(filtros)),
+  buscar: (id) => api.get(`/api/avaliacoes/${id}`),
+}
+
+// --------------------------- sincronização ----------------------------
+// Estas rotas existem no servidor desde o início e são a evidência do
+// Quadro 7. A tela de sincronização é o que as torna visíveis.
+export const sincronizacao = {
+  resumo: (dispositivoId) => api.get('/api/sincronizacao/resumo' + montarQuery({ dispositivoId })),
+  registros: (filtros = {}) => api.get('/api/sincronizacao/registros' + montarQuery(filtros)),
+}
+
+// ---------------------------- qualidade -------------------------------
+export const qualidade = {
+  fila: () => api.get('/api/qualidade/fila'),
+  registrarAnalise: (cargaId, dados) => api.post(`/api/qualidade/cargas/${cargaId}`, dados),
+}
+
+// ---------------------------- pagamentos ------------------------------
+export const pagamentos = {
+  listar: (filtros = {}) => api.get('/api/pagamentos' + montarQuery(filtros)),
+  gerar: (dados) => api.post('/api/pagamentos', dados),
+  confirmar: (id) => api.post(`/api/pagamentos/${id}/confirmar`),
+}
+
+// ------------------------------ sistema -------------------------------
+// /health não fica sob /api porque não é recurso de negócio: é a verificação
+// de que a API responde e de que o banco está acessível. A tela de
+// Configurações usa isto para mostrar o estado do sistema.
+export const sistema = {
+  saude: () => api.get('/health'),
+}
