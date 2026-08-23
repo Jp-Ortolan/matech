@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------------
+# MATECH · o que NÃO entra no repositório
+# ---------------------------------------------------------------------------
+
+# Dependências. São reinstaláveis a partir do package.json e do pubspec.yaml,
+# e somadas passam de 300 MB — versionar isso tornaria o repositório
+# inutilizável para quem clonar.
+node_modules/
+.pub-cache/
+.dart_tool/
+build/
+
+# SEGREDOS. O .env tem a senha do banco e a chave que assina os tokens JWT.
+# Quem tiver essa chave consegue forjar um token e entrar como qualquer
+# usuário — por isso ele nunca sai da máquina. O .env.exemplo, versionado,
+# mostra QUAIS variáveis existem sem revelar nenhum valor.
+.env
+.env.local
+*.env
+
+# Código gerado pelo Prisma a partir do schema.prisma. É reproduzido por
+# `npx prisma generate` e mudaria a cada versão do Prisma, poluindo o
+# histórico com diferenças que ninguém escreveu.
+generated/
+
+# Dados de usuário: as fotos que o aplicativo envia do erval. São dados de
+# produção, não código.
+uploads/
+
+# Saídas de build do front
+dist/
+*.tsbuildinfo
+
+# Artefatos do Flutter
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+matech_app/android/local.properties
+matech_app/android/.gradle/
+matech_app/android/app/debug/
+matech_app/android/app/profile/
+matech_app/android/app/release/
+
+# Editores e sistema operacional
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Backups deixados durante o desenvolvimento
+*.bak
+_backup_*/
+
+# Documentação de terceiros baixada pelo CLI do Prisma. Não é código deste
+# trabalho, e são 40 arquivos que poluiriam qualquer busca no repositório.
+.agents/
+
+# Saídas de diagnóstico
+analise.txt
+npm-debug.log*
