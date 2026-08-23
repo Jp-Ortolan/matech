@@ -1,0 +1,131 @@
+/* ---------------------------------------------------------------------------
+   MATECH · estilos base
+   ---------------------------------------------------------------------------
+   Importa o Tailwind e define aqui as cores e medidas do sistema.
+
+   No Tailwind 4 o bloco @theme cria classes automaticamente: declarar
+   --color-mate-900 já libera bg-mate-900, text-mate-900, border-mate-900.
+   Assim as cores do protótipo viram utilitários, e ninguém precisa lembrar
+   código hexadecimal espalhado pelo código.
+--------------------------------------------------------------------------- */
+
+@import "tailwindcss";
+
+@theme {
+  /* Verdes da identidade — do menu escuro ao realce claro */
+  --color-mate-900: #0e2418;   /* menu lateral e fundo do login */
+  --color-mate-800: #16351f;   /* item ativo do menu */
+  --color-mate-700: #1b4d33;   /* botão primário, números em destaque */
+  --color-mate-500: #2e7d50;   /* acentos, barras de gráfico */
+  --color-mate-300: #73a987;   /* barras secundárias */
+  --color-mate-100: #e4eee8;   /* fundo de destaque suave */
+
+  /* Neutros — a maior parte da interface vive aqui */
+  --color-tinta:    #1f2422;   /* texto principal */
+  --color-cinza-600:#5a6360;   /* texto secundário */
+  --color-cinza-400:#8b938f;   /* rótulos e texto de apoio */
+  --color-borda:    #dfe3e1;   /* linhas de tabela e contorno */
+  --color-cabecalho:#f2f4f2;   /* fundo do cabeçalho de tabela */
+  --color-fundo:    #f5f6f5;   /* fundo da área de conteúdo */
+  --color-zebra:    #fcfdfc;   /* linha alternada da tabela */
+
+  /* Situações */
+  --color-alerta:   #b4740e;
+  --color-alerta-bg:#fdf6e3;
+  --color-perigo:   #a33028;
+  --color-perigo-bg:#f9e7e5;
+
+  /* TIPOGRAFIA
+     ----------------------------------------------------------------------
+     IBM Plex Sans, e não a fonte padrão de qualquer projeto novo.
+
+     A escolha tem motivo, e não é gosto: a Plex foi desenhada para produtos
+     técnicos e industriais, e traz duas coisas que este sistema usa o tempo
+     todo. Os algarismos têm largura fixa por natureza, o que faz colunas de
+     peso e de valor alinharem sem truque. E o '1', o 'l' e o 'I' são
+     desenhados diferentes entre si — numa tela de balança, confundir 1.180
+     com 1.l80 num ticket lido em voz alta é erro que custa dinheiro.
+
+     A companheira monoespaçada fica reservada aos números do ticket impresso,
+     onde o alinhamento vertical é o que permite conferir coluna a coluna.
+
+     As duas entram por pacote (@fontsource), e não por link do Google Fonts:
+     assim o sistema abre igual sem internet — o que importa numa indústria
+     onde a rede cai. A pilha de reserva existe para o caso de o pacote não
+     estar instalado ainda. */
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+}
+
+/* Cantos discretos: 3px em painéis, 2px em campos e botões.
+   É o que separa a aparência de ERP da aparência de site. */
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--color-fundo);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Números em tabela alinham melhor com largura fixa por dígito */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------------
+   IMPRESSÃO
+   ---------------------------------------------------------------------------
+   DOIS CASOS, e confundi-los foi um erro que custou a impressão de todas as
+   telas: enquanto a regra escondia tudo menos o ticket, um Ctrl+P em
+   Relatórios saía em branco.
+
+   1. COM UM TICKET ABERTO — só a via do motorista vai ao papel. Nada mais.
+   2. SEM TICKET — imprime a tela, tirando o menu, a barra superior e os
+      controles. É isto que responde ao "salvar o relatório em PDF": o
+      navegador já imprime para PDF, e o que faltava era a página sair limpa.
+
+   O :has() é o que permite distinguir os dois casos em CSS puro, sem precisar
+   de uma classe no <body> controlada por JavaScript — que teria de ser posta
+   e retirada em toda tela que imprime, e um dia alguém esqueceria. */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  /* --- caso 1: a via do motorista --- */
+  body:has(.ticket-impresso) * {
+    visibility: hidden;
+  }
+  body:has(.ticket-impresso) .ticket-impresso,
+  body:has(.ticket-impresso) .ticket-impresso * {
+    visibility: visible;
+  }
+  body:has(.ticket-impresso) .ticket-impresso {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+  }
+
+  /* --- caso 2: a tela, sem a moldura --- */
+  body:not(:has(.ticket-impresso)) [data-fora-da-impressao] {
+    display: none !important;
+  }
+
+  /* A área de conteúdo rola na tela; no papel ela precisa fluir por todas as
+     páginas, senão só a primeira dobra sai impressa. */
+  body:not(:has(.ticket-impresso)) main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  /* Uma tabela cortada no meio de uma linha é ilegível — e num relatório de
+     pagamento é pior que ilegível. */
+  tr,
+  .painel-impresso {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 12mm;
+  }
+}
