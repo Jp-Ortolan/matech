@@ -1,0 +1,142 @@
+### ---------------------------------------------------------------------------
+### MATECH · requisições da API
+### ---------------------------------------------------------------------------
+### Para usar este arquivo, instale a extensão "REST Client" no VS Code
+### (autor: Huachao Mao). Depois basta clicar no "Send Request" que aparece
+### acima de cada requisição — sem terminal, sem escapar aspas.
+###
+### A ordem importa: rode primeiro o login, porque ele guarda o token na
+### variável que as outras requisições usam.
+### ---------------------------------------------------------------------------
+
+@host = http://localhost:3000
+
+### 1. Saúde da API — confirma que o servidor e o banco respondem
+GET {{host}}/health
+
+### ---------------------------------------------------------------------------
+### AUTENTICAÇÃO
+### ---------------------------------------------------------------------------
+
+### 2. Login — RODE ESTE PRIMEIRO. Senha de todos no seed: matech123
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usuario": "rogerio.anselmo",
+  "senha": "matech123"
+}
+
+### Guarda o token da resposta acima para reutilizar abaixo
+@token = {{login.response.body.token}}
+
+### 3. Quem sou eu — devolve os dados de quem está com o token
+GET {{host}}/api/auth/eu
+Authorization: Bearer {{token}}
+
+### 4. Senha errada — deve responder 401 com mensagem genérica
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usuario": "rogerio.anselmo",
+  "senha": "senha-errada"
+}
+
+### ---------------------------------------------------------------------------
+### PRODUTORES · RF01 e RF02
+### ---------------------------------------------------------------------------
+
+### 5. Listar produtores
+GET {{host}}/api/produtores
+Authorization: Bearer {{token}}
+
+### 6. Sem token — deve responder 401. É a autenticação funcionando.
+GET {{host}}/api/produtores
+
+### 7. Buscar por nome ou documento
+GET {{host}}/api/produtores?busca=fontana
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------------------
+### CARGAS · RF06 a RF14
+### ---------------------------------------------------------------------------
+
+### 8. Histórico completo
+GET {{host}}/api/cargas
+Authorization: Bearer {{token}}
+
+### 9. Histórico filtrado por data — RF13
+GET {{host}}/api/cargas?de=2026-08-01&ate=2026-08-31
+Authorization: Bearer {{token}}
+
+### 10. Histórico filtrado por situação
+GET {{host}}/api/cargas?situacao=AGUARDANDO_ANALISE
+Authorization: Bearer {{token}}
+
+### 11. Registrar pesagem — RF06 a RF09
+### Troque produtorId por um id real, copiado da resposta da requisição 5.
+### O peso líquido e o número do ticket são calculados pelo servidor.
+POST {{host}}/api/cargas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "produtorId": "COLE_AQUI_O_ID_DE_UM_PRODUTOR",
+  "tipoMateriaPrima": "ERVA_MATE_NATIVA",
+  "pesoBrutoKg": 8420,
+  "taraKg": 1180,
+  "precoBaseKg": 4.85,
+  "pesoEstimadoCampoKg": 7500,
+  "observacoes": "Carga de teste registrada pela API"
+}
+
+### 12. Tara maior que o bruto — deve recusar com 400.
+### É a validação da regra de negócio respondendo.
+POST {{host}}/api/cargas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "produtorId": "COLE_AQUI_O_ID_DE_UM_PRODUTOR",
+  "tipoMateriaPrima": "LENHA",
+  "pesoBrutoKg": 1000,
+  "taraKg": 2000,
+  "precoBaseKg": 0.32
+}
+
+### 13. Memória de cálculo do pagamento — RF10
+### Troque o id pelo de uma carga vinda da requisição 8.
+GET {{host}}/api/cargas/COLE_AQUI_O_ID_DE_UMA_CARGA/calculo
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------------------
+### PERMISSÕES · RF15
+### ---------------------------------------------------------------------------
+
+### 14. Entrar como analista de qualidade
+# @name loginAnalista
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usuario": "cristiane.modesto",
+  "senha": "matech123"
+}
+
+@tokenAnalista = {{loginAnalista.response.body.token}}
+
+### 15. Analista tentando registrar pesagem — deve responder 403.
+### Só o operador de balança e o administrativo podem.
+POST {{host}}/api/cargas
+Authorization: Bearer {{tokenAnalista}}
+Content-Type: application/json
+
+{
+  "produtorId": "COLE_AQUI_O_ID_DE_UM_PRODUTOR",
+  "tipoMateriaPrima": "LENHA",
+  "pesoBrutoKg": 4000,
+  "taraKg": 980,
+  "precoBaseKg": 0.32
+}
