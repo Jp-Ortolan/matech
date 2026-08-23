@@ -1,0 +1,458 @@
+// Modelo de dados — Sistema de recebimento de matéria-prima (indústria ervateira)
+// TCC 2 · João Pedro Ortolan Pereira
+//
+// Cada bloco abaixo vira uma tabela no PostgreSQL.
+// As entidades saíram do protótipo no Figma e do levantamento feito na ervateira.
+
+// Gerador clássico: produz JavaScript puro dentro de node_modules,
+// importado por require('@prisma/client'). É o que combina com este projeto,
+// que é JavaScript e não TypeScript.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // No Prisma 7 a linha de conexão não fica mais aqui:
+  // para o CLI ela está em prisma.config.ts, e para a aplicação
+  // é passada ao PrismaClient por um adaptador (ver src/prisma.js).
+}
+
+// ---------------------------------------------------------------------------
+// LISTAS FIXAS (enums) — valores que o banco aceita nesses campos, e só eles.
+// Evita que alguém grave "nativa", "Nativa" e "NATIVA" como se fossem diferentes.
+// ---------------------------------------------------------------------------
+
+enum PerfilUsuario {
+  OPERADOR_BALANCA
+  ANALISTA_QUALIDADE
+  COMPRADOR_AVALIADOR
+  ADMINISTRATIVO
+}
+
+enum TipoErva {
+  PLANTADA
+  NATIVA
+}
+
+enum TipoMateriaPrima {
+  ERVA_MATE_PLANTADA
+  ERVA_MATE_NATIVA
+  PALITO
+  LENHA
+}
+
+enum GrauQueima {
+  NAO
+  EM_PARTE
+  SIM
+}
+
+enum Classificacao {
+  A
+  B
+  C
+}
+
+enum FormaPagamento {
+  PIX
+  CONTA_BANCARIA
+  /// Pagamento em espécie, no balcão. Existe porque na prática acontece —
+  /// produtor pequeno, entrega única, sem conta bancária. Omitir a opção não
+  /// faz o dinheiro deixar de circular: faz o sistema registrar mentira.
+  DINHEIRO
+}
+
+/// Corrente ou poupança muda o depósito: um número de conta poupança usado
+/// como corrente é devolvido pelo banco, e o produtor fica sem receber.
+enum TipoConta {
+  CORRENTE
+  POUPANCA
+}
+
+enum TipoChavePix {
+  CPF
+  TELEFONE
+  EMAIL
+  ALEATORIA
+}
+
+enum SituacaoCarga {
+  AGUARDANDO_ANALISE
+  ANALISADA
+  EM_ORDEM_PAGAMENTO
+  PAGA
+  REPROVADA
+}
+
+enum SituacaoOrdem {
+  PENDENTE
+  PAGA
+  CANCELADA
+}
+
+enum SituacaoSincronizacao {
+  PENDENTE
+  ENVIADO
+  ERRO
+}
+
+// ---------------------------------------------------------------------------
+// PESSOAS E ACESSO
+// ---------------------------------------------------------------------------
+
+/// Quem usa o sistema. RF15 e RNF04 — uso simultâneo por múltiplos usuários.
+model Usuario {
+  id           String        @id @default(uuid())
+  nome         String
+  usuario      String        @unique
+  email        String?       @unique
+  senhaHash    String
+  perfil       PerfilUsuario
+  ativo        Boolean       @default(true)
+  ultimoAcesso DateTime?
+  criadoEm     DateTime      @default(now())
+  atualizadoEm DateTime      @updatedAt
+
+  avaliacoes Avaliacao[]
+  pesagens   Carga[]
+  analises   AnaliseQualidade[]
+
+  @@map("usuarios")
+}
+
+/// Produtor ou fornecedor de matéria-prima. RF01 e RF02.
+/// Os dados de pagamento ficam aqui para que a ordem já saiba para onde pagar.
+model Produtor {
+  id       String  @id @default(uuid())
+  nome     String
+  cpfCnpj  String  @unique
+  telefone String?
+  cep      String? @db.Char(8)
+  endereco String?
+  bairro   String?
+  municipio String?
+  uf       String? @db.Char(2)
+
+  /// COMO ESTE PRODUTOR RECEBE.
+  /// Os campos abaixo são todos opcionais porque só um subconjunto vale por
+  /// vez: Pix usa tipoChavePix e chavePix; conta bancária usa banco, agência,
+  /// conta e tipoConta; dinheiro não usa nenhum. Modelar isso em três tabelas
+  /// separadas seria mais "correto" no papel e pior na prática — obrigaria
+  /// três junções para responder "para onde pago este produtor?", que é a
+  /// pergunta mais frequente do módulo financeiro.
+  formaPagamento FormaPagamento @default(PIX)
+  tipoChavePix   TipoChavePix?
+  chavePix       String?
+  titularConta   String?
+  banco          String?
+  agencia        String?
+  conta          String?
+  tipoConta      TipoConta?
+
+  /// Identificador gerado no celular quando o cadastro é feito em campo, sem conexão.
+  /// É o que impede o mesmo produtor de entrar duas vezes se o envio for repetido (RF17).
+  clientId       String?   @unique
+  criadoOffline  Boolean   @default(false)
+  sincronizadoEm DateTime?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  ervais           Erval[]
+  cargas           Carga[]
+  ordensPagamento  OrdemPagamento[]
+
+  @@map("produtores")
+}
+
+/// Área de onde a erva é colhida. RF03 e RF04 — tipo, quantidade estimada e localização.
+model Erval {
+  id                  String   @id @default(uuid())
+  produtorId          String
+  identificacao       String
+  tipoErva            TipoErva
+  quantidadeEstimadaKg Decimal? @db.Decimal(12, 2)
+  idadeAnos           Int?
+  latitude            Decimal? @db.Decimal(10, 7)
+  longitude           Decimal? @db.Decimal(10, 7)
+
+  clientId       String?   @unique
+  criadoOffline  Boolean   @default(false)
+  sincronizadoEm DateTime?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  produtor   Produtor    @relation(fields: [produtorId], references: [id])
+  avaliacoes Avaliacao[]
+  cargas     Carga[]
+
+  @@index([produtorId])
+  @@map("ervais")
+}
+
+/// Quem transporta a carga. O nome vai impresso no ticket de pesagem.
+model Motorista {
+  id          String    @id @default(uuid())
+  nome        String
+  cpf         String    @unique
+  telefone    String?
+  cnhCategoria String?
+  cnhValidade DateTime?
+  ativo       Boolean   @default(true)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  veiculos Veiculo[]
+  cargas   Carga[]
+
+  @@map("motoristas")
+}
+
+/// Guardar a tara aqui evita repesar o veículo vazio a cada entrega.
+model Veiculo {
+  id          String  @id @default(uuid())
+  motoristaId String
+  placa       String  @unique
+  tipo        String?
+  taraKg      Decimal? @db.Decimal(10, 2)
+  principal   Boolean @default(false)
+  ativo       Boolean @default(true)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  motorista Motorista @relation(fields: [motoristaId], references: [id])
+  cargas    Carga[]
+
+  @@index([motoristaId])
+  @@map("veiculos")
+}
+
+// ---------------------------------------------------------------------------
+// CAMPO — o que o aplicativo produz, com ou sem conexão
+// ---------------------------------------------------------------------------
+
+/// Avaliação da erva feita no erval, antes da colheita. RF05 e RF18.
+model Avaliacao {
+  id        String @id @default(uuid())
+  ervalId   String
+  usuarioId String
+
+  dataAvaliacao        DateTime
+  tipoErva             TipoErva
+  ervaQueimada         GrauQueima     @default(NAO)
+  idadeErvalAnos       Int?
+  quantidadeEstimadaKg Decimal?       @db.Decimal(12, 2)
+  classificacao        Classificacao?
+  umidadeEstimada      Decimal?       @db.Decimal(5, 2)
+  taloAparente         String?
+  /// Preço acertado com o produtor ainda no erval. Opcional.
+  valorCombinadoKg     Decimal?       @db.Decimal(10, 4)
+  latitude             Decimal?       @db.Decimal(10, 7)
+  longitude            Decimal?       @db.Decimal(10, 7)
+  observacoes          String?
+
+  /// Gerado no celular. Serve de chave de idempotência: se o mesmo registro
+  /// for enviado duas vezes, o servidor reconhece e não duplica.
+  clientId       String    @unique
+  criadoOffline  Boolean   @default(false)
+  /// Momento em que o registro foi alterado NO DISPOSITIVO. É este campo que
+  /// decide o vencedor na resolução de conflito por última escrita válida.
+  alteradoEmOrigem DateTime
+  sincronizadoEm DateTime?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  erval   Erval       @relation(fields: [ervalId], references: [id])
+  usuario Usuario     @relation(fields: [usuarioId], references: [id])
+  fotos   FotoErval[]
+  cargas  Carga[]
+
+  @@index([ervalId])
+  @@index([usuarioId])
+  @@map("avaliacoes")
+}
+
+/// Fotos tiradas no erval. Ficam em fila própria porque são pesadas e não podem
+/// atrasar o envio da avaliação em si.
+model FotoErval {
+  id          String @id @default(uuid())
+  avaliacaoId String
+
+  caminho      String
+  tamanhoBytes Int?
+  largura      Int?
+  altura       Int?
+
+  clientId       String    @unique
+  sincronizadoEm DateTime?
+  criadoEm       DateTime  @default(now())
+
+  avaliacao Avaliacao @relation(fields: [avaliacaoId], references: [id], onDelete: Cascade)
+
+  @@index([avaliacaoId])
+  @@map("fotos_erval")
+}
+
+// ---------------------------------------------------------------------------
+// PÁTIO — pesagem, qualidade e pagamento
+// ---------------------------------------------------------------------------
+
+/// Uma entrega pesada na balança da empresa. RF06 a RF09.
+/// O número do ticket é o que sai impresso para o motorista.
+model Carga {
+  id           String @id @default(uuid())
+  numeroTicket String @unique
+
+  produtorId  String
+  ervalId     String?
+  motoristaId String?
+  veiculoId   String?
+  usuarioId   String
+  avaliacaoId String?
+
+  dataHora         DateTime         @default(now())
+  tipoMateriaPrima TipoMateriaPrima
+
+  pesoBrutoKg        Decimal  @db.Decimal(12, 2)
+  taraKg             Decimal  @db.Decimal(12, 2)
+  /// Bruto menos tara. Guardado calculado para não recalcular em toda consulta.
+  pesoLiquidoKg      Decimal  @db.Decimal(12, 2)
+  /// Quanto o avaliador tinha estimado em campo — permite medir a acurácia da estimativa.
+  pesoEstimadoCampoKg Decimal? @db.Decimal(12, 2)
+
+  /// Preço antes do desconto por qualidade.
+  precoBaseKg Decimal @db.Decimal(10, 4)
+
+  situacao  SituacaoCarga @default(AGUARDANDO_ANALISE)
+  observacoes String?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  produtor  Produtor   @relation(fields: [produtorId], references: [id])
+  erval     Erval?     @relation(fields: [ervalId], references: [id])
+  motorista Motorista? @relation(fields: [motoristaId], references: [id])
+  veiculo   Veiculo?   @relation(fields: [veiculoId], references: [id])
+  usuario   Usuario    @relation(fields: [usuarioId], references: [id])
+  avaliacao Avaliacao? @relation(fields: [avaliacaoId], references: [id])
+
+  analise    AnaliseQualidade?
+  itemOrdem  ItemOrdemPagamento?
+
+  @@index([produtorId])
+  @@index([dataHora])
+  @@index([situacao])
+  @@map("cargas")
+}
+
+/// Análise feita no laboratório, na chegada da carga.
+/// O percentual de palito é o que ajusta o preço por quilo.
+model AnaliseQualidade {
+  id        String @id @default(uuid())
+  cargaId   String @unique
+  usuarioId String
+
+  dataHora           DateTime @default(now())
+  palitoPercentual   Decimal  @db.Decimal(5, 2)
+  umidadePercentual  Decimal? @db.Decimal(5, 2)
+  folhaPercentual    Decimal? @db.Decimal(5, 2)
+  observacoes        String?
+
+  /// Regra de negócio a confirmar com a ervateira: acima do limite de palito,
+  /// cada ponto percentual excedente gera desconto sobre o preço.
+  limitePalito       Decimal  @db.Decimal(5, 2) @default(30.00)
+  descontoPercentual Decimal  @db.Decimal(5, 2) @default(0)
+  /// Preço base menos o desconto. É o valor que efetivamente multiplica o peso.
+  precoAjustadoKg    Decimal  @db.Decimal(10, 4)
+  valorTotal         Decimal  @db.Decimal(12, 2)
+  aprovada           Boolean  @default(true)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  carga   Carga   @relation(fields: [cargaId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("analises_qualidade")
+}
+
+/// Ordem de pagamento de um produtor, agrupando as cargas de um período. RF11.
+model OrdemPagamento {
+  id         String @id @default(uuid())
+  numero     String @unique
+  produtorId String
+
+  periodoInicio DateTime
+  periodoFim    DateTime
+  valorTotal    Decimal       @db.Decimal(14, 2)
+  situacao      SituacaoOrdem @default(PENDENTE)
+
+  /// Cópia da chave no momento da emissão: se o produtor trocar de chave depois,
+  /// a ordem antiga continua mostrando para onde o dinheiro realmente foi.
+  chavePixSnapshot String?
+
+  emitidaEm DateTime  @default(now())
+  pagaEm    DateTime?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  produtor Produtor             @relation(fields: [produtorId], references: [id])
+  itens    ItemOrdemPagamento[]
+
+  @@index([produtorId])
+  @@map("ordens_pagamento")
+}
+
+/// Liga uma carga a uma ordem. Uma carga só pode estar em uma ordem.
+model ItemOrdemPagamento {
+  id      String @id @default(uuid())
+  ordemId String
+  cargaId String @unique
+
+  pesoLiquidoKg Decimal @db.Decimal(12, 2)
+  precoKg       Decimal @db.Decimal(10, 4)
+  valor         Decimal @db.Decimal(12, 2)
+
+  ordem OrdemPagamento @relation(fields: [ordemId], references: [id], onDelete: Cascade)
+  carga Carga          @relation(fields: [cargaId], references: [id])
+
+  @@index([ordemId])
+  @@map("itens_ordem_pagamento")
+}
+
+// ---------------------------------------------------------------------------
+// SINCRONIZAÇÃO — a evidência que sustenta o indicador do Quadro 7
+// ---------------------------------------------------------------------------
+
+/// Registro, no servidor, de cada operação recebida do aplicativo.
+/// É daqui que sai a taxa de sincronização: enviados com sucesso ÷ total coletado offline.
+model RegistroSincronizacao {
+  id           String @id @default(uuid())
+  dispositivoId String
+  usuarioId    String?
+
+  entidade  String
+  operacao  String
+  clientId  String @unique
+  payload   Json?
+
+  situacao      SituacaoSincronizacao @default(PENDENTE)
+  tentativas    Int                   @default(0)
+  erroMensagem  String?
+  houveConflito Boolean               @default(false)
+  versaoVencedora String?
+
+  criadoEmOrigem DateTime
+  recebidoEm     DateTime  @default(now())
+  confirmadoEm   DateTime?
+
+  @@index([dispositivoId])
+  @@index([situacao])
+  @@map("registros_sincronizacao")
+}
