@@ -1,0 +1,321 @@
+// ---------------------------------------------------------------------------
+// PÁGINA · avaliações de campo
+// ---------------------------------------------------------------------------
+// O que o aplicativo coletou no erval, visto do escritório.
+//
+// Esta tela é a outra metade do trabalho. Sem ela, a única forma de conferir
+// uma sincronização seria abrir o banco de dados — e o diferencial do sistema,
+// que é a coleta em campo funcionando sem conexão, ficaria invisível para
+// quem usa. O que não aparece na tela, para a empresa, não existe.
+//
+// Duas metades, como na tela de análise: a lista à esquerda, o detalhe à
+// direita. A foto ocupa espaço de propósito — ela é a prova do que o avaliador
+// viu, e uma miniatura de 40 pixels não prova nada sobre folha, talo ou queima.
+
+import { useCallback, useEffect, useState } from 'react'
+import { avaliacoesCampo, produtores as apiProdutores } from '../api/recursos'
+import { CabecalhoPagina } from '../componentes/Layout'
+import {
+  Painel, Tabela, Indicador, Campo, Selecao, Botao, Etiqueta, LinhaDado,
+  Carregando, Erro, Vazio, Aviso, formatar,
+} from '../componentes/ui'
+
+const ROTULO_ERVA = { NATIVA: 'Nativa', PLANTADA: 'Plantada' }
+const ROTULO_QUEIMA = { NAO: 'Sem queima', EM_PARTE: 'Queimada em parte', SIM: 'Queimada' }
+
+export default function CampoPagina() {
+  const [filtros, setFiltros] = useState({ produtorId: '', de: '', ate: '', comFoto: '' })
+  const [dados, setDados] = useState(null)
+  const [listaProdutores, setListaProdutores] = useState([])
+  const [selecionada, setSelecionada] = useState(null)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState(null)
+
+  const buscar = useCallback(async () => {
+    setCarregando(true)
+    setErro(null)
+    try {
+      setDados(await avaliacoesCampo.listar({ ...filtros, porPagina: 100 }))
+    } catch (e) {
+      setErro(e)
+    } finally {
+      setCarregando(false)
+    }
+  }, [filtros])
+
+  useEffect(() => { buscar() }, [buscar])
+
+  useEffect(() => {
+    apiProdutores.listar().then((r) => setListaProdutores(r.produtores)).catch(() => {})
+  }, [])
+
+  async function abrir(linha) {
+    // Busca o detalhe em vez de reaproveitar a linha da lista: o detalhe traz
+    // as cargas que nasceram desta avaliação, que a listagem não carrega.
+    setSelecionada(await avaliacoesCampo.buscar(linha.id))
+  }
+
+  if (erro) return <Erro erro={erro} />
+
+  return (
+    <>
+      <CabecalhoPagina
+        titulo="Avaliações de campo"
+        subtitulo="O que o aplicativo coletou no erval, com foto e coordenada"
+      >
+        <Botao onClick={buscar}>Atualizar</Botao>
+      </CabecalhoPagina>
+
+      <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Indicador rotulo="Avaliações" valor={dados?.total ?? '—'} apoio="no período" />
+        <Indicador
+          rotulo="Coletadas offline"
+          valor={dados?.coletadasEmCampo ?? '—'}
+          apoio="sem conexão no erval"
+          cor="text-mate-700"
+        />
+        <Indicador rotulo="Com foto" valor={dados?.comFotos ?? '—'} apoio="prova visual" />
+        <Indicador
+          rotulo="Com coordenada"
+          valor={dados ? dados.avaliacoes.filter((a) => a.latitude != null).length : '—'}
+          apoio="GPS registrado"
+        />
+      </div>
+
+      <Painel titulo="Filtros" className="mb-3">
+        <div className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-4">
+          <Selecao
+            rotulo="Produtor"
+            value={filtros.produtorId}
+            onChange={(e) => setFiltros({ ...filtros, produtorId: e.target.value })}
+          >
+            <option value="">Todos</option>
+            {listaProdutores.map((p) => (
+              <option key={p.id} value={p.id}>{p.nome}</option>
+            ))}
+          </Selecao>
+          <Campo
+            rotulo="De"
+            type="date"
+            value={filtros.de}
+            onChange={(e) => setFiltros({ ...filtros, de: e.target.value })}
+          />
+          <Campo
+            rotulo="Até"
+            type="date"
+            value={filtros.ate}
+            onChange={(e) => setFiltros({ ...filtros, ate: e.target.value })}
+          />
+          <Selecao
+            rotulo="Fotos"
+            value={filtros.comFoto}
+            onChange={(e) => setFiltros({ ...filtros, comFoto: e.target.value })}
+          >
+            <option value="">Todas</option>
+            <option value="true">Somente com foto</option>
+          </Selecao>
+        </div>
+      </Painel>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_1fr]">
+        <Painel titulo="Coletadas" acao={`${dados?.avaliacoes.length ?? 0} na lista`}>
+          {carregando ? (
+            <Carregando />
+          ) : (
+            <Tabela
+              colunas={[
+                { chave: 'dataAvaliacao', titulo: 'Data', render: (a) => formatar.dataHora(a.dataAvaliacao) },
+                { chave: 'produtor', titulo: 'Produtor', forte: true, render: (a) => a.erval?.produtor?.nome },
+                { chave: 'erval', titulo: 'Área', render: (a) => a.erval?.identificacao },
+                { chave: 'tipoErva', titulo: 'Erva', render: (a) => ROTULO_ERVA[a.tipoErva] || a.tipoErva },
+                { chave: 'quantidade', titulo: 'Estimado', render: (a) => formatar.kg(a.quantidadeEstimadaKg) },
+                {
+                  chave: 'prova',
+                  titulo: 'Prova',
+                  render: (a) => (
+                    <span className="flex gap-1">
+                      {a.fotos?.length > 0 && <Etiqueta tom="verde">{a.fotos.length} foto{a.fotos.length > 1 ? 's' : ''}</Etiqueta>}
+                      {a.latitude != null && <Etiqueta>GPS</Etiqueta>}
+                      {a.criadoOffline && <Etiqueta tom="alerta">offline</Etiqueta>}
+                    </span>
+                  ),
+                },
+                {
+                  chave: 'abrir',
+                  titulo: '',
+                  largura: '60px',
+                  alinhar: 'direita',
+                  render: (a) => (
+                    <button
+                      onClick={() => abrir(a)}
+                      className={`text-[10px] font-semibold uppercase tracking-wide ${
+                        selecionada?.id === a.id ? 'text-mate-700' : 'text-cinza-400 hover:text-mate-700'
+                      }`}
+                    >
+                      {selecionada?.id === a.id ? 'aberta' : 'abrir'}
+                    </button>
+                  ),
+                },
+              ]}
+              dados={dados?.avaliacoes ?? []}
+              vazio="Nenhuma avaliação de campo neste período. Se o aplicativo coletou, confira a tela de Sincronização."
+            />
+          )}
+        </Painel>
+
+        {selecionada ? (
+          <Detalhe avaliacao={selecionada} />
+        ) : (
+          <Painel titulo="Detalhe">
+            <Vazio texto="Escolha uma avaliação na lista para ver as fotos e a coordenada." />
+          </Painel>
+        )}
+      </div>
+    </>
+  )
+}
+
+function Detalhe({ avaliacao: a }) {
+  const s = a.sincronizacao
+
+  return (
+    <div className="space-y-3">
+      <Painel
+        titulo={a.erval?.produtor?.nome ?? 'Avaliação'}
+        acao={formatar.dataHora(a.dataAvaliacao)}
+      >
+        <div className="grid grid-cols-2 gap-3 px-4 py-3 md:grid-cols-3">
+          <LinhaDado rotulo="Área" valor={a.erval?.identificacao} />
+          <LinhaDado rotulo="Tipo de erva" valor={ROTULO_ERVA[a.tipoErva] || a.tipoErva} />
+          <LinhaDado rotulo="Erva queimada" valor={ROTULO_QUEIMA[a.ervaQueimada] || a.ervaQueimada} />
+          <LinhaDado rotulo="Quantidade estimada" valor={formatar.kg(a.quantidadeEstimadaKg)} />
+          <LinhaDado rotulo="Idade do erval" valor={a.idadeErvalAnos ? `${a.idadeErvalAnos} anos` : null} />
+          <LinhaDado
+            rotulo="Valor combinado"
+            valor={a.valorCombinadoKg ? `${formatar.reais(a.valorCombinadoKg)}/kg` : null}
+          />
+          <LinhaDado rotulo="Avaliador" valor={a.usuario?.nome} className="col-span-2" />
+          <LinhaDado
+            rotulo="Coordenada"
+            valor={a.latitude != null ? `${Number(a.latitude).toFixed(6)}, ${Number(a.longitude).toFixed(6)}` : null}
+          />
+        </div>
+
+        {a.observacoes && (
+          <div className="border-t border-borda px-4 py-3">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">Observações</p>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-tinta">{a.observacoes}</p>
+          </div>
+        )}
+      </Painel>
+
+      <Fotos fotos={a.fotos ?? []} />
+
+      {/* A procedência do registro. É o que diferencia esta tela de um CRUD:
+          aqui se vê não só o dado, mas COMO ele chegou. */}
+      <Painel titulo="Procedência">
+        <div className="grid grid-cols-2 gap-3 px-4 py-3 md:grid-cols-3">
+          <LinhaDado
+            rotulo="Origem"
+            valor={a.criadoOffline ? 'Coletada sem conexão' : 'Coletada com conexão'}
+          />
+          <LinhaDado rotulo="Aparelho" valor={s?.dispositivoId} />
+          <LinhaDado rotulo="Alterada no aparelho" valor={formatar.dataHora(a.alteradoEmOrigem)} />
+          <LinhaDado rotulo="Recebida no servidor" valor={formatar.dataHora(a.sincronizadoEm)} />
+          <LinhaDado rotulo="Tentativas de envio" valor={s?.tentativas} />
+          <LinhaDado
+            rotulo="Houve conflito"
+            valor={s ? (s.houveConflito ? `sim · venceu o ${s.versaoVencedora}` : 'não') : null}
+          />
+        </div>
+
+        {a.alteradoEmOrigem && a.sincronizadoEm && (
+          <div className="border-t border-borda px-4 py-3">
+            <Aviso>
+              A avaliação foi alterada no aparelho às{' '}
+              <strong>{formatar.dataHora(a.alteradoEmOrigem)}</strong> e só chegou ao
+              servidor às <strong>{formatar.dataHora(a.sincronizadoEm)}</strong>. É essa
+              diferença que a sincronização precisa tratar — e é o primeiro carimbo, o do
+              aparelho, que decide quem vence um conflito.
+            </Aviso>
+          </div>
+        )}
+      </Painel>
+
+      {a.cargas?.length > 0 && (
+        <Painel titulo="Virou carga na balança">
+          <Tabela
+            colunas={[
+              { chave: 'numeroTicket', titulo: 'Ticket', forte: true },
+              { chave: 'dataHora', titulo: 'Data', render: (c) => formatar.dataHora(c.dataHora) },
+              { chave: 'estimado', titulo: 'Estimado', render: () => formatar.kg(a.quantidadeEstimadaKg) },
+              { chave: 'real', titulo: 'Pesado', render: (c) => formatar.kg(c.pesoLiquidoKg) },
+              {
+                chave: 'erro',
+                titulo: 'Diferença',
+                render: (c) => {
+                  if (!a.quantidadeEstimadaKg) return '—'
+                  const estimado = Number(a.quantidadeEstimadaKg)
+                  const real = Number(c.pesoLiquidoKg)
+                  const desvio = ((real - estimado) / estimado) * 100
+                  return (
+                    <span className={Math.abs(desvio) > 15 ? 'text-perigo' : 'text-mate-700'}>
+                      {desvio > 0 ? '+' : ''}{desvio.toFixed(1)}%
+                    </span>
+                  )
+                },
+              },
+            ]}
+            dados={a.cargas}
+          />
+          <div className="border-t border-borda px-4 py-3">
+            <Aviso>
+              A diferença entre o que foi estimado no erval e o que a balança pesou é o
+              indicador de acurácia da avaliação em campo do Quadro 9.
+            </Aviso>
+          </div>
+        </Painel>
+      )}
+    </div>
+  )
+}
+
+/**
+ * As fotos, em tamanho que dá para julgar.
+ *
+ * Abrem em nova aba no clique. Não há visualizador embutido de propósito: o
+ * navegador já faz zoom, rotação e download melhor do que qualquer coisa que
+ * eu escrevesse aqui, e uma tela de TCC não precisa reinventar isso.
+ */
+function Fotos({ fotos }) {
+  if (fotos.length === 0) {
+    return (
+      <Painel titulo="Fotos">
+        <Vazio texto="Esta avaliação não tem fotos." />
+      </Painel>
+    )
+  }
+
+  return (
+    <Painel titulo="Fotos" acao={`${fotos.length} enviada${fotos.length > 1 ? 's' : ''} do erval`}>
+      <div className="flex flex-wrap gap-2 px-4 py-3">
+        {fotos.map((f) => (
+          <a
+            key={f.id}
+            href={`/uploads/${f.caminho}`}
+            target="_blank"
+            rel="noreferrer"
+            className="block border border-borda hover:border-mate-500"
+          >
+            <img
+              src={`/uploads/${f.caminho}`}
+              alt="Foto do erval"
+              className="h-[132px] w-[132px] object-cover"
+              loading="lazy"
+            />
+          </a>
+        ))}
+      </div>
+    </Painel>
+  )
+}
