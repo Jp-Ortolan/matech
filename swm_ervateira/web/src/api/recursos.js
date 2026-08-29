@@ -55,7 +55,6 @@ export const produtores = {
   buscar: (id) => api.get(`/api/produtores/${id}`),
   // O dado pessoal em claro. Vem mascarado em listar e buscar; esta rota é o
   // pedido explícito, e o servidor devolve apenas o que o perfil pode ver.
-  sigilosos: (id) => api.get(`/api/produtores/${id}/sigilosos`),
   criar: (dados) => api.post('/api/produtores', dados),
   atualizar: (id, dados) => api.put(`/api/produtores/${id}`, dados),
 }
@@ -94,6 +93,14 @@ export const sincronizacao = {
   registros: (filtros = {}) => api.get('/api/sincronizacao/registros' + montarQuery(filtros)),
 }
 
+// ---------------------------- auditoria -------------------------------
+// Só leitura, porque a API só oferece leitura: o log cresce a partir das
+// operações reais, e não de alguém escrevendo nele.
+export const auditoria = {
+  listar: (filtros = {}) => api.get('/api/auditoria' + montarQuery(filtros)),
+  autores: () => api.get('/api/auditoria/autores'),
+}
+
 // ---------------------------- qualidade -------------------------------
 export const qualidade = {
   fila: () => api.get('/api/qualidade/fila'),
@@ -102,6 +109,10 @@ export const qualidade = {
 
 // ---------------------------- pagamentos ------------------------------
 export const pagamentos = {
+  // Tudo que está esperando precificação, de todos os produtores de uma vez.
+  // Sem filtro nenhum: a pergunta de quem abre a tela é 'quem está esperando
+  // pagamento?', e ela não se responde escolhendo um produtor por vez.
+  aguardando: () => api.get('/api/pagamentos/aguardando'),
   // O que entraria na ordem, antes de emitir. É a tela que permite informar o
   // preço olhando para a carga concreta em vez de digitar no escuro.
   previa: (filtros) => api.get('/api/pagamentos/previa' + montarQuery(filtros)),
@@ -117,6 +128,14 @@ export const pagamentos = {
 export const parametros = {
   qualidade: () => api.get('/api/parametros/qualidade'),
   salvarQualidade: (dados) => api.put('/api/parametros/qualidade', dados),
+}
+
+// ------------------------------- painel --------------------------------
+// UMA rota para a tela inteira. Antes o painel montava os números com sete
+// requisições e somava 500 linhas no navegador — e passava a mentir a partir
+// da carga 501. Agora quem soma é o banco.
+export const dashboard = {
+  carregar: () => api.get('/api/dashboard'),
 }
 
 // ------------------------------ sistema -------------------------------

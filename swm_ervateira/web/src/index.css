@@ -12,10 +12,29 @@
 @import "tailwindcss";
 
 @theme {
-  /* Verdes da identidade — do menu escuro ao realce claro */
-  --color-mate-900: #0e2418;   /* menu lateral e fundo do login */
-  --color-mate-800: #16351f;   /* item ativo do menu */
-  --color-mate-700: #1b4d33;   /* botão primário, números em destaque */
+  /* VERDE — quatro trabalhos ao mesmo tempo era um a mais que a conta
+     ----------------------------------------------------------------------
+     A barra lateral inteira era verde-escura, o botão primário era verde, os
+     números em destaque eram verdes e três situações de carga eram verdes.
+     Quando tudo é destaque, nada é: o botão que a pessoa precisa apertar
+     tinha exatamente o mesmo peso que a moldura em volta dele.
+
+     Agora o verde forte responde por duas coisas, e só por elas: a AÇÃO
+     PRIMÁRIA e o ITEM ATIVO do menu — ou seja, "aperte aqui" e "você está
+     aqui". Os números voltaram a ser da cor do texto, e as situações ganharam
+     cores próprias (ver mais abaixo).
+
+     A barra lateral foi para um tom quase neutro. Não perde identidade: o
+     verde continua no ícone da marca, no item ativo e em cada botão primário
+     da tela — que é onde ele é lido como intenção, e não como papel de
+     parede. */
+  --color-barra-900: #1c211f;  /* menu lateral e fundo do login */
+  --color-barra-800: #2a312e;  /* item ativo do menu */
+
+  /* Verdes da identidade */
+  --color-mate-900: #0e2418;   /* verde profundo, reservado à marca */
+  --color-mate-800: #16351f;
+  --color-mate-700: #1b4d33;   /* botão primário e item ativo */
   --color-mate-500: #2e7d50;   /* acentos, barras de gráfico */
   --color-mate-300: #73a987;   /* barras secundárias */
   --color-mate-100: #e4eee8;   /* fundo de destaque suave */
@@ -29,7 +48,22 @@
   --color-fundo:    #f5f6f5;   /* fundo da área de conteúdo */
   --color-zebra:    #fcfdfc;   /* linha alternada da tabela */
 
-  /* Situações */
+  /* SITUAÇÕES
+     ----------------------------------------------------------------------
+     Uma cor por estado, e não uma cor por severidade.
+
+     Antes havia só âmbar e vermelho, e tudo o mais era verde — então
+     "Analisada", "Em ordem" e "Paga" saíam iguais na tela. Três estados
+     diferentes com a mesma cara não é economia de paleta, é informação
+     perdida: de longe o operador não distinguia o que já virou dinheiro do
+     que ainda está para virar.
+
+     O azul entra exatamente para isso. Ele não significa "atenção" nem
+     "sucesso" — significa "passou pelo laboratório", que é um fato do
+     processo, não um julgamento. Guardar o verde para o fim da linha é o que
+     devolve sentido ao verde. */
+  --color-analise:   #245b7d;
+  --color-analise-bg:#e8f0f5;
   --color-alerta:   #b4740e;
   --color-alerta-bg:#fdf6e3;
   --color-perigo:   #a33028;
@@ -71,6 +105,48 @@ body {
 
 /* Números em tabela alinham melhor com largura fixa por dígito */
 .tabular { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------------
+   TABLET · 600px a 1024px
+   ---------------------------------------------------------------------------
+   A faixa que o sistema não tinha. O layout ia de "coluna única de celular"
+   direto para "duas colunas de estação de trabalho" em 1280px — e um tablet de
+   900px, que é o que se usa em pé no galpão, caía no primeiro caso e ficava
+   com uma tela alta e vazia dos lados.
+
+   O que muda aqui NÃO é largura de coluna: isso o Tailwind resolve com lg: nos
+   próprios componentes. O que muda é o TAMANHO DO ALVO.
+
+   Numa tela de toque não existe ponteiro de um pixel. As linhas de tabela e os
+   botões desta interface foram medidos para o mouse — 28 a 30 pixels de altura,
+   que num dedo dá o toque na linha errada, que aqui significa abrir o ticket da
+   carga errada com o motorista esperando.
+
+   A regra é `pointer: coarse`, e não uma faixa de largura, porque o que importa
+   é o dedo e não o tamanho da tela: um notebook com tela sensível ao toque
+   ganha a mesma folga, e um monitor de 900px ligado a um mouse continua
+   compacto. Os 44 pixels são a recomendação da WCAG 2.2 para alvo de toque. */
+@media (pointer: coarse) {
+  /* Linha de tabela clicável e botões de paginação. */
+  tbody tr[class*="cursor-pointer"] td {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+  }
+
+  button,
+  a[class*="Botao"],
+  [role="tab"] {
+    min-height: 44px;
+  }
+
+  /* Os campos de formulário também: digitar peso de caminhão num campo de
+     30px com o dedo é onde nascem as pesagens com um zero a mais. */
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+}
 
 /* ---------------------------------------------------------------------------
    IMPRESSÃO

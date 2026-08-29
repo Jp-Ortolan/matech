@@ -32,12 +32,14 @@ import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import TicketPesagem from '../componentes/TicketPesagem'
 import {
-  Painel, Filtros, Tabela, Situacao, Campo, Selecao, Botao,
+  Painel, Filtros, Tabela, Paginacao, Campo, Selecao, Botao,
   Carregando, Erro, Aviso, LinhaDado
 } from '../componentes/ui'
 import { mascararPlaca, mascararDocumento, erroNoCpf, erroNaPlaca } from '../lib/documentos'
 import { formatar } from '../lib/formatar'
-import { motivoResumido } from '../lib/reprovacao'
+import { ICONE_DA_ACAO, SITUACAO } from '../lib/icones'
+import { colunasDeCargas } from '../componentes/tabelas'
+import { resumirFiltros, nomeNaLista } from '../lib/filtros'
 
 export default function Recebimento() {
   const { podeFazer } = useAutenticacao()
@@ -47,6 +49,12 @@ export default function Recebimento() {
   const veDinheiro = podeFazer('ADMINISTRATIVO')
 
   const [filtros, setFiltros] = useState({ busca: '', de: '', ate: '', produtorId: '', situacao: '' })
+  // A página fica FORA de `filtros` de propósito: mudar um filtro tem de
+  // voltar para a primeira página, e mudar de página não pode reabrir a busca
+  // do zero. Guardados juntos, um mexeria no outro sem querer — e o caso
+  // clássico é filtrar estando na página 7 e receber uma tabela vazia, porque
+  // o resultado novo tem duas páginas.
+  const [pagina, setPagina] = useState(1)
   const [dados, setDados] = useState(null)
   const [listaProdutores, setListaProdutores] = useState([])
   const [listaMotoristas, setListaMotoristas] = useState([])
@@ -65,13 +73,13 @@ export default function Recebimento() {
     setCarregando(true)
     setErro(null)
     try {
-      setDados(await apiCargas.listar(filtros))
+      setDados(await apiCargas.listar({ ...filtros, pagina }))
     } catch (e) {
       setErro(e)
     } finally {
       setCarregando(false)
     }
-  }, [filtros])
+  }, [filtros, pagina])
 
   useEffect(() => { buscar() }, [buscar])
 
@@ -100,6 +108,7 @@ export default function Recebimento() {
 
   function alterar(campo, valor) {
     setFiltros((f) => ({ ...f, [campo]: valor }))
+    setPagina(1)
   }
 
   return (
@@ -109,6 +118,7 @@ export default function Recebimento() {
           <Botao
             variante="primario"
             onClick={() => { setConfirmacao(null); setMostrarForm((v) => !v) }}
+            icone={mostrarForm ? ICONE_DA_ACAO.limpar : ICONE_DA_ACAO.registrar}
           >
             {mostrarForm ? 'Fechar' : 'Registrar pesagem'}
           </Botao>
@@ -121,7 +131,7 @@ export default function Recebimento() {
           diluído numa linha de tabela. */}
       {confirmacao && (
         <Painel
-          className="mb-3"
+          className="mb-6"
           titulo="Pesagem registrada"
           acao={
             <span className="flex flex-wrap gap-2 xl:gap-3">
@@ -139,7 +149,7 @@ export default function Recebimento() {
         >
           <div className="flex flex-wrap items-center gap-5 bg-mate-100 px-4 py-3">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wide text-mate-700">
+              <p className="text-[11px] font-semibold text-mate-700">
                 Número do ticket
               </p>
               <p className="text-2xl font-bold tabular text-mate-700">{confirmacao.numeroTicket}</p>
@@ -162,16 +172,27 @@ export default function Recebimento() {
       )}
 
       {/* barra de filtros — RF13 e RF14 */}
-      <Filtros>
-        {/* Primeiro campo da barra, e o mais largo, porque é o que se usa com
-            pressa: alguém liga perguntando por uma carga e tem na mão ou o
-            papel do ticket, ou o nome do produtor. Uma caixa só atende as
-            duas — a rota procura nos dois campos. */}
-        <Campo
-          rotulo="Ticket ou produtor" className="min-w-[200px] flex-[2]"
-          placeholder="PES-2026-01184 ou José"
-          value={filtros.busca} onChange={(e) => alterar('busca', e.target.value)}
-        />
+      <Filtros
+        /* A busca fica FORA do painel, sempre na tela. Alguém liga
+           perguntando por uma carga com o papel do ticket na mão; obrigar a
+           abrir um painel antes de digitar seria um clique cobrado em toda
+           ligação. Filtro se abre, busca se usa. */
+        busca={(
+          <Campo
+            rotulo="Ticket ou produtor" className="min-w-[220px] flex-1 max-w-[340px]"
+            placeholder="PES-2026-01184 ou José"
+            value={filtros.busca} onChange={(e) => alterar('busca', e.target.value)}
+          />
+        )}
+        ativos={resumirFiltros(filtros, {
+          de: (v) => `De ${formatar.data(v)}`,
+          ate: (v) => `Até ${formatar.data(v)}`,
+          produtorId: (v) => nomeNaLista(listaProdutores, v),
+          situacao: (v) => SITUACAO[v]?.rotulo ?? v,
+        })}
+        aoRemover={(chave) => alterar(chave, '')}
+        aoLimpar={() => setFiltros({ busca: filtros.busca, de: '', ate: '', produtorId: '', situacao: '' })}
+      >
         <Campo rotulo="De" type="date" className="flex-1" value={filtros.de} onChange={(e) => alterar('de', e.target.value)} />
         <Campo rotulo="Até" type="date" className="flex-1" value={filtros.ate} onChange={(e) => alterar('ate', e.target.value)} />
         <Selecao rotulo="Produtor" className="flex-[2]" value={filtros.produtorId} onChange={(e) => alterar('produtorId', e.target.value)}>
@@ -186,7 +207,6 @@ export default function Recebimento() {
           <option value="PAGA">Paga</option>
           <option value="REPROVADA">Reprovada</option>
         </Selecao>
-        <Botao onClick={() => setFiltros({ busca: '', de: '', ate: '', produtorId: '', situacao: '' })}>Limpar</Botao>
       </Filtros>
 
       <Erro erro={erro} />
@@ -200,48 +220,29 @@ export default function Recebimento() {
         </div>
       )}
 
-      <Painel titulo="Cargas recebidas" acao={carregando ? 'buscando...' : `${dados?.total ?? 0} no total`}>
+      <Painel titulo="Cargas recebidas" acao={carregando ? 'buscando...' : `${formatar.numero(dados?.total ?? 0)} no total`}>
         {carregando ? (
           <Carregando />
         ) : (
+          <>
           <Tabela
-            colunas={[
-              { chave: 'numeroTicket', titulo: 'Ticket', forte: true },
-              { chave: 'dataHora', titulo: 'Data', render: (c) => formatar.dataHora(c.dataHora) },
-              { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 200, render: (c) => c.produtor?.nome },
-              { chave: 'tipo', titulo: 'Matéria-prima', render: (c) => formatar.materiaPrima(c.tipoMateriaPrima) },
-              { chave: 'motorista', titulo: 'Motorista', truncar: 140, oculta: 'xl', render: (c) => c.motorista?.nome || '—' },
-              { chave: 'liquido', titulo: 'Peso líquido', alinhar: 'direita', forte: true, render: (c) => formatar.kg(c.pesoLiquidoKg) },
-              ...(veDinheiro
-                ? [{ chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise?.valorTotal) }]
-                : []),
-              { chave: 'situacao', titulo: 'Situação', render: (c) => <Situacao valor={c.situacao} /> },
-              {
-                // O motivo da reprovação viaja junto da carga, e é a resposta à
-                // pergunta que o produtor faz no telefone. Vazio nas demais.
-                chave: 'motivo', titulo: 'Motivo', truncar: 220, oculta: 'xl',
-                render: (c) => (c.analise?.aprovada === false
-                  ? <span className="text-perigo">{motivoResumido(c.analise)}</span>
-                  : '—'),
-              },
-              {
-                chave: 'via',
-                titulo: '',
-                largura: '58px',
-                alinhar: 'direita',
-                render: (c) => (
-                  <button
-                    onClick={() => setTicket(c)}
-                    className="text-[10px] font-semibold uppercase tracking-wide text-cinza-400 hover:text-mate-700"
-                  >
-                    ticket
-                  </button>
-                ),
-              },
-            ]}
+            colunas={colunasDeCargas({ veDinheiro })}
             dados={dados?.cargas ?? []}
+            // A linha inteira abre a via do motorista. Antes havia uma coluna
+            // só para isso, com a palavra "ticket" repetida em toda linha —
+            // largura gasta para dizer, trinta vezes, a única coisa que dá
+            // para fazer com uma linha desta tabela.
+            aoClicarLinha={(c) => setTicket(c)}
+            linhaAtiva={ticket?.id}
             vazio="Nenhuma carga encontrada com esses filtros."
           />
+          <Paginacao
+            pagina={dados?.pagina ?? 1}
+            porPagina={dados?.porPagina ?? 20}
+            total={dados?.total ?? 0}
+            aoTrocar={setPagina}
+          />
+          </>
         )}
       </Painel>
 
@@ -296,25 +297,19 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
   function escolherMotorista(id) {
     const novo = motoristas.find((m) => m.id === id)
     const principal = novo?.veiculos?.[0]
+    // A tara NÃO é preenchida a partir do cadastro do veículo: ela é medida na
+    // balança, a cada entrega. Um caminhão chega com estepe, ferramenta, o
+    // motorista dentro ou não — a tara guardada seria um número plausível e
+    // errado, e errado num campo que multiplica direto o valor a pagar.
     setForm((f) => ({
       ...f,
       motoristaId: id,
       veiculoId: principal?.id ?? '',
-      // A tara do veículo entra sozinha, mas continua editável: guardar a tara
-      // no cadastro evita repesar o caminhão vazio a cada entrega, e é o que
-      // impede a fila de parar. Quando o veículo estiver diferente do de
-      // costume, o operador corrige o campo.
-      taraKg: principal?.taraKg != null ? String(principal.taraKg) : f.taraKg,
     }))
   }
 
   function escolherVeiculo(id) {
-    const v = veiculos.find((x) => x.id === id)
-    setForm((f) => ({
-      ...f,
-      veiculoId: id,
-      taraKg: v?.taraKg != null ? String(v.taraKg) : f.taraKg,
-    }))
+    setForm((f) => ({ ...f, veiculoId: id }))
   }
 
   async function enviar(e) {
@@ -343,7 +338,7 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
   }
 
   return (
-    <Painel titulo="Nova pesagem" className="mb-3">
+    <Painel titulo="Nova pesagem" className="mb-6">
       <form onSubmit={enviar} className="flex flex-col gap-3 px-4 py-4">
         <Erro erro={erro} />
 
@@ -385,7 +380,7 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
             </option>
             {veiculos.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.placa}{v.tipo ? ` · ${v.tipo}` : ''}{v.taraKg != null ? ` · tara ${formatar.kg(v.taraKg)}` : ''}
+                {v.placa}{v.tipo ? ` · ${v.tipo}` : ''}
               </option>
             ))}
           </Selecao>
@@ -394,7 +389,7 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
             <button
               type="button"
               onClick={() => setCadastrandoMotorista((v) => !v)}
-              className="whitespace-nowrap rounded-[2px] border border-borda px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-cinza-600 hover:border-mate-500 hover:text-mate-700"
+              className="whitespace-nowrap rounded-[2px] border border-borda px-2.5 py-2 text-[11px] font-semibold text-cinza-600 hover:border-mate-500 hover:text-mate-700"
             >
               {cadastrandoMotorista ? 'Cancelar' : '+ Motorista'}
             </button>
@@ -410,9 +405,6 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
                 ...f,
                 motoristaId: criado.id,
                 veiculoId: criado.veiculos?.[0]?.id ?? '',
-                taraKg: criado.veiculos?.[0]?.taraKg != null
-                  ? String(criado.veiculos[0].taraKg)
-                  : f.taraKg,
               }))
             }}
             aoCancelar={() => setCadastrandoMotorista(false)}
@@ -433,7 +425,7 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
 
         <div className="flex items-center gap-4 rounded-[3px] bg-mate-100 px-4 py-3">
           <div className="flex-1">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-mate-700">Peso líquido</p>
+            <p className="text-[11px] font-semibold text-mate-700">Peso líquido</p>
             <p className="text-xl font-bold tabular text-mate-700">
               {liquido > 0 ? formatar.kg(liquido) : '—'}
             </p>
@@ -460,7 +452,7 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
 // (CNH, telefone) pode ser completado no escritório, sem ninguém esperando.
 
 function NovoMotorista({ aoCriar, aoCancelar }) {
-  const [dados, setDados] = useState({ nome: '', cpf: '', placa: '', tipo: '', taraKg: '' })
+  const [dados, setDados] = useState({ nome: '', cpf: '', placa: '', tipo: '' })
   const [erro, setErro] = useState(null)
   const [salvando, setSalvando] = useState(false)
 
@@ -481,7 +473,7 @@ function NovoMotorista({ aoCriar, aoCancelar }) {
       const criado = await apiMotoristas.criar({
         nome: dados.nome,
         cpf: dados.cpf,
-        veiculo: dados.placa ? { placa: dados.placa, tipo: dados.tipo, taraKg: dados.taraKg } : undefined,
+        veiculo: dados.placa ? { placa: dados.placa, tipo: dados.tipo } : undefined,
       })
       await aoCriar(criado)
     } catch (e) {
@@ -493,7 +485,7 @@ function NovoMotorista({ aoCriar, aoCancelar }) {
 
   return (
     <div className="rounded-[3px] border border-mate-300 bg-mate-100 px-3 py-3">
-      <p className="mb-2 text-[9px] font-semibold uppercase tracking-wide text-mate-700">
+      <p className="mb-2 text-[11px] font-semibold text-mate-700">
         Motorista novo
       </p>
 
@@ -518,15 +510,6 @@ function NovoMotorista({ aoCriar, aoCancelar }) {
           className="flex-1"
           value={mascararPlaca(dados.placa)}
           onChange={(e) => alterar('placa', e.target.value)}
-        />
-        <Campo
-          rotulo="Tara do veículo (kg)"
-          className="flex-1"
-          type="number"
-          step="0.01"
-          min="0"
-          value={dados.taraKg}
-          onChange={(e) => alterar('taraKg', e.target.value)}
         />
       </div>
 

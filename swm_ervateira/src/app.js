@@ -31,6 +31,8 @@ const qualidadeRoutes = require('./modules/qualidade/qualidade.routes')
 const pagamentosRoutes = require('./modules/pagamentos/pagamentos.routes')
 const sincronizacaoRoutes = require('./modules/sincronizacao/sincronizacao.routes')
 const parametrosRoutes = require('./modules/parametros/parametros.routes')
+const dashboardRoutes = require('./modules/dashboard/dashboard.routes')
+const auditoriaRoutes = require('./modules/auditoria/auditoria.routes')
 
 const app = express()
 
@@ -54,6 +56,8 @@ app.use('/api/qualidade', qualidadeRoutes)
 app.use('/api/pagamentos', pagamentosRoutes)
 app.use('/api/sincronizacao', sincronizacaoRoutes)
 app.use('/api/parametros', parametrosRoutes)
+app.use('/api/dashboard', dashboardRoutes)
+app.use('/api/auditoria', auditoriaRoutes)
 
 // As fotos enviadas pelo aplicativo ficam acessíveis por URL, para que a web
 // consiga exibi-las. express.static é do próprio Express — nenhuma biblioteca

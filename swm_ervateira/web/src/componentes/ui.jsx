@@ -7,17 +7,44 @@
 //
 // As classes vêm do Tailwind, usando as cores declaradas no index.css.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { TAMANHO, SITUACAO, ICONE_DA_ACAO } from '../lib/icones'
 
-export function Botao({ children, variante = 'secundario', className = '', ...props }) {
+/**
+ * Desenha um ícone do mapa de lib/icones.js.
+ *
+ * Existe para que as três regras do conjunto sejam obedecidas sem ninguém
+ * precisar lembrar delas:
+ *
+ *   · traço 1.75 — o 2 padrão da lucide fica pesado ao lado da IBM Plex, que
+ *     é uma fonte de haste fina; lado a lado, o ícone gritava mais que a
+ *     palavra que ele deveria estar ajudando a achar;
+ *   · cor herdada — `currentColor`, sempre. Ícone com cor própria vira um
+ *     segundo foco dentro da mesma linha. A única exceção é o selo de
+ *     situação, e lá a cor é do selo inteiro, texto junto;
+ *   · `aria-hidden` — o ícone nunca é a informação, é a repetição visual de
+ *     um texto que está ao lado. Lido em voz alta, ele duplicaria o rótulo.
+ *     Onde o texto some (a barra recolhida), quem responde é o aria-label do
+ *     botão, não o ícone.
+ *
+ * `de` aceita undefined de propósito: uma tela que ainda não tem ícone
+ * declarado continua funcionando, só sem desenho.
+ */
+export function Icone({ de: Desenho, tamanho = TAMANHO.menu, className = '' }) {
+  if (!Desenho) return null
+  return <Desenho size={tamanho} strokeWidth={1.75} className={`shrink-0 ${className}`} aria-hidden="true" />
+}
+
+export function Botao({ children, variante = 'secundario', icone, className = '', ...props }) {
   const base = 'inline-flex items-center gap-2 rounded-[3px] px-3.5 py-2 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
   const estilos = {
-    primario: 'bg-mate-700 text-white font-semibold hover:bg-mate-800',
+    primario: 'bg-mate-700 text-white font-semibold hover:bg-mate-900',
     secundario: 'bg-white text-tinta border border-borda hover:bg-cabecalho',
     perigo: 'bg-white text-perigo border border-borda hover:bg-perigo-bg',
   }
   return (
     <button className={`${base} ${estilos[variante]} ${className}`} {...props}>
+      <Icone de={icone} tamanho={TAMANHO.botao} />
       {children}
     </button>
   )
@@ -40,9 +67,7 @@ export function Campo({ rotulo, className = '', ...props }) {
   return (
     <label className={`flex ${minimo} flex-col gap-1.5 ${className}`}>
       {rotulo && (
-        <span className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
-          {rotulo}
-        </span>
+        <span className="text-[11px] font-medium text-cinza-600">{rotulo}</span>
       )}
       <input
         className="rounded-[3px] border border-borda bg-white px-2.5 py-2 text-xs text-tinta outline-none focus:border-mate-500 disabled:bg-cabecalho disabled:text-cinza-400"
@@ -57,9 +82,7 @@ export function Selecao({ rotulo, children, className = '', ...props }) {
   return (
     <label className={`flex ${minimo} flex-col gap-1.5 ${className}`}>
       {rotulo && (
-        <span className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
-          {rotulo}
-        </span>
+        <span className="text-[11px] font-medium text-cinza-600">{rotulo}</span>
       )}
       <select
         className="rounded-[3px] border border-borda bg-white px-2.5 py-2 text-xs text-tinta outline-none focus:border-mate-500 disabled:bg-cabecalho disabled:text-cinza-400"
@@ -86,39 +109,110 @@ export function Painel({ titulo, acao, children, className = '' }) {
   )
 }
 
-/** Indicador numérico da faixa superior do painel. */
-export function Indicador({ rotulo, valor, unidade, apoio, cor = 'text-tinta' }) {
+/**
+ * Faixa de indicadores · o primeiro dos três níveis da página.
+ *
+ * A tela tinha um nível só. Filtros, indicadores e tabelas eram todos a mesma
+ * caixa branca, com a mesma borda, o mesmo canto e o mesmo fundo — e quando
+ * tudo tem o mesmo peso, o olho não sabe por onde começar. Nada dizia que os
+ * indicadores são o resumo e a tabela é o detalhe; eram só caixas, em ordem
+ * de cima para baixo.
+ *
+ * Os três níveis, agora:
+ *
+ *   1. INDICADOR — sem caixa. Número grande direto sobre o fundo da página.
+ *      Ele não precisa de contorno porque não é uma coisa que se abre nem se
+ *      percorre: é um número que se lê de longe, e caixa em volta de número
+ *      só rouba contraste dele.
+ *   2. PAINEL — caixa branca com borda. Aqui a borda trabalha: ela delimita
+ *      uma região que se percorre, e diz onde a tabela começa e termina.
+ *   3. FILTRO — faixa discreta, sem caixa nenhuma. É controle, não conteúdo.
+ *
+ * O espaço faz a outra metade do trabalho: 24px ENTRE os blocos contra 8 a
+ * 12px DENTRO deles. Essa razão é o que agrupa — o olho lê como uma coisa só
+ * aquilo que está junto, e como coisas separadas aquilo que tem ar no meio.
+ * (O estudo pedia de 32 a 40px; 24 é o que sobrevive num sistema de operação
+ * onde a tabela precisa caber na tela sem rolar. A razão de 2 a 3 vezes, que
+ * é o que cria a hierarquia, continua de pé.)
+ */
+export function FaixaDeIndicadores({ children, className = '' }) {
   return (
-    <div className="min-w-[132px] flex-1 rounded-[3px] border border-borda bg-white px-3 py-2">
-      <p className="truncate text-[9px] font-semibold uppercase tracking-wide text-cinza-400">{rotulo}</p>
-      <p className={`mt-0.5 flex items-baseline gap-1 ${cor}`}>
-        <span className="text-xl font-bold tabular">{valor}</span>
-        {unidade && <span className="truncate text-[10px] font-medium text-cinza-400">{unidade}</span>}
-      </p>
-      {/* line-clamp-2 e não truncate: a linha de apoio é uma frase, e frase
-          cortada na primeira linha perde justamente o predicado — "a balança
-          pesa mais que o…". Duas linhas cabem; o title guarda o resto. */}
-      {apoio && <p className="mt-0.5 line-clamp-2 text-[10px] text-cinza-600" title={apoio}>{apoio}</p>}
+    <div className={`mb-6 flex flex-wrap items-start gap-x-8 gap-y-5 ${className}`}>
+      {children}
     </div>
   )
 }
 
-/** Quadradinho colorido + texto. Substitui as etiquetas em pílula. */
-export function Situacao({ valor }) {
-  const mapa = {
-    AGUARDANDO_ANALISE: ['bg-alerta', 'Em avaliação'],
-    ANALISADA: ['bg-mate-500', 'Analisada'],
-    EM_ORDEM_PAGAMENTO: ['bg-mate-500', 'Em ordem'],
-    PAGA: ['bg-mate-700', 'Paga'],
-    REPROVADA: ['bg-perigo', 'Reprovada'],
-    PENDENTE: ['bg-alerta', 'Aguardando'],
-    CANCELADA: ['bg-cinza-400', 'Cancelada'],
-  }
-  const [cor, texto] = mapa[valor] || ['bg-cinza-400', valor]
+/** Indicador numérico. Vive na faixa acima, sem caixa em volta. */
+export function Indicador({ rotulo, valor, unidade, apoio, icone, vazio, cor = 'text-tinta' }) {
   return (
-    <span className="inline-flex items-center gap-2 text-[11px] font-medium text-cinza-600">
-      <span className={`h-[7px] w-[7px] rounded-[1px] ${cor}`} />
-      {texto}
+    <div className="min-w-[140px] flex-1">
+      <p className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
+        <Icone de={icone} tamanho={TAMANHO.indicador} />
+        <span className="truncate">{rotulo}</span>
+      </p>
+      {/* ZERO NÃO É UM NÚMERO ÚTIL AQUI.
+          "0 cargas" em corpo 26 tem o mesmo peso visual de "184 cargas", e o
+          olho lê primeiro o tamanho: um painel cheio de zeros grandes parece
+          um painel que não carregou. Quem passa `vazio` troca o zero por uma
+          frase — que ocupa menos, diz mais, e não compete com os números que
+          têm alguma coisa a dizer.
+
+          QUEM DECIDE É QUEM CHAMA, e não este componente. A primeira versão
+          testava o valor aqui dentro, e testar aqui é impossível de acertar:
+          `valor` chega já formatado, então "R$ 0,00" e "R$ 33.709,44" são os
+          dois texto, e qualquer conversão numérica devolve NaN para os dois.
+          A regra virou simples — se veio `vazio`, mostra `vazio` — e a tela,
+          que tem o número cru na mão, passa `null` quando não é zero. */}
+      {vazio ? (
+        <p className="mt-1.5 text-xs text-cinza-400">{vazio}</p>
+      ) : (
+        <p className={`mt-1.5 flex items-baseline gap-1.5 ${cor}`}>
+          <span className="text-[26px] font-bold leading-none tabular">{valor}</span>
+          {unidade && <span className="truncate text-[11px] font-medium text-cinza-400">{unidade}</span>}
+        </p>
+      )}
+      {/* line-clamp-2 e não truncate: a linha de apoio é uma frase, e frase
+          cortada na primeira linha perde justamente o predicado — "a balança
+          pesa mais que o…". Duas linhas cabem; o title guarda o resto. */}
+      {apoio && <p className="mt-1.5 line-clamp-2 text-[10px] leading-snug text-cinza-600" title={apoio}>{apoio}</p>}
+    </div>
+  )
+}
+
+/**
+ * Selo de situação · pílula com fundo tonal, ícone e texto.
+ *
+ * Era um quadrado de 7 pixels com o texto ao lado, e ele falhava nas duas
+ * pontas. De perto, o quadrado é pequeno demais para uma cor ser lida como
+ * cor. De longe — que é como esta coluna é lida de verdade, correndo o olho
+ * pela tabela — só o vermelho aparecia; os três verdes viravam um só.
+ *
+ * A pílula resolve porque a cor passa a ocupar área, e porque o ícone diz a
+ * mesma coisa por um segundo canal: quem não distingue o âmbar do verde
+ * ainda distingue um documento de uma cédula. Isso não é detalhe de
+ * acessibilidade avulso — é o que faz a coluna funcionar num monitor de
+ * balança, com poeira na tela e o sol batendo.
+ *
+ * Mapa em lib/icones.js: desenho, texto e tom moram juntos porque mudam
+ * juntos.
+ */
+const TOM_DA_SITUACAO = {
+  espera: 'border-borda bg-cabecalho text-cinza-600',
+  analise: 'border-analise-bg bg-analise-bg text-analise',
+  ordem: 'border-[#ead9b0] bg-alerta-bg text-alerta',
+  paga: 'border-mate-100 bg-mate-100 text-mate-700',
+  reprovada: 'border-perigo-bg bg-perigo-bg text-perigo',
+}
+
+export function Situacao({ valor }) {
+  const s = SITUACAO[valor] || { rotulo: valor, tom: 'espera' }
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-[3px] text-[11px] font-semibold ${TOM_DA_SITUACAO[s.tom]}`}
+    >
+      <Icone de={s.icone} tamanho={TAMANHO.selo} />
+      {s.rotulo}
     </span>
   )
 }
@@ -146,6 +240,21 @@ export function Situacao({ valor }) {
  *   · `oculta`  — 'md' | 'lg' | 'xl'. Some abaixo daquela largura. É para o
  *     dado que ajuda quando há espaço e não faz falta quando não há.
  *   · `quebrar` — volta a se comportar como parágrafo (observações).
+ *   · `fixar`   — 'direita'. A coluna para de rolar junto e cola na borda.
+ *
+ * SOBRE `fixar` — por que uma coluna precisa disso:
+ *
+ * Quando a tabela estoura a largura, o que sai da tela é o fim da linha. E o
+ * fim da linha era justamente a situação da carga — "Analisa…", "Reprov…" —
+ * que é a coluna que o operador de balança mais olha. A informação mais
+ * procurada era a primeira a ser cortada, e para lê-la era preciso rolar de
+ * lado, o que desalinha a linha do olho e faz perder de qual carga se estava
+ * falando.
+ *
+ * Fixar resolve sem esconder nada: a coluna fica ancorada na borda direita e o
+ * resto rola por baixo dela. A sombra à esquerda é o que avisa que existe
+ * conteúdo passando ali embaixo — sem ela, a coluna fixa parece só o fim da
+ * tabela, e ninguém rola.
  */
 const OCULTAR_ABAIXO_DE = {
   md: 'hidden md:table-cell',
@@ -171,9 +280,11 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
             {colunas.map((c) => (
               <th
                 key={c.chave}
-                className={`whitespace-nowrap px-2.5 py-2 text-[9px] font-semibold uppercase tracking-wide text-cinza-400 xl:px-3 ${
+                className={`whitespace-nowrap px-2.5 py-2 text-[11px] font-medium text-cinza-600 xl:px-3 ${
                   c.alinhar === 'direita' ? 'text-right' : ''
-                } ${c.oculta ? OCULTAR_ABAIXO_DE[c.oculta] : ''}`}
+                } ${c.oculta ? OCULTAR_ABAIXO_DE[c.oculta] : ''} ${
+                  c.fixar === 'direita' ? 'sticky right-0 z-20 bg-cabecalho' : ''
+                }`}
                 style={c.largura ? { width: c.largura } : undefined}
               >
                 {c.titulo}
@@ -191,15 +302,21 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
           )}
           {dados.map((linha, i) => {
             const conteudo = (c) => (c.render ? c.render(linha) : linha[c.chave])
+            // O fundo da linha precisa ser conhecido AQUI, e não só no <tr>: a
+            // célula fixa sai do fluxo e flutua sobre as outras, então ela tem
+            // de pintar o próprio fundo — senão o texto que passa por baixo
+            // aparece através dela.
+            const fundo =
+              linhaAtiva != null && linhaAtiva === linha.id
+                ? 'bg-mate-100'
+                : i % 2 ? 'bg-zebra' : 'bg-white'
             return (
               <tr
                 key={linha.id ?? i}
                 onClick={aoClicarLinha ? () => aoClicarLinha(linha) : undefined}
-                className={`border-b border-borda ${
-                  linhaAtiva != null && linhaAtiva === linha.id
-                    ? 'bg-mate-100'
-                    : i % 2 ? 'bg-zebra' : 'bg-white'
-                } ${aoClicarLinha ? 'cursor-pointer hover:bg-cabecalho' : ''}`}
+                className={`group border-b border-borda ${fundo} ${
+                  aoClicarLinha ? 'cursor-pointer hover:bg-cabecalho' : ''
+                }`}
               >
                 {colunas.map((c) => (
                   <td
@@ -208,7 +325,13 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
                       c.quebrar ? 'min-w-[200px]' : 'whitespace-nowrap'
                     } ${c.alinhar === 'direita' ? 'text-right tabular' : ''} ${
                       c.forte ? 'font-semibold text-tinta' : 'text-cinza-600'
-                    } ${c.oculta ? OCULTAR_ABAIXO_DE[c.oculta] : ''}`}
+                    } ${c.oculta ? OCULTAR_ABAIXO_DE[c.oculta] : ''} ${
+                      c.fixar === 'direita'
+                        ? `sticky right-0 z-10 ${fundo} shadow-[-9px_0_9px_-9px_rgba(31,36,34,0.16)] ${
+                            aoClicarLinha ? 'group-hover:bg-cabecalho' : ''
+                          }`
+                        : ''
+                    }`}
                   >
                     {c.truncar ? (
                       <span
@@ -238,19 +361,138 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
 }
 
 /**
- * Barra de filtros padrão do sistema.
+ * Barra de filtros do sistema.
  *
- * Existe porque cinco telas montavam a mesma faixa branca à mão, com medidas
- * ligeiramente diferentes em cada uma — e faixa de filtro que muda de altura
- * de tela para tela é o tipo de detalhe que faz o conjunto parecer remendado.
+ * O QUE MUDOU, E POR QUÊ.
+ *
+ * Antes esta barra ficava sempre aberta, com todos os campos à mostra, logo
+ * abaixo do título — noventa pixels de altura, em toda tela, quase sempre
+ * vazios: `dd/mm/aaaa`, `dd/mm/aaaa`, `Todos os produtores`. Era a primeira
+ * coisa que a pessoa via ao abrir uma tela, e não era o que ela veio ver.
+ * Filtro é ferramenta: importa quando se precisa dele, e o resto do tempo
+ * ele deveria ocupar o tamanho de um botão.
+ *
+ * Agora a barra tem uma linha só. Nela ficam:
+ *
+ *   · a BUSCA, quando a tela tem uma — porque busca não é filtro no mesmo
+ *     sentido. Ninguém 'abre a busca': digita nela. Escondê-la atrás de um
+ *     clique custaria um gesto a cada pergunta feita no telefone;
+ *   · o botão que abre o painel, com a contagem do que está aplicado;
+ *   · um SELO por filtro ativo, com o × que remove aquele sozinho.
+ *
+ * Os selos são a parte que importa. Com o painel fechado, eles são a única
+ * coisa que responde 'por que esta lista está assim?' — e essa pergunta é
+ * exatamente a que faz alguém achar que o sistema perdeu dados, quando na
+ * verdade sobrou um filtro de ontem. Um painel fechado sem selos esconderia
+ * o recorte; com eles, o recorte fica dito em voz alta e some com um clique.
+ *
+ * O painel abre POR CIMA, e não empurrando o conteúdo: quem abre o filtro
+ * está olhando para a tabela e quer ver o efeito da mudança. Empurrar a
+ * tabela para baixo tira do campo de visão a coisa que se está tentando
+ * ajustar.
  */
-export function Filtros({ children }) {
+export function Filtros({ children, busca, ativos = [], aoRemover, aoLimpar }) {
+  const [aberto, setAberto] = useState(false)
+
+  // Esc fecha. É a tecla que a pessoa já aperta por reflexo diante de
+  // qualquer coisa que abriu por cima — e quando nada acontece, ela conclui
+  // que o painel travou.
+  useEffect(() => {
+    if (!aberto) return
+    function aoTeclar(e) { if (e.key === 'Escape') setAberto(false) }
+    window.addEventListener('keydown', aoTeclar)
+    return () => window.removeEventListener('keydown', aoTeclar)
+  }, [aberto])
+
+  const temPainel = Boolean(children)
+
   return (
-    <div
-      data-fora-da-impressao
-      className="mb-3 flex flex-wrap items-end gap-2 rounded-[3px] border border-borda bg-white px-3 py-2.5 xl:gap-2.5"
-    >
-      {children}
+    // items-end e não items-center: o campo de busca é mais alto que o
+    // botão, porque carrega o rótulo em cima. Centralizados, os dois ficam
+    // desencontrados; alinhados pela base, a linha volta a ser uma linha.
+    <div data-fora-da-impressao className="relative mb-4 flex flex-wrap items-end gap-2">
+      {busca}
+
+      {temPainel && (
+        <button
+          type="button"
+          onClick={() => setAberto((v) => !v)}
+          aria-expanded={aberto}
+          className={`inline-flex shrink-0 items-center gap-2 rounded-[3px] border px-3 py-2 text-xs font-medium transition-colors ${
+            aberto || ativos.length
+              ? 'border-mate-500 bg-white text-mate-700'
+              : 'border-borda bg-white text-cinza-600 hover:border-mate-500 hover:text-mate-700'
+          }`}
+        >
+          <Icone de={ICONE_DA_ACAO.filtrar} tamanho={TAMANHO.botao} />
+          Filtros
+          {ativos.length > 0 && (
+            <span className="rounded-full bg-mate-700 px-1.5 text-[10px] font-bold text-white tabular">
+              {ativos.length}
+            </span>
+          )}
+        </button>
+      )}
+
+      {ativos.map((f) => (
+        <span
+          key={f.chave}
+          className="inline-flex items-center gap-1 rounded-full border border-borda bg-white py-[3px] pl-2.5 pr-1 text-[11px] font-medium text-cinza-600"
+        >
+          {f.texto}
+          {aoRemover && (
+            <button
+              type="button"
+              onClick={() => aoRemover(f.chave)}
+              aria-label={`Remover o filtro ${f.texto}`}
+              title={`Remover o filtro ${f.texto}`}
+              className="flex h-[16px] w-[16px] items-center justify-center rounded-full text-cinza-400 hover:bg-cabecalho hover:text-perigo"
+            >
+              <Icone de={ICONE_DA_ACAO.limpar} tamanho={12} />
+            </button>
+          )}
+        </span>
+      ))}
+
+      {ativos.length > 1 && aoLimpar && (
+        <button
+          type="button"
+          onClick={aoLimpar}
+          className="text-[11px] font-medium text-cinza-400 underline-offset-2 hover:text-perigo hover:underline"
+        >
+          limpar tudo
+        </button>
+      )}
+
+      {aberto && temPainel && (
+        <>
+          {/* Camada invisível: um clique em qualquer lugar da tela fecha o
+              painel. Sem ela, o painel só fecharia pelo próprio botão — e
+              quem abre um painel por engano fecha clicando fora, não
+              procurando de novo o botão que abriu. */}
+          <div className="fixed inset-0 z-30" onClick={() => setAberto(false)} />
+          <div className="absolute left-0 top-full z-40 mt-1.5 w-full rounded-[3px] border border-borda bg-white shadow-[0_8px_24px_-8px_rgba(31,36,34,0.22)]">
+            <div className="flex flex-wrap items-end gap-2 px-3 py-3 xl:gap-2.5">{children}</div>
+            <div className="flex items-center justify-between gap-3 border-t border-borda px-3 py-2">
+              <button
+                type="button"
+                onClick={aoLimpar}
+                disabled={!ativos.length}
+                className="text-[11px] font-medium text-cinza-400 hover:text-perigo disabled:opacity-40 disabled:hover:text-cinza-400"
+              >
+                Limpar filtros
+              </button>
+              <button
+                type="button"
+                onClick={() => setAberto(false)}
+                className="text-[11px] font-semibold text-mate-700 hover:underline"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -296,16 +538,18 @@ export function SaidaDoPainel({ aoExportar, nome = 'CSV' }) {
       {aoExportar && (
         <button
           onClick={aoExportar}
-          className="rounded-[2px] border border-borda px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-cinza-600 hover:border-mate-500 hover:text-mate-700"
+          className="inline-flex items-center gap-1.5 rounded-[2px] border border-borda px-2 py-1 text-[10px] font-semibold text-cinza-600 hover:border-mate-500 hover:text-mate-700"
         >
+          <Icone de={ICONE_DA_ACAO.baixar} tamanho={TAMANHO.tabela} />
           Baixar {nome}
         </button>
       )}
       <button
         onClick={() => window.print()}
         title="Abre a impressão do navegador, que também salva em PDF"
-        className="rounded-[2px] border border-borda px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-cinza-600 hover:border-mate-500 hover:text-mate-700"
+        className="inline-flex items-center gap-1.5 rounded-[2px] border border-borda px-2 py-1 text-[10px] font-semibold text-cinza-600 hover:border-mate-500 hover:text-mate-700"
       >
+        <Icone de={ICONE_DA_ACAO.imprimir} tamanho={TAMANHO.tabela} />
         Imprimir / PDF
       </button>
     </span>
@@ -327,7 +571,7 @@ export function SaidaDoPainel({ aoExportar, nome = 'CSV' }) {
 export function Detalhes({ titulo, children, aberto = false }) {
   return (
     <details open={aberto} className="rounded-[3px] border border-borda bg-white">
-      <summary className="cursor-pointer list-none px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-cinza-600 marker:hidden hover:text-mate-700">
+      <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-cinza-600 marker:hidden hover:text-mate-700">
         {titulo}
       </summary>
       <div className="border-t border-borda px-3 py-3">{children}</div>
@@ -349,7 +593,7 @@ export function Etiqueta({ children, tom = 'neutro' }) {
     perigo: 'border-perigo-bg bg-perigo-bg text-perigo',
   }
   return (
-    <span className={`inline-flex items-center rounded-[2px] border px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide ${tons[tom]}`}>
+    <span className={`inline-flex items-center rounded-full border px-2 py-[1px] text-[10px] font-semibold ${tons[tom]}`}>
       {children}
     </span>
   )
@@ -359,8 +603,8 @@ export function Etiqueta({ children, tom = 'neutro' }) {
 export function LinhaDado({ rotulo, valor, className = '' }) {
   return (
     <div className={className}>
-      <p className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">{rotulo}</p>
-      <p className="mt-0.5 text-[11.5px] font-semibold text-tinta">
+      <p className="text-[11px] font-medium text-cinza-600">{rotulo}</p>
+      <p className="mt-0.5 text-[12.5px] font-semibold text-tinta">
         {valor === null || valor === undefined || valor === '' ? '—' : valor}
       </p>
     </div>
@@ -394,9 +638,7 @@ export function AreaTexto({ rotulo, className = '', ...props }) {
   return (
     <label className={`flex flex-col gap-1.5 ${className}`}>
       {rotulo && (
-        <span className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
-          {rotulo}
-        </span>
+        <span className="text-[11px] font-medium text-cinza-600">{rotulo}</span>
       )}
       <textarea
         rows={3}
@@ -477,7 +719,7 @@ export function Medidor({ rotulo, texto, valor, maximo, limite, apoio, alerta = 
         <span className="flex-1 text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
           {rotulo}
         </span>
-        <span className={`text-base font-bold tabular ${alerta ? 'text-alerta' : 'text-mate-700'}`}>
+        <span className={`text-base font-bold tabular ${alerta ? 'text-alerta' : 'text-tinta'}`}>
           {texto}
         </span>
       </div>
@@ -502,62 +744,76 @@ export function Medidor({ rotulo, texto, valor, maximo, limite, apoio, alerta = 
 }
 
 // ---------------------------------------------------------------------------
-// Dado sigiloso
+// Paginação
 // ---------------------------------------------------------------------------
-// Mostra o valor mascarado que veio do servidor e um botão para pedir o real.
+// A rota de cargas devolve { total, pagina, porPagina } desde sempre, e a tela
+// usava só as vinte primeiras linhas — sem nenhum jeito de ver a vigésima
+// primeira. Numa ervateira que recebe quinze caminhões por dia, isso é o
+// histórico do dia anterior fora de alcance.
 //
-// A ORDEM IMPORTA, e é o que diferencia isto de teatro: o número em claro não
-// está na tela esperando ser revelado — ele nem saiu do servidor. O botão faz
-// uma requisição, e é o servidor que decide se responde. Se o perfil não pode,
-// volta 403 e o componente diz isso, em vez de fingir que o dado não existe.
+// DUAS DECISÕES:
 //
-// Depois de revelado, fica revelado até a tela ser recarregada. Esconder de
-// novo sozinho seria irritante justamente para quem tem o direito de ver e
-// está no meio de conferir um pagamento.
-export function Sigiloso({ valor, aoRevelar, rotuloRevelar = 'mostrar' }) {
-  const [aberto, setAberto] = useState(false)
-  const [real, setReal] = useState(null)
-  const [erro, setErro] = useState(null)
-  const [pedindo, setPedindo] = useState(false)
+// 1. NÚMEROS DE PÁGINA, e não "carregar mais". Quem procura uma carga antiga
+//    quer voltar a um ponto e voltar de novo depois; uma lista que só cresce
+//    obriga a rolar tudo outra vez a cada consulta. E o total já vem do banco,
+//    então dizer "página 3 de 12" não custa consulta nenhuma.
+//
+// 2. A FAIXA ANDA COM A PÁGINA ATUAL. Com trinta páginas, mostrar as trinta
+//    ocuparia mais espaço que a tabela. Mostra-se a primeira, a última e as
+//    vizinhas da atual — que é onde o dedo vai.
+export function Paginacao({ pagina, porPagina, total, aoTrocar }) {
+  const paginas = Math.max(1, Math.ceil(total / porPagina))
+  if (paginas <= 1) return null
 
-  if (!valor) return <span className="text-cinza-400">—</span>
-
-  async function revelar() {
-    setPedindo(true)
-    setErro(null)
-    try {
-      const v = await aoRevelar()
-      if (v == null || v === '') {
-        setErro({ message: 'não disponível' })
-      } else {
-        setReal(v)
-        setAberto(true)
-      }
-    } catch (e) {
-      setErro(e)
-    } finally {
-      setPedindo(false)
-    }
-  }
+  const primeiraLinha = (pagina - 1) * porPagina + 1
+  const ultimaLinha = Math.min(pagina * porPagina, total)
 
   return (
-    <span className="inline-flex items-center gap-2">
-      <span className="tabular">{aberto ? real : valor}</span>
-      {!aberto && (
-        <button
-          type="button"
-          onClick={revelar}
-          disabled={pedindo}
-          className="text-[10px] font-semibold text-mate-700 hover:underline disabled:opacity-50"
-        >
-          {pedindo ? '...' : rotuloRevelar}
-        </button>
-      )}
-      {erro && (
-        <span className="text-[10px] text-cinza-400" title={erro.detalhe || erro.message}>
-          {erro.message?.includes('permiss') ? 'sem permissão' : erro.message}
-        </span>
-      )}
-    </span>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-borda px-3 py-2.5">
+      <span className="text-[10.5px] text-cinza-600">
+        {primeiraLinha}–{ultimaLinha} de {total.toLocaleString('pt-BR')}
+      </span>
+
+      <div className="flex items-center gap-1">
+        <BotaoDePagina rotulo="anterior" disabled={pagina <= 1} aoClicar={() => aoTrocar(pagina - 1)}>
+          ‹
+        </BotaoDePagina>
+
+        {faixaDePaginas(pagina, paginas).map((n, i) =>
+          n === null ? (
+            <span key={`vao-${i}`} className="px-1 text-[11px] text-cinza-400">…</span>
+          ) : (
+            <BotaoDePagina key={n} ativo={n === pagina} aoClicar={() => aoTrocar(n)} rotulo={`página ${n}`}>
+              {n}
+            </BotaoDePagina>
+          )
+        )}
+
+        <BotaoDePagina rotulo="próxima" disabled={pagina >= paginas} aoClicar={() => aoTrocar(pagina + 1)}>
+          ›
+        </BotaoDePagina>
+      </div>
+    </div>
+  )
+}
+
+function BotaoDePagina({ children, ativo = false, disabled = false, aoClicar, rotulo }) {
+  return (
+    <button
+      type="button"
+      onClick={aoClicar}
+      disabled={disabled}
+      aria-label={rotulo}
+      aria-current={ativo ? 'page' : undefined}
+      // min-h-[32px] e não py-1: em tela de toque o alvo precisa de altura, e
+      // o padding sozinho encolhe quando o número tem um dígito só.
+      className={`min-h-[32px] min-w-[32px] rounded-[3px] px-2 text-[11.5px] font-medium tabular transition-colors disabled:opacity-30 ${
+        ativo
+          ? 'bg-mate-700 text-white'
+          : 'text-cinza-600 hover:bg-cabecalho hover:text-tinta'
+      }`}
+    >
+      {children}
+    </button>
   )
 }
