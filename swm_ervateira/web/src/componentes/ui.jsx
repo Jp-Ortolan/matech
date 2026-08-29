@@ -7,8 +7,6 @@
 //
 // As classes vêm do Tailwind, usando as cores declaradas no index.css.
 
-import { paraData, chaveDoDia } from '../lib/datas'
-
 export function Botao({ children, variante = 'secundario', className = '', ...props }) {
   const base = 'inline-flex items-center gap-2 rounded-[3px] px-3.5 py-2 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
   const estilos = {
@@ -95,7 +93,10 @@ export function Indicador({ rotulo, valor, unidade, apoio, cor = 'text-tinta' })
         <span className="text-xl font-bold tabular">{valor}</span>
         {unidade && <span className="truncate text-[10px] font-medium text-cinza-400">{unidade}</span>}
       </p>
-      {apoio && <p className="mt-0.5 truncate text-[10px] text-cinza-600" title={apoio}>{apoio}</p>}
+      {/* line-clamp-2 e não truncate: a linha de apoio é uma frase, e frase
+          cortada na primeira linha perde justamente o predicado — "a balança
+          pesa mais que o…". Duas linhas cabem; o title guarda o resto. */}
+      {apoio && <p className="mt-0.5 line-clamp-2 text-[10px] text-cinza-600" title={apoio}>{apoio}</p>}
     </div>
   )
 }
@@ -150,7 +151,16 @@ const OCULTAR_ABAIXO_DE = {
   xl: 'hidden xl:table-cell',
 }
 
-export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', rodape }) {
+/**
+ * `aoClicarLinha` e `linhaAtiva` são opcionais e andam juntos.
+ *
+ * Existem porque uma coluna inteira ocupada por um botão escrito "abrir" é
+ * espaço gasto para repetir, linha a linha, a única coisa que dá para fazer
+ * com uma linha de tabela. Clicar na linha diz o mesmo sem coluna nenhuma —
+ * e o realce da linha ativa diz qual está aberta melhor do que a palavra
+ * "aberto" escrita na ponta.
+ */
+export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', rodape, aoClicarLinha, linhaAtiva }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left">
@@ -180,7 +190,15 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
           {dados.map((linha, i) => {
             const conteudo = (c) => (c.render ? c.render(linha) : linha[c.chave])
             return (
-              <tr key={linha.id ?? i} className={`border-b border-borda ${i % 2 ? 'bg-zebra' : 'bg-white'}`}>
+              <tr
+                key={linha.id ?? i}
+                onClick={aoClicarLinha ? () => aoClicarLinha(linha) : undefined}
+                className={`border-b border-borda ${
+                  linhaAtiva != null && linhaAtiva === linha.id
+                    ? 'bg-mate-100'
+                    : i % 2 ? 'bg-zebra' : 'bg-white'
+                } ${aoClicarLinha ? 'cursor-pointer hover:bg-cabecalho' : ''}`}
+              >
                 {colunas.map((c) => (
                   <td
                     key={c.chave}
@@ -401,69 +419,11 @@ export function Aviso({ children, tom = 'neutro' }) {
   )
 }
 
-// ------------------------------ utilitários -------------------------------
-
-export const formatar = {
-  /** 7240 → "7.240 kg" */
-  kg: (v) => (v == null ? '—' : `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`),
-  /** 33709.44 → "R$ 33.709,44" */
-  reais: (v) =>
-    v == null ? '—' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-  /** data ISO → "12/08 13:12" */
-  dataHora: (v) =>
-    v == null ? '—' : new Date(v).toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-    }),
-  /** data → "11/08/2026" — lida no fuso local; a armadilha está em lib/datas.js */
-  data: (v) => (v == null ? '—' : paraData(v).toLocaleDateString('pt-BR')),
-  /** data → "2026-08-11" — chave de agrupamento por dia, no fuso local */
-  chaveDoDia,
-  /** ERVA_MATE_NATIVA → "Erva-mate nativa" */
-  materiaPrima: (v) =>
-    ({
-      ERVA_MATE_NATIVA: 'Erva-mate nativa',
-      ERVA_MATE_PLANTADA: 'Erva-mate plantada',
-      PALITO: 'Apenas palito',
-      LENHA: 'Lenha',
-    }[v] || v),
-
-  // ---- acrescentados junto com as telas de preços e relatórios ----
-
-  /** 12345.6 → "12.346"  ·  (12345.6, 2) → "12.345,60" */
-  numero: (v, casas = 0) =>
-    v == null ? '—' : Number(v).toLocaleString('pt-BR', {
-      minimumFractionDigits: casas, maximumFractionDigits: casas,
-    }),
-  /** 4.2 → "4,2%" — o percentual aparece o tempo todo nos relatórios */
-  porcento: (v, casas = 1) =>
-    v == null ? '—' : `${Number(v).toFixed(casas).replace('.', ',')}%`,
-  /** 4.656 → "R$ 4,6560/kg" — preço por quilo tem quatro casas no banco */
-  precoKg: (v) =>
-    v == null ? '—' : `${Number(v).toLocaleString('pt-BR', {
-      style: 'currency', currency: 'BRL',
-      minimumFractionDigits: 4, maximumFractionDigits: 4,
-    })}/kg`,
-  /** NATIVA → "Nativa" */
-  tipoErva: (v) => ({ PLANTADA: 'Plantada', NATIVA: 'Nativa' }[v] || v || '—'),
-  /** PIX → "Pix"  ·  CONTA_BANCARIA → "Conta bancária" */
-  formaPagamento: (v) =>
-    ({ PIX: 'Pix', CONTA_BANCARIA: 'Conta bancária', DINHEIRO: 'Dinheiro' }[v] || v || '—'),
-  tipoConta: (v) => ({ CORRENTE: 'Corrente', POUPANCA: 'Poupança' }[v] || v || '—'),
-  /** 52998224725 → "529.982.247-25" · 11222333000181 → "11.222.333/0001-81" */
-  documento: (v) => {
-    const d = String(v ?? '').replace(/\D/g, '')
-    if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-    if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-    return v || '—'
-  },
-  cep: (v) => {
-    const d = String(v ?? '').replace(/\D/g, '')
-    return d.length === 8 ? d.replace(/(\d{5})(\d{3})/, '$1-$2') : v || '—'
-  },
-  /** ALEATORIA → "Aleatória" */
-  chavePix: (v) =>
-    ({ CPF: 'CPF', TELEFONE: 'Telefone', EMAIL: 'E-mail', ALEATORIA: 'Aleatória' }[v] || v || '—'),
-}
+// A formatação NÃO mora mais aqui. Ela vive em lib/formatar.js, e as telas
+// importam de lá. Este arquivo cuida de como as coisas aparecem; aquele, de
+// como os valores viram texto — e misturar os dois obrigava qualquer arquivo
+// que precisasse formatar um número a arrastar a biblioteca de interface
+// inteira junto.
 
 export function Carregando({ texto = 'Carregando...' }) {
   return <p className="px-4 py-8 text-center text-xs text-cinza-400">{texto}</p>

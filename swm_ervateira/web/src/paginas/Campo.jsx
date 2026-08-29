@@ -16,9 +16,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { avaliacoesCampo, produtores as apiProdutores } from '../api/recursos'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, Tabela, Indicador, Campo, Selecao, Botao, Etiqueta, LinhaDado,
-  Carregando, Erro, Vazio, Aviso, formatar,
+  Painel, Filtros, Tabela, Indicador, Campo, Selecao, Botao, Etiqueta, LinhaDado,
+  Carregando, Erro, Vazio
 } from '../componentes/ui'
+import { formatar } from '../lib/formatar'
 
 const ROTULO_ERVA = { NATIVA: 'Nativa', PLANTADA: 'Plantada' }
 const ROTULO_QUEIMA = { NAO: 'Sem queima', EM_PARTE: 'Queimada em parte', SIM: 'Queimada' }
@@ -59,14 +60,48 @@ export default function CampoPagina() {
 
   return (
     <>
-      <CabecalhoPagina
-        titulo="Avaliações de campo"
-        subtitulo="O que o aplicativo coletou no erval, com foto e coordenada"
-      >
+      <CabecalhoPagina titulo="Avaliações de campo">
         <Botao onClick={buscar}>Atualizar</Botao>
       </CabecalhoPagina>
 
-      <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <Filtros>
+        <Selecao
+          rotulo="Produtor"
+          className="flex-[2]"
+          value={filtros.produtorId}
+          onChange={(e) => setFiltros({ ...filtros, produtorId: e.target.value })}
+        >
+          <option value="">Todos os produtores</option>
+          {listaProdutores.map((p) => (
+            <option key={p.id} value={p.id}>{p.nome}</option>
+          ))}
+        </Selecao>
+        <Campo
+          rotulo="De"
+          type="date"
+          className="flex-1"
+          value={filtros.de}
+          onChange={(e) => setFiltros({ ...filtros, de: e.target.value })}
+        />
+        <Campo
+          rotulo="Até"
+          type="date"
+          className="flex-1"
+          value={filtros.ate}
+          onChange={(e) => setFiltros({ ...filtros, ate: e.target.value })}
+        />
+        <Selecao
+          rotulo="Fotos"
+          className="flex-1"
+          value={filtros.comFoto}
+          onChange={(e) => setFiltros({ ...filtros, comFoto: e.target.value })}
+        >
+          <option value="">Todas</option>
+          <option value="true">Com foto</option>
+        </Selecao>
+      </Filtros>
+
+      <div className="mb-3 flex flex-wrap gap-2">
         <Indicador rotulo="Avaliações" valor={dados?.total ?? '—'} apoio="no período" />
         <Indicador
           rotulo="Coletadas offline"
@@ -75,47 +110,7 @@ export default function CampoPagina() {
           cor="text-mate-700"
         />
         <Indicador rotulo="Com foto" valor={dados?.comFotos ?? '—'} apoio="prova visual" />
-        <Indicador
-          rotulo="Com coordenada"
-          valor={dados ? dados.avaliacoes.filter((a) => a.latitude != null).length : '—'}
-          apoio="GPS registrado"
-        />
       </div>
-
-      <Painel titulo="Filtros" className="mb-3">
-        <div className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-4">
-          <Selecao
-            rotulo="Produtor"
-            value={filtros.produtorId}
-            onChange={(e) => setFiltros({ ...filtros, produtorId: e.target.value })}
-          >
-            <option value="">Todos</option>
-            {listaProdutores.map((p) => (
-              <option key={p.id} value={p.id}>{p.nome}</option>
-            ))}
-          </Selecao>
-          <Campo
-            rotulo="De"
-            type="date"
-            value={filtros.de}
-            onChange={(e) => setFiltros({ ...filtros, de: e.target.value })}
-          />
-          <Campo
-            rotulo="Até"
-            type="date"
-            value={filtros.ate}
-            onChange={(e) => setFiltros({ ...filtros, ate: e.target.value })}
-          />
-          <Selecao
-            rotulo="Fotos"
-            value={filtros.comFoto}
-            onChange={(e) => setFiltros({ ...filtros, comFoto: e.target.value })}
-          >
-            <option value="">Todas</option>
-            <option value="true">Somente com foto</option>
-          </Selecao>
-        </div>
-      </Painel>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_1fr]">
         <Painel titulo="Coletadas" acao={`${dados?.avaliacoes.length ?? 0} na lista`}>
@@ -125,10 +120,9 @@ export default function CampoPagina() {
             <Tabela
               colunas={[
                 { chave: 'dataAvaliacao', titulo: 'Data', render: (a) => formatar.dataHora(a.dataAvaliacao) },
-                { chave: 'produtor', titulo: 'Produtor', forte: true, render: (a) => a.erval?.produtor?.nome },
-                { chave: 'erval', titulo: 'Área', render: (a) => a.erval?.identificacao },
-                { chave: 'tipoErva', titulo: 'Erva', render: (a) => ROTULO_ERVA[a.tipoErva] || a.tipoErva },
-                { chave: 'quantidade', titulo: 'Estimado', render: (a) => formatar.kg(a.quantidadeEstimadaKg) },
+                { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 170, render: (a) => a.erval?.produtor?.nome },
+                { chave: 'erval', titulo: 'Área', truncar: 130, render: (a) => a.erval?.identificacao },
+                { chave: 'quantidade', titulo: 'Estimado', alinhar: 'direita', render: (a) => formatar.kg(a.quantidadeEstimadaKg) },
                 {
                   chave: 'prova',
                   titulo: 'Prova',
@@ -158,7 +152,7 @@ export default function CampoPagina() {
                 },
               ]}
               dados={dados?.avaliacoes ?? []}
-              vazio="Nenhuma avaliação de campo neste período. Se o aplicativo coletou, confira a tela de Sincronização."
+              vazio="Nenhuma avaliação de campo neste período."
             />
           )}
         </Painel>
@@ -184,7 +178,7 @@ function Detalhe({ avaliacao: a }) {
         titulo={a.erval?.produtor?.nome ?? 'Avaliação'}
         acao={formatar.dataHora(a.dataAvaliacao)}
       >
-        <div className="grid grid-cols-2 gap-3 px-4 py-3 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 px-3 py-3 md:grid-cols-3">
           <LinhaDado rotulo="Área" valor={a.erval?.identificacao} />
           <LinhaDado rotulo="Tipo de erva" valor={ROTULO_ERVA[a.tipoErva] || a.tipoErva} />
           <LinhaDado rotulo="Erva queimada" valor={ROTULO_QUEIMA[a.ervaQueimada] || a.ervaQueimada} />
@@ -214,7 +208,7 @@ function Detalhe({ avaliacao: a }) {
       {/* A procedência do registro. É o que diferencia esta tela de um CRUD:
           aqui se vê não só o dado, mas COMO ele chegou. */}
       <Painel titulo="Procedência">
-        <div className="grid grid-cols-2 gap-3 px-4 py-3 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 px-3 py-3 md:grid-cols-3">
           <LinhaDado
             rotulo="Origem"
             valor={a.criadoOffline ? 'Coletada sem conexão' : 'Coletada com conexão'}
@@ -228,18 +222,6 @@ function Detalhe({ avaliacao: a }) {
             valor={s ? (s.houveConflito ? `sim · venceu o ${s.versaoVencedora}` : 'não') : null}
           />
         </div>
-
-        {a.alteradoEmOrigem && a.sincronizadoEm && (
-          <div className="border-t border-borda px-4 py-3">
-            <Aviso>
-              A avaliação foi alterada no aparelho às{' '}
-              <strong>{formatar.dataHora(a.alteradoEmOrigem)}</strong> e só chegou ao
-              servidor às <strong>{formatar.dataHora(a.sincronizadoEm)}</strong>. É essa
-              diferença que a sincronização precisa tratar — e é o primeiro carimbo, o do
-              aparelho, que decide quem vence um conflito.
-            </Aviso>
-          </div>
-        )}
       </Painel>
 
       {a.cargas?.length > 0 && (
@@ -268,12 +250,6 @@ function Detalhe({ avaliacao: a }) {
             ]}
             dados={a.cargas}
           />
-          <div className="border-t border-borda px-4 py-3">
-            <Aviso>
-              A diferença entre o que foi estimado no erval e o que a balança pesou é o
-              indicador de acurácia da avaliação em campo do Quadro 9.
-            </Aviso>
-          </div>
         </Painel>
       )}
     </div>

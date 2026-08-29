@@ -32,15 +32,16 @@ import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import TicketPesagem from '../componentes/TicketPesagem'
 import {
-  Painel, Tabela, Situacao, Campo, Selecao, Botao,
-  Carregando, Erro, Aviso, LinhaDado, formatar,
+  Painel, Filtros, Tabela, Situacao, Campo, Selecao, Botao,
+  Carregando, Erro, Aviso, LinhaDado
 } from '../componentes/ui'
 import { mascararPlaca, mascararDocumento, erroNoCpf, erroNaPlaca } from '../lib/documentos'
+import { formatar } from '../lib/formatar'
 
 export default function Recebimento() {
   const { podeFazer } = useAutenticacao()
 
-  const [filtros, setFiltros] = useState({ de: '', ate: '', produtorId: '', situacao: '' })
+  const [filtros, setFiltros] = useState({ busca: '', de: '', ate: '', produtorId: '', situacao: '' })
   const [dados, setDados] = useState(null)
   const [listaProdutores, setListaProdutores] = useState([])
   const [listaMotoristas, setListaMotoristas] = useState([])
@@ -98,10 +99,7 @@ export default function Recebimento() {
 
   return (
     <>
-      <CabecalhoPagina
-        titulo="Pesagem"
-        subtitulo={`Pesar a carga que chegou e emitir o ticket do motorista · ${dados?.total ?? 0} registradas`}
-      >
+      <CabecalhoPagina titulo="Pesagem">
         {podeFazer('OPERADOR_BALANCA') && (
           <Botao
             variante="primario"
@@ -144,15 +142,7 @@ export default function Recebimento() {
             <span className="h-9 w-px bg-mate-300" />
             <LinhaDado rotulo="Produtor" valor={confirmacao.produtor?.nome} />
             <LinhaDado rotulo="Peso líquido" valor={formatar.kg(confirmacao.pesoLiquidoKg)} />
-            <LinhaDado
-              rotulo="Valor previsto"
-              valor={formatar.reais(Number(confirmacao.pesoLiquidoKg) * Number(confirmacao.precoBaseKg))}
-            />
-            <p className="max-w-[260px] flex-1 text-[10px] leading-relaxed text-mate-700">
-              Número gerado pelo servidor, sequencial por ano. É este que vai no ticket
-              impresso do motorista. O valor ainda pode mudar: a análise de qualidade
-              desconta o preço se o palito passar do limite.
-            </p>
+            <LinhaDado rotulo="Matéria-prima" valor={formatar.materiaPrima(confirmacao.tipoMateriaPrima)} />
           </div>
         </Painel>
       )}
@@ -167,10 +157,19 @@ export default function Recebimento() {
       )}
 
       {/* barra de filtros — RF13 e RF14 */}
-      <div className="mb-3 flex items-end gap-2.5 rounded-[3px] border border-borda bg-white px-4 py-3">
+      <Filtros>
+        {/* Primeiro campo da barra, e o mais largo, porque é o que se usa com
+            pressa: alguém liga perguntando por uma carga e tem na mão ou o
+            papel do ticket, ou o nome do produtor. Uma caixa só atende as
+            duas — a rota procura nos dois campos. */}
+        <Campo
+          rotulo="Ticket ou produtor" className="min-w-[200px] flex-[2]"
+          placeholder="PES-2026-01184 ou José"
+          value={filtros.busca} onChange={(e) => alterar('busca', e.target.value)}
+        />
         <Campo rotulo="De" type="date" className="flex-1" value={filtros.de} onChange={(e) => alterar('de', e.target.value)} />
         <Campo rotulo="Até" type="date" className="flex-1" value={filtros.ate} onChange={(e) => alterar('ate', e.target.value)} />
-        <Selecao rotulo="Produtor" className="flex-1" value={filtros.produtorId} onChange={(e) => alterar('produtorId', e.target.value)}>
+        <Selecao rotulo="Produtor" className="flex-[2]" value={filtros.produtorId} onChange={(e) => alterar('produtorId', e.target.value)}>
           <option value="">Todos os produtores</option>
           {listaProdutores.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </Selecao>
@@ -182,8 +181,8 @@ export default function Recebimento() {
           <option value="PAGA">Paga</option>
           <option value="REPROVADA">Reprovada</option>
         </Selecao>
-        <Botao onClick={() => setFiltros({ de: '', ate: '', produtorId: '', situacao: '' })}>Limpar</Botao>
-      </div>
+        <Botao onClick={() => setFiltros({ busca: '', de: '', ate: '', produtorId: '', situacao: '' })}>Limpar</Botao>
+      </Filtros>
 
       <Erro erro={erro} />
 
@@ -191,8 +190,7 @@ export default function Recebimento() {
         <div className="mb-3">
           <Aviso tom="alerta">
             Não foi possível carregar a lista de produtores ({erroProdutores.message}).
-            O filtro e o formulário de pesagem estão sem opções — isto é falha de
-            carregamento, não ausência de cadastro.
+            O filtro e o formulário de pesagem estão sem opções.
           </Aviso>
         </div>
       )}
@@ -205,17 +203,16 @@ export default function Recebimento() {
             colunas={[
               { chave: 'numeroTicket', titulo: 'Ticket', forte: true },
               { chave: 'dataHora', titulo: 'Data', render: (c) => formatar.dataHora(c.dataHora) },
-              { chave: 'produtor', titulo: 'Produtor', forte: true, render: (c) => c.produtor?.nome },
+              { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 200, render: (c) => c.produtor?.nome },
               { chave: 'tipo', titulo: 'Matéria-prima', render: (c) => formatar.materiaPrima(c.tipoMateriaPrima) },
-              { chave: 'motorista', titulo: 'Motorista', render: (c) => c.motorista?.nome || '—' },
-              { chave: 'bruto', titulo: 'Bruto', alinhar: 'direita', render: (c) => formatar.kg(c.pesoBrutoKg) },
-              { chave: 'liquido', titulo: 'Líquido', alinhar: 'direita', forte: true, render: (c) => formatar.kg(c.pesoLiquidoKg) },
+              { chave: 'motorista', titulo: 'Motorista', truncar: 140, oculta: 'xl', render: (c) => c.motorista?.nome || '—' },
+              { chave: 'liquido', titulo: 'Peso líquido', alinhar: 'direita', forte: true, render: (c) => formatar.kg(c.pesoLiquidoKg) },
               { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise?.valorTotal) },
               { chave: 'situacao', titulo: 'Situação', render: (c) => <Situacao valor={c.situacao} /> },
               {
                 chave: 'via',
                 titulo: '',
-                largura: '64px',
+                largura: '58px',
                 alinhar: 'direita',
                 render: (c) => (
                   <button
@@ -253,7 +250,7 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
   const [form, setForm] = useState({
     produtorId: '', tipoMateriaPrima: 'ERVA_MATE_NATIVA',
     motoristaId: '', veiculoId: '',
-    pesoBrutoKg: '', taraKg: '', precoBaseKg: '', pesoEstimadoCampoKg: '',
+    pesoBrutoKg: '', taraKg: '', pesoEstimadoCampoKg: '',
   })
   const [erro, setErro] = useState(null)
   const [enviando, setEnviando] = useState(false)
@@ -265,7 +262,6 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
   const bruto = Number(form.pesoBrutoKg || 0)
   const tara = Number(form.taraKg || 0)
   const liquido = bruto - tara
-  const valorPrevisto = liquido > 0 ? liquido * Number(form.precoBaseKg || 0) : 0
 
   // Avisos que aparecem ANTES do envio, enquanto o operador ainda está no campo.
   // Sem isto ele descobria o problema só depois de clicar em gravar.
@@ -321,7 +317,6 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
         veiculoId: form.veiculoId || null,
         pesoBrutoKg: Number(form.pesoBrutoKg),
         taraKg: Number(form.taraKg),
-        precoBaseKg: Number(form.precoBaseKg),
         pesoEstimadoCampoKg: form.pesoEstimadoCampoKg ? Number(form.pesoEstimadoCampoKg) : null,
       })
       aoRegistrar(criada)
@@ -333,7 +328,7 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
   }
 
   return (
-    <Painel titulo="Nova pesagem" acao="o ticket e o peso líquido são gerados pelo servidor" className="mb-3">
+    <Painel titulo="Nova pesagem" className="mb-3">
       <form onSubmit={enviar} className="flex flex-col gap-3 px-4 py-4">
         <Erro erro={erro} />
 
@@ -412,15 +407,12 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
         <div className="flex flex-wrap gap-2 xl:gap-3">
           <Campo rotulo="Peso bruto (kg)" type="number" step="0.01" min="0.01" className="flex-1" required value={form.pesoBrutoKg} onChange={(e) => alterar('pesoBrutoKg', e.target.value)} />
           <Campo rotulo="Tara (kg)" type="number" step="0.01" min="0" className="flex-1" required value={form.taraKg} onChange={(e) => alterar('taraKg', e.target.value)} />
-          <Campo rotulo="Preço por quilo (R$)" type="number" step="0.0001" min="0.0001" className="flex-1" required value={form.precoBaseKg} onChange={(e) => alterar('precoBaseKg', e.target.value)} />
           <Campo rotulo="Estimado em campo (kg)" type="number" step="0.01" min="0.01" className="flex-1" value={form.pesoEstimadoCampoKg} onChange={(e) => alterar('pesoEstimadoCampoKg', e.target.value)} />
         </div>
 
         {taraInvalida && (
           <Aviso tom="alerta">
-            A tara ({formatar.kg(tara)}) está maior ou igual ao peso bruto ({formatar.kg(bruto)}).
-            O peso líquido seria zero ou negativo, e o servidor vai recusar a pesagem.
-            Confira qual dos dois foi digitado errado.
+            Tara ({formatar.kg(tara)}) maior ou igual ao peso bruto ({formatar.kg(bruto)}).
           </Aviso>
         )}
 
@@ -429,12 +421,6 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
             <p className="text-[9px] font-semibold uppercase tracking-wide text-mate-700">Peso líquido</p>
             <p className="text-xl font-bold tabular text-mate-700">
               {liquido > 0 ? formatar.kg(liquido) : '—'}
-            </p>
-          </div>
-          <div className="flex-1">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-mate-700">Valor previsto, antes da análise</p>
-            <p className="text-xl font-bold tabular text-mate-700">
-              {valorPrevisto > 0 ? formatar.reais(valorPrevisto) : '—'}
             </p>
           </div>
           <Botao variante="primario" type="submit" disabled={enviando || taraInvalida}>
@@ -538,10 +524,6 @@ function NovoMotorista({ aoCriar, aoCancelar }) {
           {salvando ? 'Salvando...' : 'Salvar e usar nesta carga'}
         </Botao>
         <Botao type="button" onClick={aoCancelar}>Cancelar</Botao>
-        <p className="text-[10px] leading-relaxed text-mate-700">
-          A tara guardada aqui volta preenchida nas próximas entregas deste veículo —
-          é o que evita pesar o caminhão vazio toda vez.
-        </p>
       </div>
     </div>
   )

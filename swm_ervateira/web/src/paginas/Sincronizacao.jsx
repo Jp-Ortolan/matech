@@ -22,9 +22,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { sincronizacao } from '../api/recursos'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, Tabela, Indicador, Selecao, Botao, Etiqueta, Barra, Aviso,
-  Carregando, Erro, formatar,
+  Painel, Filtros, Tabela, Indicador, Selecao, Botao, Etiqueta, Barra,
+  Carregando, Erro
 } from '../componentes/ui'
+import { formatar, contagem } from '../lib/formatar'
 
 const SITUACOES = {
   ENVIADO: { rotulo: 'no servidor', tom: 'verde' },
@@ -78,14 +79,32 @@ export default function SincronizacaoPagina() {
 
   return (
     <>
-      <CabecalhoPagina
-        titulo="Sincronização"
-        subtitulo="O que o aplicativo enviou do campo, e o que ainda está no caminho"
-      >
+      <CabecalhoPagina titulo="Sincronização">
         <Botao onClick={buscar}>Atualizar</Botao>
       </CabecalhoPagina>
 
-      <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <Filtros>
+        <Selecao
+          rotulo="Aparelho"
+          className="flex-[2]"
+          value={dispositivoId}
+          onChange={(e) => setDispositivoId(e.target.value)}
+        >
+          <option value="">Todos os aparelhos</option>
+          {aparelhos.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </Selecao>
+        <Selecao rotulo="Situação" className="flex-1" value={situacao} onChange={(e) => setSituacao(e.target.value)}>
+          <option value="">Todas</option>
+          <option value="ENVIADO">Confirmadas</option>
+          <option value="PENDENTE">Aguardando</option>
+          <option value="ERRO">Recusadas</option>
+        </Selecao>
+        <span className="flex-1" />
+      </Filtros>
+
+      <div className="mb-3 flex flex-wrap gap-2">
         <Indicador
           rotulo="Taxa de sincronização"
           valor={resumo?.taxaSincronizacao != null ? `${formatar.numero(resumo.taxaSincronizacao, 1)}%` : '—'}
@@ -106,33 +125,6 @@ export default function SincronizacaoPagina() {
         />
       </div>
 
-      <Painel titulo="Filtros" className="mb-3">
-        <div className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-3">
-          <Selecao
-            rotulo="Aparelho"
-            value={dispositivoId}
-            onChange={(e) => setDispositivoId(e.target.value)}
-          >
-            <option value="">Todos os aparelhos</option>
-            {aparelhos.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </Selecao>
-          <Selecao rotulo="Situação" value={situacao} onChange={(e) => setSituacao(e.target.value)}>
-            <option value="">Todas</option>
-            <option value="ENVIADO">Confirmadas</option>
-            <option value="PENDENTE">Aguardando</option>
-            <option value="ERRO">Recusadas</option>
-          </Selecao>
-          <div className="flex items-end">
-            <p className="text-[10px] leading-relaxed text-cinza-400">
-              A taxa é medida por aparelho porque é assim que ela significa alguma
-              coisa: um celular com sinal ruim não deve rebaixar o número de outro.
-            </p>
-          </div>
-        </div>
-      </Painel>
-
       {carregando ? (
         <Carregando />
       ) : (
@@ -152,7 +144,7 @@ export default function SincronizacaoPagina() {
                   forte: true,
                   render: (r) => ROTULO_ENTIDADE[r.entidade] || r.entidade,
                 },
-                { chave: 'dispositivoId', titulo: 'Aparelho', render: (r) => r.dispositivoId },
+                { chave: 'dispositivoId', titulo: 'Aparelho', truncar: 140, oculta: 'xl', render: (r) => r.dispositivoId },
                 {
                   chave: 'situacao',
                   titulo: 'Situação',
@@ -186,7 +178,7 @@ export default function SincronizacaoPagina() {
                 },
               ]}
               dados={registros}
-              vazio="Nenhuma operação recebida ainda. Colete algo no aplicativo e sincronize."
+              vazio="Nenhuma operação recebida ainda."
             />
             {registros.some((r) => r.erroMensagem) && (
               <div className="border-t border-borda px-4 py-3">
@@ -234,9 +226,9 @@ function PorEntidade({ porEntidade }) {
   return (
     <Painel titulo="Por tipo de registro">
       {entidades.length === 0 ? (
-        <p className="px-4 py-8 text-center text-xs text-cinza-400">Nada recebido ainda.</p>
+        <p className="px-3 py-8 text-center text-xs text-cinza-400">Nada recebido ainda.</p>
       ) : (
-        <div className="space-y-3 px-4 py-3">
+        <div className="space-y-3 px-3 py-3">
           {entidades.map(([entidade, n]) => (
             <Barra
               key={entidade}
@@ -254,30 +246,14 @@ function PorEntidade({ porEntidade }) {
 
 function Conflitos({ conflitos, total }) {
   return (
-    <Painel titulo="Conflitos">
-      <div className="px-4 py-3">
-        <p className="text-2xl font-bold tabular text-tinta">{conflitos}</p>
-        <p className="mt-0.5 text-[10px] text-cinza-400">
-          de {total} operaç{total === 1 ? 'ão' : 'ões'} recebidas
+    <Painel titulo="Conflitos" acao="vence a última edição no aparelho">
+      <div className="flex items-baseline gap-2 px-3 py-3">
+        <p className={`text-2xl font-bold tabular ${conflitos > 0 ? 'text-alerta' : 'text-tinta'}`}>
+          {conflitos}
         </p>
-        <div className="mt-3">
-          <Aviso tom={conflitos > 0 ? 'alerta' : 'neutro'}>
-            {conflitos === 0 ? (
-              <>
-                Um conflito acontece quando a mesma avaliação foi alterada no aparelho e
-                no servidor. Quando ocorre, vence a versão editada por último{' '}
-                <strong>no aparelho</strong> — e não a que chegou por último aqui. A
-                escolha fica registrada, com a versão vencedora.
-              </>
-            ) : (
-              <>
-                Houve {conflitos} conflito{conflitos > 1 ? 's' : ''}. Em cada um venceu a
-                versão alterada por último no aparelho, e a decisão está anotada na lista
-                ao lado, na coluna de situação.
-              </>
-            )}
-          </Aviso>
-        </div>
+        <p className="text-[10px] text-cinza-400">
+          de {contagem(total, 'operação recebida', 'operações recebidas')}
+        </p>
       </div>
     </Painel>
   )

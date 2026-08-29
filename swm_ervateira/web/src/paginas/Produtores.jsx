@@ -28,8 +28,9 @@ import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
   Painel, Filtros, Tabela, Situacao, Campo, Selecao, Botao,
-  Carregando, Erro, Sucesso, Vazio, Etiqueta, LinhaDado, Aviso, formatar,
+  Carregando, Erro, Sucesso, Vazio, Etiqueta, LinhaDado, Aviso
 } from '../componentes/ui'
+import { formatar } from '../lib/formatar'
 
 export default function Produtores() {
   const { podeFazer } = useAutenticacao()
@@ -134,21 +135,10 @@ export default function Produtores() {
                 { chave: 'cpfCnpj', titulo: 'CPF / CNPJ', render: (p) => formatar.documento(p.cpfCnpj) },
                 { chave: 'municipio', titulo: 'Município', truncar: 150, oculta: 'lg', render: (p) => (p.municipio ? `${p.municipio}${p.uf ? `/${p.uf}` : ''}` : '—') },
                 { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', forte: true, render: (p) => p._count?.cargas ?? 0 },
-                {
-                  chave: 'acao', titulo: '',
-                  render: (p) => (
-                    <button
-                      onClick={() => { setSelecionadoId(p.id); setAviso('') }}
-                      className={`text-[11px] font-semibold ${
-                        selecionadoId === p.id ? 'text-mate-700' : 'text-cinza-400 hover:text-mate-700'
-                      }`}
-                    >
-                      {selecionadoId === p.id ? 'aberto' : 'abrir'}
-                    </button>
-                  ),
-                },
               ]}
               dados={lista}
+              aoClicarLinha={(p) => { setSelecionadoId(p.id); setAviso('') }}
+              linhaAtiva={selecionadoId}
               vazio={busca ? `Nenhum produtor encontrado para "${busca}".` : 'Nenhum produtor cadastrado ainda.'}
             />
           )}

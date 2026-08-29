@@ -45,9 +45,10 @@ import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
   Painel, Tabela, Indicador, Situacao, Barra, Medidor, Vazio, Aviso,
-  Carregando, Erro, Botao, formatar,
+  Carregando, Erro, Botao
 } from '../componentes/ui'
 import { LIMITE_PALITO_PADRAO } from '../lib/calculo'
+import { formatar, contagem } from '../lib/formatar'
 
 // Teto do porPagina no servidor. A janela usada para somar e agrupar.
 const JANELA = 500
@@ -142,7 +143,7 @@ export default function Dashboard() {
     const maisAntiga = naFila[naFila.length - 1]
     pendencias.push({
       chave: 'analise',
-      titulo: `${aguardando} ${aguardando === 1 ? 'amostra aguarda' : 'amostras aguardam'} análise`,
+      titulo: `${contagem(aguardando, 'amostra aguarda', 'amostras aguardam')} análise`,
       detalhe: maisAntiga
         ? `a mais antiga chegou em ${formatar.dataHora(maisAntiga.dataHora)}, de ${maisAntiga.produtor?.nome}`
         : 'na fila do laboratório',
@@ -157,9 +158,9 @@ export default function Dashboard() {
     const produtoresProntos = new Set(prontas.map((c) => c.produtor?.id ?? c.produtor?.nome)).size
     pendencias.push({
       chave: 'emitir',
-      titulo: `${analisadasSemOrdem} ${analisadasSemOrdem === 1 ? 'carga analisada' : 'cargas analisadas'} sem ordem de pagamento`,
+      titulo: `${contagem(analisadasSemOrdem, 'carga analisada', 'cargas analisadas')} sem ordem de pagamento`,
       detalhe: produtoresProntos
-        ? `${produtoresProntos} ${produtoresProntos === 1 ? 'produtor' : 'produtores'} à espera da emissão`
+        ? `${contagem(produtoresProntos, 'produtor', 'produtores')} à espera da emissão`
         : 'prontas para virar pagamento',
       acao: 'Emitir ordem',
       para: '/pagamentos',
@@ -170,7 +171,7 @@ export default function Dashboard() {
   if (veDinheiro && ordensEmAberto.length > 0) {
     pendencias.push({
       chave: 'quitar',
-      titulo: `${ordensEmAberto.length} ${ordensEmAberto.length === 1 ? 'ordem emitida e não quitada' : 'ordens emitidas e não quitadas'}`,
+      titulo: contagem(ordensEmAberto.length, 'ordem emitida e não quitada', 'ordens emitidas e não quitadas'),
       detalhe: `${formatar.reais(valorEmAberto)} a transferir`,
       acao: 'Confirmar pagamento',
       para: '/pagamentos',
@@ -181,7 +182,7 @@ export default function Dashboard() {
   if (veCampo && sincronia?.pendentes > 0) {
     pendencias.push({
       chave: 'sincronizar',
-      titulo: `${sincronia.pendentes} ${sincronia.pendentes === 1 ? 'coleta ainda não chegou' : 'coletas ainda não chegaram'} do aparelho`,
+      titulo: `${contagem(sincronia.pendentes, 'coleta ainda não chegou', 'coletas ainda não chegaram')} do aparelho`,
       detalhe: 'ficaram na fila de envio do celular',
       acao: 'Abrir sincronização',
       para: '/sincronizacao',
@@ -192,7 +193,7 @@ export default function Dashboard() {
   if (veCampo && sincronia?.comErro > 0) {
     pendencias.push({
       chave: 'erro-sincronia',
-      titulo: `${sincronia.comErro} ${sincronia.comErro === 1 ? 'coleta falhou' : 'coletas falharam'} ao sincronizar`,
+      titulo: `${contagem(sincronia.comErro, 'coleta falhou', 'coletas falharam')} ao sincronizar`,
       detalhe: 'precisam de reenvio para não se perderem',
       acao: 'Ver o que falhou',
       para: '/sincronizacao',
@@ -250,7 +251,7 @@ export default function Dashboard() {
     <>
       <CabecalhoPagina
         titulo="Painel"
-        subtitulo={`${formatar.numero(totalCargas)} ${totalCargas === 1 ? 'carga' : 'cargas'} desde o início`}
+        subtitulo={`${contagem(totalCargas, 'carga', 'cargas')} desde o início`}
       >
         <Botao onClick={carregar} disabled={carregando}>
           {carregando ? 'Atualizando...' : 'Atualizar'}
@@ -282,7 +283,7 @@ export default function Dashboard() {
         {veDinheiro && (
           <NumeroDeAcao
             rotulo="Em aberto" valor={formatar.reais(valorEmAberto)}
-            apoio={`${ordensEmAberto.length} ${ordensEmAberto.length === 1 ? 'ordem não quitada' : 'ordens não quitadas'}`}
+            apoio={contagem(ordensEmAberto.length, 'ordem não quitada', 'ordens não quitadas')}
             para="/pagamentos"
             cor={valorEmAberto > 0 ? 'text-alerta' : 'text-tinta'}
           />
@@ -338,9 +339,9 @@ export default function Dashboard() {
           ) : (
             <div className="flex flex-col gap-3 px-4 py-4">
               {porTipo.map((t) => (
-                <div key={t.tipo} title={`${formatar.materiaPrima(t.tipo)}: ${formatar.kg(t.peso)} em ${t.cargas} ${t.cargas === 1 ? 'carga' : 'cargas'}`}>
+                <div key={t.tipo} title={`${formatar.materiaPrima(t.tipo)}: ${formatar.kg(t.peso)} em ${contagem(t.cargas, 'carga', 'cargas')}`}>
                   <Barra
-                    rotulo={`${formatar.materiaPrima(t.tipo)} · ${t.cargas} ${t.cargas === 1 ? 'carga' : 'cargas'}`}
+                    rotulo={`${formatar.materiaPrima(t.tipo)} · ${contagem(t.cargas, 'carga', 'cargas')}`}
                     valor={`${formatar.kg(t.peso)} · ${formatar.porcento((t.peso / pesoTotal) * 100)}`}
                     proporcao={(t.peso / pesoTotal) * 100}
                     cor="bg-mate-500"
@@ -361,7 +362,7 @@ export default function Dashboard() {
         {comAnalise === 0 ? (
           <Vazio texto={
             aguardando
-              ? `Nenhuma análise lançada ainda. ${aguardando} ${aguardando === 1 ? 'carga aguarda' : 'cargas aguardam'} o laboratório.`
+              ? `Nenhuma análise lançada ainda. ${contagem(aguardando, 'carga aguarda', 'cargas aguardam')} o laboratório.`
               : 'Nenhuma carga registrada ainda.'
           } />
         ) : (

@@ -11,16 +11,16 @@ const servico = require('./cargas.service')
 const POR_PAGINA_PADRAO = 20
 const POR_PAGINA_MAXIMO = 500
 
-// GET /api/cargas?produtorId=&de=&ate=&situacao=&pagina=&porPagina=
+// GET /api/cargas?produtorId=&de=&ate=&situacao=&busca=&pagina=&porPagina=
 async function listar(req, res) {
-  const { produtorId, de, ate, situacao, pagina, porPagina } = req.query
+  const { produtorId, de, ate, situacao, busca, pagina, porPagina } = req.query
 
   // porPagina vem da tela: o histórico usa 20, mas o painel e os relatórios
   // precisam do período inteiro para que os totais não fiquem truncados.
   const tamanho = Math.min(Number(porPagina) || POR_PAGINA_PADRAO, POR_PAGINA_MAXIMO)
 
   const resultado = await servico.listar({
-    produtorId, de, ate, situacao,
+    produtorId, de, ate, situacao, busca,
     pagina: Number(pagina) || 1,
     porPagina: tamanho,
   })

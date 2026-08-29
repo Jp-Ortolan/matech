@@ -25,18 +25,27 @@ function calcularPesoLiquido(pesoBrutoKg, taraKg) {
 }
 
 // ---------------------------------------------------------------------------
-// REGRA 2 · preço combinado na entrega
+// REGRA 2 · preço por quilo
 // ---------------------------------------------------------------------------
-// O preço por quilo é digitado na balança e é ele que multiplica o peso no fim
-// do ciclo. Precisa ser validado AQUI, no registro, e não só no cálculo do
-// pagamento: quem digita é o operador de balança, e quem descobriria o erro
-// seria o analista de qualidade, horas depois, sem saber o preço combinado.
+// ONDE O PREÇO ENTRA, E POR QUE MUDOU DE LUGAR.
 //
-// Um preço zerado não gera erro nenhum mais adiante — gera uma ordem de
-// pagamento de R$ 0,00, que é bem pior que um erro.
-function validarPrecoBase(precoBaseKg) {
+// Antes ele era digitado na balança. O problema é de quem sabe a informação:
+// quem opera a balança pesa o caminhão, e quem acorda o valor com o produtor é
+// o administrativo — e isso acontece depois, quando a carga já foi analisada.
+// Pedir o preço na pesagem obrigava o operador a saber uma informação
+// comercial que não é dele, e a errar sozinho quando não soubesse.
+//
+// Agora o preço entra na EMISSÃO DA ORDEM DE PAGAMENTO, junto com o valor
+// final, e é lá que ele é validado. Aqui ele continua aceito porque pode vir
+// combinado do campo — o avaliador registra um valorCombinadoKg na avaliação —
+// mas deixou de ser obrigatório.
+//
+// Um preço zerado continua sendo recusado. Zero não gera erro mais adiante:
+// gera uma ordem de pagamento de R$ 0,00, que é bem pior que um erro.
+function validarPrecoBase(precoBaseKg, { obrigatorio = false } = {}) {
   if (precoBaseKg === undefined || precoBaseKg === null || precoBaseKg === '') {
-    throw new ErroDeNegocio('Informe o preço por quilograma combinado', 400)
+    if (obrigatorio) throw new ErroDeNegocio('Informe o preço por quilograma', 400)
+    return null
   }
   const preco = Number(precoBaseKg)
   if (!Number.isFinite(preco)) {
@@ -66,24 +75,40 @@ function validarPrecoBase(precoBaseKg) {
 // Quando vier, muda-se só este arquivo.
 function calcularPagamento({
   pesoLiquidoKg,
-  precoBaseKg,
+  precoBaseKg = null,
   palitoPercentual = null,
   limitePalito = 30,
   descontoPorPonto = 1,
 }) {
   const peso = Number(pesoLiquidoKg)
-  const precoBase = Number(precoBaseKg)
-
   if (!(peso > 0)) throw new ErroDeNegocio('O peso líquido deve ser maior que zero', 400)
-  if (!(precoBase > 0)) throw new ErroDeNegocio('O preço por quilograma deve ser maior que zero', 400)
+
+  // O PREÇO É OPCIONAL, e é isso que permite a análise acontecer antes dele.
+  //
+  // A qualidade não depende de preço: o percentual de palito e o desconto que
+  // ele gera são medida de laboratório e existem sozinhos. O que depende de
+  // preço é o VALOR — e ele fica nulo até a ordem de pagamento informar por
+  // quanto a carga foi acordada.
+  //
+  // Zero e negativo continuam recusados. O que se aceita é a AUSÊNCIA.
+  const temPreco = precoBaseKg !== null && precoBaseKg !== undefined && precoBaseKg !== ''
+  const precoBase = temPreco ? Number(precoBaseKg) : null
+  if (temPreco && !(precoBase > 0)) {
+    throw new ErroDeNegocio('O preço por quilograma deve ser maior que zero', 400)
+  }
 
   // Sem análise de laboratório ainda: não há desconto a aplicar.
   const palito = palitoPercentual === null ? null : Number(palitoPercentual)
 
   const excedente = palito === null ? 0 : Math.max(0, palito - Number(limitePalito))
   const descontoPercentual = Number((excedente * Number(descontoPorPonto)).toFixed(4))
-  const precoAjustadoKg = Number((precoBase * (1 - descontoPercentual / 100)).toFixed(4))
-  const valorTotal = Number((peso * precoAjustadoKg).toFixed(2))
+
+  const precoAjustadoKg = precoBase === null
+    ? null
+    : Number((precoBase * (1 - descontoPercentual / 100)).toFixed(4))
+  const valorTotal = precoAjustadoKg === null
+    ? null
+    : Number((peso * precoAjustadoKg).toFixed(2))
 
   return {
     pesoLiquidoKg: peso,
@@ -100,15 +125,41 @@ function calcularPagamento({
 // ---------------------------------------------------------------------------
 // CONSULTA · histórico com filtros  (RF12 a RF14)
 // ---------------------------------------------------------------------------
-async function listar({ produtorId, de, ate, situacao, pagina = 1, porPagina = 20 }) {
+// Montado à parte, e pura, porque é a única regra desta consulta — o resto é
+// paginação. Assim o filtro tem teste sem precisar de banco.
+function montarFiltro({ produtorId, de, ate, situacao, busca }) {
   const where = {}
   if (produtorId) where.produtorId = produtorId
   if (situacao) where.situacao = situacao
+
+  // BUSCA POR TICKET OU POR PRODUTOR, numa caixa só.
+  //
+  // Quem procura uma carga tem na mão um papel com o número do ticket, ou o
+  // nome do produtor que ligou perguntando. São duas entradas para a mesma
+  // pergunta — "onde está esta carga" —, e obrigar a escolher entre dois
+  // campos antes de digitar é pedir que a pessoa classifique o que já sabe.
+  //
+  // O ticket é comparado em maiúsculas porque é sempre gerado assim; o nome
+  // usa mode 'insensitive', que é o que o PostgreSQL oferece para texto.
+  const termo = String(busca ?? '').trim()
+  if (termo) {
+    where.OR = [
+      { numeroTicket: { contains: termo.toUpperCase() } },
+      { produtor: { nome: { contains: termo, mode: 'insensitive' } } },
+    ]
+  }
+
   if (de || ate) {
     where.dataHora = {}
     if (de) where.dataHora.gte = new Date(de)
     if (ate) where.dataHora.lte = new Date(ate)
   }
+
+  return where
+}
+
+async function listar({ produtorId, de, ate, situacao, busca, pagina = 1, porPagina = 20 }) {
+  const where = montarFiltro({ produtorId, de, ate, situacao, busca })
 
   // $transaction roda as duas consultas de uma vez só, o que evita
   // que o total e a lista fiquem inconsistentes entre si.
@@ -145,6 +196,8 @@ async function registrarPesagem(dados, usuarioId) {
   if (!tipoMateriaPrima) throw new ErroDeNegocio('Informe o tipo de matéria-prima', 400)
 
   const pesoLiquidoKg = calcularPesoLiquido(pesoBrutoKg, taraKg)
+  // Opcional: a balança não pede preço. Se vier — de uma carga antiga ou de um
+  // valor já combinado no campo — é aceito e validado.
   const precoValidado = validarPrecoBase(precoBaseKg)
 
   // A estimativa de campo é opcional, mas se vier tem de ser um número positivo:
@@ -258,6 +311,7 @@ async function buscarPorId(id) {
 
 module.exports = {
   criarComNumeroSequencial,
+  montarFiltro,
   calcularPesoLiquido,
   validarPrecoBase,
   calcularPagamento,

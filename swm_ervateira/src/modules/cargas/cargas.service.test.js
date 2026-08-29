@@ -14,7 +14,7 @@
 const { test, describe } = require('node:test')
 const assert = require('node:assert/strict')
 
-const { calcularPagamento, calcularPesoLiquido, validarPrecoBase } = require('./cargas.service')
+const { calcularPagamento, calcularPesoLiquido, validarPrecoBase, montarFiltro } = require('./cargas.service')
 
 describe('calcularPesoLiquido', () => {
   test('subtrai a tara do peso bruto', () => {
@@ -72,9 +72,62 @@ describe('calcularPagamento', () => {
     assert.equal(r.valorTotal, 9000)
   })
 
-  test('recusa peso ou preço inválidos', () => {
+  test('recusa peso inválido, e preço zerado ou negativo', () => {
     assert.throws(() => calcularPagamento({ pesoLiquidoKg: 0, precoBaseKg: 5 }), /peso/i)
     assert.throws(() => calcularPagamento({ pesoLiquidoKg: 100, precoBaseKg: 0 }), /preço/i)
+    assert.throws(() => calcularPagamento({ pesoLiquidoKg: 100, precoBaseKg: -2 }), /preço/i)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// O PREÇO DEIXOU DE SER OBRIGATÓRIO — e este bloco é a garantia disso
+// ---------------------------------------------------------------------------
+// A qualidade é medida no laboratório, antes de o preço existir. Quem informa
+// o preço é o administrativo, na emissão da ordem. Então o cálculo precisa
+// saber produzir o DESCONTO sem saber o preço — e deixar o valor em aberto,
+// não em zero.
+//
+// Zero seria pior que nulo: uma ordem de pagamento de R$ 0,00 parece um valor
+// legítimo e passaria despercebida. Nulo obriga quem lê a perceber que falta.
+
+describe('calcularPagamento sem preço', () => {
+  test('mede o desconto e deixa preço e valor em aberto', () => {
+    const r = calcularPagamento({ pesoLiquidoKg: 7240, palitoPercentual: 34 })
+    assert.equal(r.excedentePalito, 4)
+    assert.equal(r.descontoPercentual, 4)
+    assert.equal(r.precoAjustadoKg, null)
+    assert.equal(r.valorTotal, null)
+  })
+
+  test('sem preço e sem análise, o desconto é zero e o valor continua em aberto', () => {
+    const r = calcularPagamento({ pesoLiquidoKg: 1000 })
+    assert.equal(r.descontoPercentual, 0)
+    assert.equal(r.precoAjustadoKg, null)
+    assert.equal(r.valorTotal, null)
+  })
+
+  test('o desconto sem preço é o MESMO que com preço', () => {
+    // É isto que permite a ordem aplicar depois, sobre o preço que ela
+    // informar, o desconto que o laboratório mediu antes. Se as duas contas
+    // divergissem, o valor da ordem não corresponderia à análise.
+    const comPreco = calcularPagamento({ pesoLiquidoKg: 1000, precoBaseKg: 5, palitoPercentual: 37 })
+    const semPreco = calcularPagamento({ pesoLiquidoKg: 1000, palitoPercentual: 37 })
+    assert.equal(semPreco.descontoPercentual, comPreco.descontoPercentual)
+    assert.equal(semPreco.excedentePalito, comPreco.excedentePalito)
+  })
+
+  test('aplicar o desconto medido sobre um preço informado depois dá o mesmo resultado', () => {
+    // Simula o que a emissão da ordem faz: pega o desconto já gravado na
+    // análise e aplica ao preço que o administrativo informou.
+    const analise = calcularPagamento({ pesoLiquidoKg: 7240, palitoPercentual: 34 })
+    const precoInformadoNaOrdem = 4.85
+
+    const precoAjustado = Number((precoInformadoNaOrdem * (1 - analise.descontoPercentual / 100)).toFixed(4))
+    const valor = Number((7240 * precoAjustado).toFixed(2))
+
+    // Os mesmos números do teste 'palito acima do limite desconta o preço'.
+    assert.equal(precoAjustado, 4.656)
+    assert.equal(valor, 33709.44)
   })
 })
 
@@ -99,13 +152,53 @@ describe('validarPrecoBase', () => {
     assert.throws(() => validarPrecoBase(-5), /maior que zero/i)
   })
 
-  test('recusa preço ausente, em vez de deixar virar NaN no banco', () => {
-    assert.throws(() => validarPrecoBase(undefined), /informe o preço/i)
-    assert.throws(() => validarPrecoBase(null), /informe o preço/i)
-    assert.throws(() => validarPrecoBase(''), /informe o preço/i)
+  // O preço saiu da balança: quem o informa é o administrativo, na emissão da
+  // ordem. Ausente virou caso NORMAL na pesagem — e continua sendo recusado
+  // onde ele é indispensável, através da opção `obrigatorio`.
+  test('aceita preço ausente: a balança não pede preço', () => {
+    assert.equal(validarPrecoBase(undefined), null)
+    assert.equal(validarPrecoBase(null), null)
+    assert.equal(validarPrecoBase(''), null)
+  })
+
+  test('recusa preço ausente quando quem chama exige', () => {
+    assert.throws(() => validarPrecoBase(undefined, { obrigatorio: true }), /informe o preço/i)
+    assert.throws(() => validarPrecoBase(null, { obrigatorio: true }), /informe o preço/i)
+    assert.throws(() => validarPrecoBase('', { obrigatorio: true }), /informe o preço/i)
   })
 
   test('recusa texto que não é número', () => {
     assert.throws(() => validarPrecoBase('quatro reais'), /número/i)
+  })
+})
+
+describe('montarFiltro · busca por ticket ou produtor', () => {
+  test('sem busca, não acrescenta condição nenhuma', () => {
+    assert.equal(montarFiltro({}).OR, undefined)
+    assert.equal(montarFiltro({ busca: '   ' }).OR, undefined)
+  })
+
+  test('procura nos dois campos ao mesmo tempo', () => {
+    const where = montarFiltro({ busca: 'jose' })
+    assert.equal(where.OR.length, 2)
+    assert.equal(where.OR[0].numeroTicket.contains, 'JOSE')
+    assert.equal(where.OR[1].produtor.nome.contains, 'jose')
+    assert.equal(where.OR[1].produtor.nome.mode, 'insensitive')
+  })
+
+  test('ticket digitado em minúsculas encontra o ticket', () => {
+    // O número é gerado sempre em maiúsculas; quem digita, não.
+    assert.equal(montarFiltro({ busca: 'pes-2026-01184' }).OR[0].numeroTicket.contains, 'PES-2026-01184')
+  })
+
+  test('espaços em volta não atrapalham', () => {
+    assert.equal(montarFiltro({ busca: '  Marlene  ' }).OR[1].produtor.nome.contains, 'Marlene')
+  })
+
+  test('a busca convive com os outros filtros', () => {
+    const where = montarFiltro({ busca: 'jose', situacao: 'ANALISADA', produtorId: 'p1' })
+    assert.equal(where.situacao, 'ANALISADA')
+    assert.equal(where.produtorId, 'p1')
+    assert.ok(where.OR)
   })
 })

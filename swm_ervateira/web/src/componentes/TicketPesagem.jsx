@@ -19,12 +19,13 @@
 //    expectativa que o pagamento talvez não cumpra — e a discussão sobraria
 //    para quem está na balança, com o produtor na frente.
 
-import { formatar } from './ui'
+import {} from './ui'
+import { formatar } from '../lib/formatar'
 
 export default function TicketPesagem({ carga, aoFechar }) {
   if (!carga) return null
 
-  const previsto = Number(carga.pesoLiquidoKg) * Number(carga.precoBaseKg)
+
   const emitidoEm = new Date().toLocaleString('pt-BR')
 
   return (
@@ -80,15 +81,10 @@ export default function TicketPesagem({ carga, aoFechar }) {
             <Linha rotulo="Peso líquido" valor={formatar.kg(carga.pesoLiquidoKg)} destaque />
           </div>
 
-          <div className="mt-3 border-t border-borda pt-3">
-            <Linha rotulo="Preço combinado" valor={`${formatar.reais(carga.precoBaseKg)} / kg`} />
-            <Linha rotulo="Valor previsto" valor={formatar.reais(previsto)} destaque />
-          </div>
-
           <p className="mt-3 border border-borda px-3 py-2 text-[9.5px] leading-relaxed text-cinza-600">
-            <strong className="text-tinta">Valor sujeito à análise de qualidade.</strong> O
-            percentual de palito medido no laboratório pode reduzir o preço por quilo. O
-            valor final consta na ordem de pagamento.
+            <strong className="text-tinta">Comprovante de pesagem.</strong> O valor a pagar
+            é definido na ordem de pagamento, depois da análise de qualidade — o percentual
+            de palito medido no laboratório reduz o preço por quilo.
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-6">

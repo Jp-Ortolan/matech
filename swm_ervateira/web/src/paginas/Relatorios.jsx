@@ -26,11 +26,12 @@ import {
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
   Painel, Filtros, SaidaDoPainel, Tabela, Indicador, Situacao, Campo, Selecao, Botao, Abas, Barra,
-  Carregando, Erro, Vazio, Etiqueta, Aviso, formatar,
+  Carregando, Erro, Vazio, Etiqueta, Aviso
 } from '../componentes/ui'
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { baixarCsv, numeroCsv } from '../lib/exportar'
 import { LIMITE_PALITO_PADRAO } from '../lib/calculo'
+import { formatar, contagem } from '../lib/formatar'
 
 // A aba financeira só existe para quem pode ler ordens de pagamento. Não é
 // uma regra desta tela: GET /api/pagamentos exige o perfil, e sem ele a aba
@@ -235,7 +236,7 @@ function Recebimento({ lista }) {
             .sort((a, b) => (a.chave < b.chave ? -1 : 1))
             .map((g) => (
               <Barra key={g.chave}
-                     rotulo={`${formatar.data(g.chave)} · ${g.cargas} ${g.cargas === 1 ? 'carga' : 'cargas'}`}
+                     rotulo={`${formatar.data(g.chave)} · ${contagem(g.cargas, 'carga', 'cargas')}`}
                      valor={formatar.kg(g.peso)}
                      proporcao={(g.peso / maiorDia) * 100}
                      cor="bg-mate-500" />
@@ -259,7 +260,7 @@ function Qualidade({ lista }) {
       <Painel titulo="Qualidade">
         <Vazio texto={
           pendentes.length
-            ? `Nenhuma análise lançada no período. ${pendentes.length} ${pendentes.length === 1 ? 'carga aguarda' : 'cargas aguardam'} o laboratório.`
+            ? `Nenhuma análise lançada no período. ${contagem(pendentes.length, 'carga aguarda', 'cargas aguardam')} o laboratório.`
             : 'Nenhuma carga no período selecionado.'
         } />
       </Painel>
@@ -330,7 +331,7 @@ function Qualidade({ lista }) {
                    cor="text-alerta" />
         <Indicador rotulo="Desconto concedido" valor={formatar.reais(descontoEmReais)}
                    apoio={comPreco.length
-                     ? `${comPreco.length} ${comPreco.length === 1 ? 'carga já precificada' : 'cargas já precificadas'} · média de ${formatar.porcento(descontoMedio, 2)}`
+                     ? `${contagem(comPreco.length, 'carga já precificada', 'cargas já precificadas')} · média de ${formatar.porcento(descontoMedio, 2)}`
                      : 'nenhuma carga precificada ainda'}
                    cor="text-perigo" />
       </div>
@@ -380,7 +381,7 @@ function Qualidade({ lista }) {
             <div className="flex flex-col gap-3 px-4 py-4">
               {faixasDePalito(analisadas).map((f) => (
                 <Barra key={f.rotulo} rotulo={f.rotulo}
-                       valor={`${f.cargas} ${f.cargas === 1 ? 'carga' : 'cargas'}`}
+                       valor={contagem(f.cargas, 'carga', 'cargas')}
                        proporcao={(f.cargas / analisadas.length) * 100}
                        cor={f.acima ? 'bg-alerta' : 'bg-mate-500'} />
               ))}
@@ -575,8 +576,12 @@ function Acuracia({ lista }) {
         <Indicador rotulo="Desvio médio absoluto" valor={formatar.porcento(desvioMedioAbsoluto)}
                    apoio="erro da estimativa, em módulo"
                    cor={desvioMedioAbsoluto <= 10 ? 'text-mate-700' : 'text-alerta'} />
+        {/* O apoio era "a balança pesa mais que o estimado" e vinha cortado no
+            meio pela largura do card — sobrava "a balança pesa mais que o…",
+            que é justamente a metade sem a informação. Encurtado para caber,
+            e o card agora deixa o texto quebrar em duas linhas quando precisa. */}
         <Indicador rotulo="Viés" valor={`${vies > 0 ? '+' : ''}${formatar.porcento(vies)}`}
-                   apoio={vies > 0 ? 'a balança pesa mais que o estimado' : 'a balança pesa menos que o estimado'} />
+                   apoio={vies > 0 ? 'pesou mais que o estimado' : 'pesou menos que o estimado'} />
         <Indicador rotulo="Dentro de ±10%" valor={dentroDeDez.length} unidade="cargas"
                    apoio={`${formatar.porcento((dentroDeDez.length / comDesvio.length) * 100)} das comparáveis`} />
       </div>
