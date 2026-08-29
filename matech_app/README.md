@@ -410,3 +410,58 @@ Rode sempre `flutter analyze` antes de apresentar.
   exigiria `workmanager` ou equivalente — uma dependência com configuração
   nativa dos dois lados, que não se paga no escopo deste trabalho.
 - **Testes de widget.**
+
+---
+
+## Rodar no navegador
+
+O aplicativo compila para web além do Android. Serve para desenvolver com
+recarga rápida, sem esperar o emulador subir.
+
+### Preparar (uma vez só)
+
+```bash
+flutter create --platforms=web .        # cria a pasta web/
+flutter pub get
+dart run sqflite_common_ffi_web:setup   # baixa sqlite3.wasm e sqflite_sw.js
+```
+
+O terceiro comando é obrigatório e costuma ser o esquecido: sem ele o banco
+local não abre no navegador, e o aplicativo trava na primeira tela que consulta
+alguma coisa.
+
+### Rodar
+
+```bash
+flutter run -d chrome
+```
+
+Com a API subida em outra janela (`npm run dev`, na pasta `swm_ervateira`). No
+navegador o endereço padrão da API é `http://localhost:3000` — no Android
+continua sendo `10.0.2.2:3000`, que é o apelido do emulador para a máquina
+hospedeira. Para apontar para outro lugar:
+
+```bash
+flutter run -d chrome --dart-define=MATECH_API=http://192.168.0.42:3000
+```
+
+### O que muda no navegador
+
+| | Android | Navegador |
+|---|---|---|
+| Banco local | SQLite nativo | SQLite em WebAssembly, sobre IndexedDB |
+| Foto | arquivo em disco | bytes numa tabela do banco local |
+| Câmera | câmera do aparelho | seletor de arquivo |
+| GPS | GPS do aparelho | localização do navegador (pede permissão) |
+
+O esquema do banco, as consultas e a fila de sincronização são os mesmos nos
+dois. Nenhum DAO sabe em qual está rodando.
+
+### O que NÃO funciona igual
+
+- A localização do navegador exige `localhost` ou HTTPS. Em `flutter run -d
+  chrome` é localhost, então funciona; servido de um IP da rede por HTTP, não.
+- Os dados ficam por origem. Abrir em `localhost:1234` e depois em
+  `localhost:5678` são dois bancos diferentes — o Flutter sorteia a porta a
+  cada `flutter run`, então use `--web-port=8080` para manter o mesmo banco
+  entre execuções.

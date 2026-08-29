@@ -12,7 +12,8 @@
 // o que foi visto. Uma miniatura de 96 pixels não prova nada sobre folha,
 // talo ou queima.
 
-import 'dart:io';
+
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -20,6 +21,7 @@ import '../dados/avaliacao_dao.dart';
 import '../dados/foto_dao.dart';
 import '../modelos/avaliacao.dart';
 import '../modelos/foto.dart';
+import '../servicos/arquivos.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
 import 'avaliacao_editar.dart';
@@ -310,13 +312,40 @@ class _Miniatura extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // caminho vazio é a marca de "o arquivo sumiu do aparelho" —
-    // ver FotoDao.marcarArquivoAusente. A linha continua existindo de
-    // propósito: ela é a prova de que a avaliação teve esta foto.
-    final ausente =
-        foto.caminhoLocal.isEmpty || !File(foto.caminhoLocal).existsSync();
+    // A LEITURA VIROU ASSÍNCRONA, e não por gosto: no navegador a foto não é
+    // um arquivo em disco que se possa perguntar se existe de forma síncrona —
+    // é uma linha no banco local. Uma porta só para as duas plataformas custa
+    // este FutureBuilder.
+    //
+    // cacheWidth de 200 para uma miniatura de 100: sem ele o Flutter decodifica
+    // a foto inteira, de vários megapixels, para desenhar um quadrado pequeno.
+    return FutureBuilder<Uint8List?>(
+      future: Arquivos.lerFoto(foto.caminhoLocal),
+      builder: (context, quadro) {
+        if (quadro.connectionState != ConnectionState.done) {
+          return Container(
+            height: 100,
+            width: 100,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          );
+        }
 
-    if (ausente) {
+        final bytes = quadro.data;
+        // caminho vazio é a marca de "o arquivo sumiu do aparelho" — ver
+        // FotoDao.marcarArquivoAusente. A linha continua existindo de
+        // propósito: ela é a prova de que a avaliação teve esta foto.
+        final ausente = foto.caminhoLocal.isEmpty || bytes == null;
+
+        return ausente ? _semArquivo() : _comArquivo(context, bytes);
+      },
+    );
+  }
+
+  Widget _semArquivo() {
+    {
       return Container(
         height: 100,
         width: 100,
@@ -339,21 +368,23 @@ class _Miniatura extends StatelessWidget {
       );
     }
 
+  Widget _comArquivo(BuildContext context, Uint8List bytes) {
     return GestureDetector(
       onTap:
           () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => _FotoInteira(foto.caminhoLocal)),
+            MaterialPageRoute(builder: (_) => _FotoInteira(bytes)),
           ),
       child: Stack(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(
-              File(foto.caminhoLocal),
+            child: Image.memory(
+              bytes,
               height: 100,
               width: 100,
               fit: BoxFit.cover,
+              cacheWidth: 200,
             ),
           ),
           if (!foto.sincronizada)
@@ -380,8 +411,8 @@ class _Miniatura extends StatelessWidget {
 }
 
 class _FotoInteira extends StatelessWidget {
-  final String caminho;
-  const _FotoInteira(this.caminho);
+  final Uint8List bytes;
+  const _FotoInteira(this.bytes);
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -391,7 +422,7 @@ class _FotoInteira extends StatelessWidget {
       foregroundColor: Colors.white,
     ),
     body: Center(
-      child: InteractiveViewer(maxScale: 5, child: Image.file(File(caminho))),
+      child: InteractiveViewer(maxScale: 5, child: Image.memory(bytes)),
     ),
   );
 }

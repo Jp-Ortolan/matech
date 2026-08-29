@@ -3,6 +3,8 @@
 // ---------------------------------------------------------------------------
 // Um lugar só para o que muda de ambiente para ambiente.
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class Config {
   /// Endereço da API.
   ///
@@ -14,10 +16,15 @@ class Config {
   ///
   /// Dá para trocar sem recompilar o código:
   ///   flutter run --dart-define=MATECH_API=http://192.168.0.42:3000
-  static const String enderecoApi = String.fromEnvironment(
-    'MATECH_API',
-    defaultValue: 'http://10.0.2.2:3000',
-  );
+  /// NO NAVEGADOR O PADRÃO É OUTRO. 10.0.2.2 é o apelido do emulador do
+  /// Android; num navegador ele não existe, e a primeira tela ficaria
+  /// tentando falar com um endereço sem dono — o que parece falha do port e
+  /// é só o endereço errado.
+  static String get enderecoApi {
+    const informado = String.fromEnvironment('MATECH_API');
+    if (informado.isNotEmpty) return informado;
+    return kIsWeb ? 'http://localhost:3000' : 'http://10.0.2.2:3000';
+  }
 
   static const String nomeBancoLocal = 'matech.db';
 

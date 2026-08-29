@@ -212,260 +212,227 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
       appBar: AppBar(title: const Text('Editar avaliação')),
       body: Form(
         key: _formulario,
-        child: ListView(
+        // SingleChildScrollView + Column, e NÃO ListView.
+        //
+        // A ARMADILHA QUE ISTO CONSERTA, e que custou uma fila travada:
+        //
+        // O ListView é preguiçoso — os filhos que saem da tela são desmontados.
+        // Um TextFormField desmontado SE DESREGISTRA do Form, e o validate()
+        // deixa de enxergá-lo. Como o botão de salvar fica no fim de um
+        // formulário longo, os campos obrigatórios do topo já tinham sido
+        // descartados quando o validador rodava: o formulário salvava sem
+        // reclamar, com campo obrigatório vazio, e o erro só aparecia no
+        // servidor — que recusava o registro e deixava os filhos dele
+        // esperando na fila para sempre.
+        //
+        // O SingleChildScrollView constrói tudo de uma vez. Num formulário de
+        // vinte campos isso não custa nada, e devolve ao validate() a única
+        // coisa que se espera dele: ver o formulário inteiro.
+        //
+        // O stretch é obrigatório: o ListView esticava os filhos na largura
+        // por padrão e a Column, não. Sem ele, botões e campos encolheriam
+        // para o tamanho do conteúdo.
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          children: [
-            // Identidade, em leitura. Deixar visível e não editável é mais
-            // honesto que esconder: o avaliador vê de qual registro se trata.
-            Card(
-              color: Colors.black.withValues(alpha: 0.03),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    LinhaDado('Avaliação de', formatarData(a.dataAvaliacao)),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Produtor, área e data não mudam: eles identificam este '
-                      'registro. Para outro produtor, faça uma avaliação nova.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                        height: 1.4,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Identidade, em leitura. Deixar visível e não editável é mais
+              // honesto que esconder: o avaliador vê de qual registro se trata.
+              Card(
+                color: Colors.black.withValues(alpha: 0.03),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      LinhaDado('Avaliação de', formatarData(a.dataAvaliacao)),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Produtor, área e data não mudam.',
+                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              const _Secao('A erva'),
+              SegmentedButton<String>(
+                segments:
+                    tiposDeErva
+                        .map(
+                          (t) => ButtonSegment(
+                            value: t,
+                            label: Text(rotuloTipoErva[t] ?? t),
+                          ),
+                        )
+                        .toList(),
+                selected: {_tipoErva},
+                onSelectionChanged: (s) => setState(() => _tipoErva = s.first),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _queima,
+                decoration: const InputDecoration(labelText: 'Erva queimada'),
+                items:
+                    grausDeQueima
+                        .map(
+                          (g) => DropdownMenuItem(
+                            value: g,
+                            child: Text(rotuloQueima[g] ?? g),
+                          ),
+                        )
+                        .toList(),
+                onChanged: (v) => setState(() => _queima = v ?? 'NAO'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _quantidade,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Quantidade estimada *',
+                        suffixText: 'kg',
+                      ),
+                      validator: (v) {
+                        final n = _numero(v ?? '');
+                        if (n == null || n <= 0) return 'Informe a estimativa';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _idadeErval,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Idade',
+                        suffixText: 'anos',
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+              const _Secao('Preço'),
+              TextFormField(
+                controller: _valorCombinado,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Valor combinado por quilo',
+                  prefixText: 'R\$ ',
+                  helperText: 'Deixe vazio para remover o valor combinado',
                 ),
               ),
-            ),
 
-            const SizedBox(height: 24),
-            const _Secao('A erva'),
-            SegmentedButton<String>(
-              segments:
-                  tiposDeErva
-                      .map(
-                        (t) => ButtonSegment(
-                          value: t,
-                          label: Text(rotuloTipoErva[t] ?? t),
-                        ),
-                      )
-                      .toList(),
-              selected: {_tipoErva},
-              onSelectionChanged: (s) => setState(() => _tipoErva = s.first),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _queima,
-              decoration: const InputDecoration(labelText: 'Erva queimada'),
-              items:
-                  grausDeQueima
-                      .map(
-                        (g) => DropdownMenuItem(
-                          value: g,
-                          child: Text(rotuloQueima[g] ?? g),
-                        ),
-                      )
-                      .toList(),
-              onChanged: (v) => setState(() => _queima = v ?? 'NAO'),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    controller: _quantidade,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Quantidade estimada *',
-                      suffixText: 'kg',
-                    ),
-                    validator: (v) {
-                      final n = _numero(v ?? '');
-                      if (n == null || n <= 0) return 'Informe a estimativa';
-                      return null;
-                    },
+              const SizedBox(height: 24),
+              const _Secao('Localização'),
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    (_localizacaoNova != null || a.temLocalizacao)
+                        ? Icons.location_on
+                        : Icons.location_off_outlined,
+                    color:
+                        (_localizacaoNova != null || a.temLocalizacao)
+                            ? Colors.green.shade700
+                            : Colors.black45,
                   ),
+                  title: Text(
+                    _localizacaoNova?.resumo ??
+                        (a.temLocalizacao
+                            ? '${a.latitude!.toStringAsFixed(6)}, ${a.longitude!.toStringAsFixed(6)}'
+                            : 'Sem coordenada'),
+                  ),
+                  subtitle: Text(
+                    _localizacaoNova == null
+                        ? 'Toque para ler de novo, se estiver no local'
+                        : 'Nova leitura — substitui a anterior ao salvar',
+                  ),
+                  trailing:
+                      _lendoGps
+                          ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Icon(Icons.my_location),
+                  onTap: _lendoGps ? null : _lerLocalizacao,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _idadeErval,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Idade',
-                      suffixText: 'anos',
+              ),
+
+              const SizedBox(height: 24),
+              _Secao(
+                'Acrescentar fotos'
+                '${_fotosNovas.isEmpty ? "" : " (${_fotosNovas.length})"}',
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _adicionarFotos(CapturaDeFotos.daCamera()),
+                      icon: const Icon(Icons.photo_camera_outlined),
+                      label: const Text('Câmera'),
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          () => _adicionarFotos(CapturaDeFotos.daGaleria()),
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Galeria'),
+                    ),
+                  ),
+                ],
+              ),
+              if (_fotosNovas.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '${_fotosNovas.length} '
+                  '${_fotosNovas.length == 1 ? "foto nova será enviada" : "fotos novas serão enviadas"} '
+                  'junto.',
                 ),
               ],
-            ),
 
-            const SizedBox(height: 24),
-            const _Secao('Preço'),
-            TextFormField(
-              controller: _valorCombinado,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 24),
+              const _Secao('Observações'),
+              TextFormField(
+                controller: _observacoes,
+                maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  hintText: 'O que não coube nos campos acima',
+                  alignLabelWithHint: true,
+                ),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Valor combinado por quilo',
-                prefixText: 'R\$ ',
-                helperText: 'Deixe vazio para remover o valor combinado',
-              ),
-            ),
 
-            const SizedBox(height: 24),
-            const _Secao('Localização'),
-            Card(
-              child: ListTile(
-                leading: Icon(
-                  (_localizacaoNova != null || a.temLocalizacao)
-                      ? Icons.location_on
-                      : Icons.location_off_outlined,
-                  color:
-                      (_localizacaoNova != null || a.temLocalizacao)
-                          ? Colors.green.shade700
-                          : Colors.black45,
-                ),
-                title: Text(
-                  _localizacaoNova?.resumo ??
-                      (a.temLocalizacao
-                          ? '${a.latitude!.toStringAsFixed(6)}, ${a.longitude!.toStringAsFixed(6)}'
-                          : 'Sem coordenada'),
-                ),
-                subtitle: Text(
-                  _localizacaoNova == null
-                      ? 'Toque para ler de novo, se estiver no local'
-                      : 'Nova leitura — substitui a anterior ao salvar',
-                ),
-                trailing:
-                    _lendoGps
-                        ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : const Icon(Icons.my_location),
-                onTap: _lendoGps ? null : _lerLocalizacao,
+              const SizedBox(height: 32),
+              FilledButton.icon(
+                onPressed: _salvando ? null : _salvar,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(_salvando ? 'Salvando...' : 'Salvar alteração'),
               ),
-            ),
 
-            const SizedBox(height: 24),
-            _Secao(
-              'Acrescentar fotos'
-              '${_fotosNovas.isEmpty ? "" : " (${_fotosNovas.length})"}',
-            ),
-            const Text(
-              'As fotos que já existem estão na tela anterior e não são '
-              'apagadas por aqui — foto é prova do que foi visto no erval.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.black54,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _adicionarFotos(CapturaDeFotos.daCamera()),
-                    icon: const Icon(Icons.photo_camera_outlined),
-                    label: const Text('Câmera'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed:
-                        () => _adicionarFotos(CapturaDeFotos.daGaleria()),
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text('Galeria'),
-                  ),
-                ),
-              ],
-            ),
-            if (_fotosNovas.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                '${_fotosNovas.length} '
-                '${_fotosNovas.length == 1 ? "foto nova será enviada" : "fotos novas serão enviadas"} '
-                'junto.',
-              ),
             ],
-
-            const SizedBox(height: 24),
-            const _Secao('Observações'),
-            TextFormField(
-              controller: _observacoes,
-              maxLines: 4,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'O que não coube nos campos acima',
-                alignLabelWithHint: true,
-              ),
-            ),
-
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: _salvando ? null : _salvar,
-              icon: const Icon(Icons.save_outlined),
-              label: Text(_salvando ? 'Salvando...' : 'Salvar alteração'),
-            ),
-            const SizedBox(height: 12),
-            const _ExplicacaoDoConflito(),
-          ],
+          ),
         ),
       ),
     );
   }
-}
-
-/// A explicação que vale ler antes de apertar salvar.
-///
-/// Está na tela, e não só no comentário do código, porque descreve um
-/// comportamento que o usuário PRECISA entender: a versão que vale é a
-/// alterada por último no aparelho, e não a que chegar por último ao servidor.
-/// Sem isso, um avaliador que edita duas vezes em aparelhos diferentes não
-/// teria como prever o resultado.
-class _ExplicacaoDoConflito extends StatelessWidget {
-  const _ExplicacaoDoConflito();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Colors.blue.shade50,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.blue.shade100),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.info_outline, size: 18, color: Colors.blue.shade700),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Ao salvar, esta versão é carimbada com a hora deste aparelho. '
-            'Se a mesma avaliação for alterada em outro lugar, vale a que '
-            'foi editada por último — não a que chegar por último ao '
-            'servidor.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.blue.shade900,
-              height: 1.5,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _Secao extends StatelessWidget {

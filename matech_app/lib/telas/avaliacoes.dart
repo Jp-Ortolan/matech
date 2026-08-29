@@ -79,9 +79,7 @@ class _TelaAvaliacoesState extends State<TelaAvaliacoes> {
               ? Vazio(
                 icone: Icons.assignment_outlined,
                 titulo: 'Nenhuma avaliação ainda',
-                descricao:
-                    'A avaliação é feita no erval, antes da colheita. Ela é '
-                    'salva no aparelho na hora e sobe quando houver sinal.',
+                descricao: 'Salva no aparelho e sobe quando houver sinal.',
                 acao: FilledButton.icon(
                   onPressed: _abrirFormulario,
                   icon: const Icon(Icons.add),

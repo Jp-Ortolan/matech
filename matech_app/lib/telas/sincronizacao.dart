@@ -287,7 +287,7 @@ class _Placar extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Confirmados pelo servidor ÷ total coletado neste aparelho.',
+                'confirmados ÷ coletados',
                 style: TextStyle(fontSize: 11, color: Colors.black45),
               ),
             ],

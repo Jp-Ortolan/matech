@@ -17,7 +17,7 @@
 // NADA NESTE ARQUIVO FALA COM A REDE. Salvar grava no SQLite e enfileira.
 
 import 'dart:async';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -266,6 +266,25 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     }
     if (!_formulario.currentState!.validate()) return;
 
+    // Cinto e suspensório para o nome da área nova.
+    //
+    // O validate() acima já cobre isto agora que o formulário rola num
+    // SingleChildScrollView. A verificação continua aqui porque a consequência
+    // de deixar passar não é um campo em branco: o servidor RECUSA o erval sem
+    // identificação, e a avaliação e as fotos que dependem dele ficam presas na
+    // fila esperando um pai que nunca vai chegar. O aparelho não oferece jeito
+    // de consertar um pai recusado — então o lugar certo de barrar isso é aqui,
+    // antes de a operação entrar na fila.
+    if (_areaNova && _identificacaoArea.text.trim().length < 2) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dê um nome à área antes de salvar.'),
+        ),
+      );
+      return;
+    }
+
     final produtor = _produtor!;
     setState(() => _salvando = true);
 
@@ -330,8 +349,12 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     var sumiram = 0;
 
     for (final f in _fotos) {
-      final arquivo = File(f.caminho);
-      if (!arquivo.existsSync() || arquivo.lengthSync() == 0) {
+      // A conferência passou a ler os bytes em vez de perguntar ao arquivo se
+      // ele existe: no navegador não há arquivo, e a foto é uma linha no banco
+      // local. `lerFoto` devolve nulo tanto para "sumiu" quanto para "está
+      // vazia", que são os dois casos que esta checagem sempre quis pegar.
+      final bytes = await Arquivos.lerFoto(f.caminho);
+      if (bytes == null) {
         sumiram++;
         continue;
       }
@@ -386,266 +409,268 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
       appBar: AppBar(title: const Text('Avaliação em campo')),
       body: Form(
         key: _formulario,
-        child: ListView(
+        // SingleChildScrollView + Column, e NÃO ListView.
+        //
+        // A ARMADILHA QUE ISTO CONSERTA, e que custou uma fila travada:
+        //
+        // O ListView é preguiçoso — os filhos que saem da tela são desmontados.
+        // Um TextFormField desmontado SE DESREGISTRA do Form, e o validate()
+        // deixa de enxergá-lo. Como o botão de salvar fica no fim de um
+        // formulário longo, os campos obrigatórios do topo já tinham sido
+        // descartados quando o validador rodava: o formulário salvava sem
+        // reclamar, com campo obrigatório vazio, e o erro só aparecia no
+        // servidor — que recusava o registro e deixava os filhos dele
+        // esperando na fila para sempre.
+        //
+        // O SingleChildScrollView constrói tudo de uma vez. Num formulário de
+        // vinte campos isso não custa nada, e devolve ao validate() a única
+        // coisa que se espera dele: ver o formulário inteiro.
+        //
+        // O stretch é obrigatório: o ListView esticava os filhos na largura
+        // por padrão e a Column, não. Sem ele, botões e campos encolheriam
+        // para o tamanho do conteúdo.
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          children: [
-            const _Secao('Produtor'),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.person_outline),
-                title: Text(_produtor?.nome ?? 'Escolher produtor'),
-                subtitle: Text(
-                  _produtor?.cpfCnpj ?? 'Toque para buscar no aparelho',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _escolherProdutor,
-              ),
-            ),
-
-            if (_produtor != null) ...[
-              const SizedBox(height: 24),
-              const _Secao('Área de colheita'),
-              if (_ervais.isNotEmpty) ...[
-                SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(value: false, label: Text('Área conhecida')),
-                    ButtonSegment(value: true, label: Text('Área nova')),
-                  ],
-                  selected: {_areaNova},
-                  onSelectionChanged:
-                      (s) => setState(() => _areaNova = s.first),
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (_areaNova)
-                TextFormField(
-                  controller: _identificacaoArea,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome da área *',
-                    helperText:
-                        'Como o produtor chama: "Erval do fundo", "Talhão 3"',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _Secao('Produtor'),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: Text(_produtor?.nome ?? 'Escolher produtor'),
+                  subtitle: Text(
+                    _produtor?.cpfCnpj ?? 'Toque para buscar no aparelho',
                   ),
-                  validator:
-                      (v) =>
-                          (_areaNova && (v == null || v.trim().length < 2))
-                              ? 'Dê um nome à área'
-                              : null,
-                )
-              else
-                DropdownButtonFormField<Erval>(
-                  initialValue: _ervalEscolhido,
-                  decoration: const InputDecoration(labelText: 'Área'),
-                  items:
-                      _ervais
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(
-                                e.identificacao,
-                                overflow: TextOverflow.ellipsis,
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _escolherProdutor,
+                ),
+              ),
+
+              if (_produtor != null) ...[
+                const SizedBox(height: 24),
+                const _Secao('Área de colheita'),
+                if (_ervais.isNotEmpty) ...[
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: false, label: Text('Área conhecida')),
+                      ButtonSegment(value: true, label: Text('Área nova')),
+                    ],
+                    selected: {_areaNova},
+                    onSelectionChanged:
+                        (s) => setState(() => _areaNova = s.first),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (_areaNova)
+                  TextFormField(
+                    controller: _identificacaoArea,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome da área *',
+                      helperText:
+                          'Como o produtor chama: "Erval do fundo", "Talhão 3"',
+                    ),
+                    validator:
+                        (v) =>
+                            (_areaNova && (v == null || v.trim().length < 2))
+                                ? 'Dê um nome à área'
+                                : null,
+                  )
+                else
+                  DropdownButtonFormField<Erval>(
+                    initialValue: _ervalEscolhido,
+                    decoration: const InputDecoration(labelText: 'Área'),
+                    items:
+                        _ervais
+                            .map(
+                              (e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  e.identificacao,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
+                            )
+                            .toList(),
+                    onChanged: (v) => setState(() => _ervalEscolhido = v),
+                    validator:
+                        (v) =>
+                            (!_areaNova && v == null) ? 'Escolha a área' : null,
+                  ),
+
+                const SizedBox(height: 24),
+                const _Secao('A erva'),
+                SegmentedButton<String>(
+                  segments:
+                      tiposDeErva
+                          .map(
+                            (t) => ButtonSegment(
+                              value: t,
+                              label: Text(rotuloTipoErva[t] ?? t),
                             ),
                           )
                           .toList(),
-                  onChanged: (v) => setState(() => _ervalEscolhido = v),
-                  validator:
-                      (v) =>
-                          (!_areaNova && v == null) ? 'Escolha a área' : null,
+                  selected: {_tipoErva},
+                  onSelectionChanged: (s) => setState(() => _tipoErva = s.first),
                 ),
-
-              const SizedBox(height: 24),
-              const _Secao('A erva'),
-              SegmentedButton<String>(
-                segments:
-                    tiposDeErva
-                        .map(
-                          (t) => ButtonSegment(
-                            value: t,
-                            label: Text(rotuloTipoErva[t] ?? t),
-                          ),
-                        )
-                        .toList(),
-                selected: {_tipoErva},
-                onSelectionChanged: (s) => setState(() => _tipoErva = s.first),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _queima,
-                decoration: const InputDecoration(labelText: 'Erva queimada'),
-                items:
-                    grausDeQueima
-                        .map(
-                          (g) => DropdownMenuItem(
-                            value: g,
-                            child: Text(rotuloQueima[g] ?? g),
-                          ),
-                        )
-                        .toList(),
-                onChanged: (v) => setState(() => _queima = v ?? 'NAO'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _quantidade,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Quantidade estimada *',
-                        suffixText: 'kg',
-                      ),
-                      validator: (v) {
-                        final n = _numero(v ?? '');
-                        if (n == null || n <= 0) return 'Informe a estimativa';
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _idadeErval,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Idade',
-                        suffixText: 'anos',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'A estimativa é comparada depois com o peso real da balança. '
-                'É dela que sai o indicador de acurácia da avaliação em campo.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.black54,
-                  height: 1.4,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-              const _Secao('Preço'),
-              TextFormField(
-                controller: _valorCombinado,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Valor combinado por quilo',
-                  prefixText: 'R\$ ',
-                  helperText:
-                      'Opcional — só se o preço já foi acertado no erval',
-                ),
-              ),
-
-              const SizedBox(height: 24),
-              const _Secao('Localização'),
-              Card(
-                child: ListTile(
-                  leading: Icon(
-                    _localizacao == null
-                        ? Icons.location_off_outlined
-                        : _localizacao!.aproximada
-                        ? Icons.location_searching
-                        : Icons.location_on,
-                    color:
-                        _localizacao == null
-                            ? Colors.black45
-                            : _localizacao!.aproximada
-                            ? Colors.orange.shade800
-                            : Colors.green.shade700,
-                  ),
-                  title: Text(_localizacao?.resumo ?? 'Sem coordenada'),
-                  subtitle: Text(
-                    _localizacao == null
-                        ? 'Opcional. O GPS não depende de internet.'
-                        : _localizacao!.aproximada
-                        ? 'Aproximada — veio da última posição conhecida'
-                        : 'Precisão de ${_localizacao!.precisaoMetros?.toStringAsFixed(0) ?? "?"} m',
-                  ),
-                  trailing:
-                      _lendoGps
-                          ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _queima,
+                  decoration: const InputDecoration(labelText: 'Erva queimada'),
+                  items:
+                      grausDeQueima
+                          .map(
+                            (g) => DropdownMenuItem(
+                              value: g,
+                              child: Text(rotuloQueima[g] ?? g),
+                            ),
                           )
-                          : IconButton(
-                            icon: const Icon(Icons.my_location),
-                            tooltip: 'Ler a localização',
-                            onPressed: _lerLocalizacao,
-                          ),
-                  onTap: _lendoGps ? null : _lerLocalizacao,
+                          .toList(),
+                  onChanged: (v) => setState(() => _queima = v ?? 'NAO'),
                 ),
-              ),
-
-              const SizedBox(height: 24),
-              _Secao('Fotos${_fotos.isEmpty ? "" : " (${_fotos.length})"}'),
-              _GradeDeFotos(fotos: _fotos, aoRemover: _removerFoto),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _adicionarDaCamera,
-                      icon: const Icon(Icons.photo_camera_outlined),
-                      label: const Text('Câmera'),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _quantidade,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Quantidade estimada *',
+                          suffixText: 'kg',
+                        ),
+                        validator: (v) {
+                          final n = _numero(v ?? '');
+                          if (n == null || n <= 0) return 'Informe a estimativa';
+                          return null;
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _adicionarDaGaleria,
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Galeria'),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _idadeErval,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Idade',
+                          suffixText: 'anos',
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+                const _Secao('Preço'),
+                TextFormField(
+                  controller: _valorCombinado,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'As fotos ficam no aparelho e sobem uma a uma, depois da '
-                'avaliação. Se uma falhar, as outras não são afetadas.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.black54,
-                  height: 1.4,
+                  decoration: const InputDecoration(
+                    labelText: 'Valor combinado por quilo',
+                    prefixText: 'R\$ ',
+                    helperText: 'Só se já foi acertado no erval',
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 24),
-              const _Secao('Observações'),
-              TextFormField(
-                controller: _observacoes,
-                maxLines: 4,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  hintText: 'O que não coube nos campos acima',
-                  alignLabelWithHint: true,
+                const SizedBox(height: 24),
+                const _Secao('Localização'),
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      _localizacao == null
+                          ? Icons.location_off_outlined
+                          : _localizacao!.aproximada
+                          ? Icons.location_searching
+                          : Icons.location_on,
+                      color:
+                          _localizacao == null
+                              ? Colors.black45
+                              : _localizacao!.aproximada
+                              ? Colors.orange.shade800
+                              : Colors.green.shade700,
+                    ),
+                    title: Text(_localizacao?.resumo ?? 'Sem coordenada'),
+                    subtitle: Text(
+                      _localizacao == null
+                          ? 'Opcional. O GPS não depende de internet.'
+                          : _localizacao!.aproximada
+                          ? 'Aproximada — veio da última posição conhecida'
+                          : 'Precisão de ${_localizacao!.precisaoMetros?.toStringAsFixed(0) ?? "?"} m',
+                    ),
+                    trailing:
+                        _lendoGps
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : IconButton(
+                              icon: const Icon(Icons.my_location),
+                              tooltip: 'Ler a localização',
+                              onPressed: _lerLocalizacao,
+                            ),
+                    onTap: _lendoGps ? null : _lerLocalizacao,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 32),
-              FilledButton.icon(
-                onPressed: _salvando ? null : _salvar,
-                icon: const Icon(Icons.save_outlined),
-                label: Text(_salvando ? 'Salvando...' : 'Salvar avaliação'),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Salva no aparelho na hora. Sobe sozinha quando houver sinal.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.black54),
-              ),
+                const SizedBox(height: 24),
+                _Secao('Fotos${_fotos.isEmpty ? "" : " (${_fotos.length})"}'),
+                _GradeDeFotos(fotos: _fotos, aoRemover: _removerFoto),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _adicionarDaCamera,
+                        icon: const Icon(Icons.photo_camera_outlined),
+                        label: const Text('Câmera'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _adicionarDaGaleria,
+                        icon: const Icon(Icons.photo_library_outlined),
+                        label: const Text('Galeria'),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+                const _Secao('Observações'),
+                TextFormField(
+                  controller: _observacoes,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    hintText: 'O que não coube nos campos acima',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+                FilledButton.icon(
+                  onPressed: _salvando ? null : _salvar,
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(_salvando ? 'Salvando...' : 'Salvar avaliação'),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Salva no aparelho na hora. Sobe sozinha quando houver sinal.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -688,8 +713,11 @@ class _GradeDeFotos extends StatelessWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        File(f.caminho),
+                      child: _MiniaturaDaCaptura(
+                        caminho: f.caminho,
+                        // cacheWidth de 192 para uma miniatura de 96: sem ele o
+                        // Flutter decodifica a foto inteira, de vários
+                        // megapixels, para desenhar um quadrado pequeno.
                         height: 96,
                         width: 96,
                         fit: BoxFit.cover,
@@ -868,3 +896,75 @@ double? _numero(String v) {
 }
 
 int? _inteiro(String v) => v.trim().isEmpty ? null : int.tryParse(v.trim());
+
+// ---------------------------------------------------------------------------
+// Miniatura de uma foto recém-capturada
+// ---------------------------------------------------------------------------
+// Substituiu um `Image.file` direto, e a razão é o navegador: lá a foto não é
+// um arquivo em disco, é uma linha no banco local. Uma porta só para as duas
+// plataformas custa esta leitura assíncrona.
+//
+// O `errorBuilder` continua fazendo o mesmo trabalho de antes: a foto pode ter
+// sumido entre a captura e agora — o Android limpa armazenamento sem avisar —
+// e sem tratamento a miniatura quebraria a tela inteira. Com ele, a foto
+// ausente fica visível como ausente, e o avaliador refaz ainda no erval.
+class _MiniaturaDaCaptura extends StatelessWidget {
+  final String caminho;
+  final double height;
+  final double width;
+  final BoxFit fit;
+  final ImageErrorWidgetBuilder errorBuilder;
+
+  const _MiniaturaDaCaptura({
+    required this.caminho,
+    required this.height,
+    required this.width,
+    required this.fit,
+    required this.errorBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List?>(
+      future: Arquivos.lerFoto(caminho),
+      builder: (context, quadro) {
+        if (quadro.connectionState != ConnectionState.done) {
+          return SizedBox(
+            height: height,
+            width: width,
+            child: ColoredBox(color: Colors.grey.shade200),
+          );
+        }
+
+        final bytes = quadro.data;
+        if (bytes == null) {
+          return errorBuilder(
+            context,
+            const _FotoSumiu(),
+            StackTrace.current,
+          );
+        }
+
+        return Image.memory(
+          bytes,
+          height: height,
+          width: width,
+          fit: fit,
+          // Sem isto o Flutter decodifica a foto inteira, de vários
+          // megapixels, para desenhar um quadrado de 96.
+          cacheWidth: (width * 2).round(),
+          errorBuilder: errorBuilder,
+        );
+      },
+    );
+  }
+}
+
+/// O "erro" que a miniatura relata quando a foto não está mais lá. Existe
+/// porque o errorBuilder do Flutter pede um objeto de erro, e inventar um
+/// Exception genérico diria menos do que isto diz.
+class _FotoSumiu implements Exception {
+  const _FotoSumiu();
+  @override
+  String toString() => 'A foto não está mais guardada neste aparelho.';
+}

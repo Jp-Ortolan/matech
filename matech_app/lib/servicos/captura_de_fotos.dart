@@ -152,7 +152,15 @@ class CapturaDeFotos {
       final clientId = novoClientId();
 
       try {
-        final caminho = await Arquivos.guardarFoto(imagem.path, clientId);
+        // A origem vai das duas formas: o caminho, que o aparelho usa para
+        // copiar arquivo sem carregar a imagem na memória, e o leitor de
+        // bytes, que é o único jeito no navegador — lá o "caminho" é uma URL
+        // temporária que não dá para abrir. Cada implementação usa a sua.
+        final caminho = await Arquivos.guardarFoto(
+          clientId,
+          caminhoDeOrigem: imagem.path,
+          lerBytesDaOrigem: imagem.readAsBytes,
+        );
         final medidas = await Arquivos.dimensoes(caminho);
         final bytes = await Arquivos.lerFoto(caminho);
 

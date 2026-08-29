@@ -165,9 +165,9 @@ class _TelaPreparoState extends State<TelaPreparo> {
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
-            'Três coisas precisam de internet e de você por perto. Depois '
-            'disto o aplicativo funciona sozinho, sem sinal, o dia todo.',
-            style: TextStyle(fontSize: 15, height: 1.5),
+            'Três coisas precisam de internet. Depois disto, o aplicativo '
+            'funciona sem sinal o dia todo.',
+            style: TextStyle(fontSize: 15, height: 1.4),
           ),
           const SizedBox(height: 24),
 
@@ -175,8 +175,7 @@ class _TelaPreparoState extends State<TelaPreparo> {
             icone: Icons.location_on_outlined,
             titulo: 'Localização',
             descricao:
-                'Registra em que ponto do erval a avaliação foi feita. '
-                'Funciona sem internet, mas a permissão precisa ser dada uma vez.',
+                'Em que ponto do erval a avaliação foi feita.',
             estado: _localizacao,
             detalhe: _detalheLocalizacao,
             aoTocar: _localizacao == _Passo.fazendo ? null : _pedirLocalizacao,
@@ -187,8 +186,7 @@ class _TelaPreparoState extends State<TelaPreparo> {
             icone: Icons.photo_camera_outlined,
             titulo: 'Câmera',
             descricao:
-                'Fotografa a erva no pé. A foto tirada agora é descartada — '
-                'serve só para liberar a permissão.',
+                'A foto tirada agora é descartada: serve só para liberar a permissão.',
             estado: _camera,
             detalhe: _detalheCamera,
             aoTocar: _camera == _Passo.fazendo ? null : _pedirCamera,
@@ -199,8 +197,7 @@ class _TelaPreparoState extends State<TelaPreparo> {
             icone: Icons.cloud_download_outlined,
             titulo: 'Baixar os produtores',
             descricao:
-                'Traz a lista do escritório para o aparelho. É a única coisa '
-                'que não dá para fazer no erval — lá não há sinal.',
+                'Traz a lista do escritório. É a única que não dá para fazer no erval.',
             estado: _produtores,
             detalhe: _detalheProdutores,
             aoTocar: _produtores == _Passo.fazendo ? null : _baixarProdutores,
@@ -219,10 +216,9 @@ class _TelaPreparoState extends State<TelaPreparo> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Nada aqui é obrigatório. Se pular, o aplicativo pedirá cada '
-            'permissão no momento de usar — inclusive no meio do erval.',
+            'Se pular, cada permissão é pedida na hora de usar.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.4),
+            style: TextStyle(fontSize: 12, color: Colors.black54),
           ),
         ],
       ),

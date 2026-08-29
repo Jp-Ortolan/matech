@@ -18,7 +18,6 @@
 // existe. É por isso que são duas classes.
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -56,16 +55,23 @@ class Api {
     if (token != null) 'Authorization': 'Bearer $token',
   };
 
-  /// Envolve toda chamada: transforma as falhas de socket do Dart em
-  /// ErroDeRede, para que o resto do aplicativo não precise conhecer
-  /// SocketException nem TimeoutException.
+  /// Envolve toda chamada: transforma as falhas de rede em ErroDeRede, para
+  /// que o resto do aplicativo não precise conhecer o tipo de exceção que cada
+  /// plataforma lança.
+  ///
+  /// POR QUE NÃO SE CAPTURA MAIS SocketException PELO TIPO: ela vem de
+  /// `dart:io`, que não compila para web — importar aquele pacote aqui
+  /// quebraria o build do navegador inteiro por causa de uma linha de catch.
+  ///
+  /// O `http` do próprio time do Dart já resolve isso: em qualquer plataforma
+  /// ele embrulha a falha de transporte em ClientException, e é ela que
+  /// chega aqui. Perde-se distinguir "sem rota para o host" de "conexão
+  /// recusada" — o que não muda nada, porque as duas viravam a mesma frase.
   static Future<T> _tentar<T>(Future<T> Function() chamada) async {
     try {
       return await chamada();
-    } on SocketException {
+    } on http.ClientException {
       throw const ErroDeRede('Sem conexão com o servidor');
-    } on HttpException {
-      throw const ErroDeRede('Falha na comunicação com o servidor');
     } on FormatException {
       throw const ErroDeRede('Resposta do servidor em formato inesperado');
     } catch (e) {

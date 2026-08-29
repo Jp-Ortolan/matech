@@ -23,8 +23,10 @@
 // habitual, aqui a identidade nasce no aparelho, não no banco central — é o
 // que permite criar um produtor e uma avaliação dele antes de existir conexão.
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import '../config.dart';
 
@@ -38,21 +40,77 @@ class BancoLocal {
     return _instancia!;
   }
 
+  /// O MESMO BANCO, DOIS MOTORES.
+  ///
+  /// No Android o sqflite fala com o SQLite nativo do sistema. No navegador não
+  /// existe SQLite nativo nem sistema de arquivos: o sqflite_common_ffi_web
+  /// roda o SQLite compilado em WebAssembly e guarda as páginas no IndexedDB.
+  ///
+  /// O que isso preserva, e é o ponto: o esquema, as consultas e a fila de
+  /// sincronização são exatamente os mesmos. Nenhum DAO sabe em qual dos dois
+  /// está rodando — e a promessa de funcionar sem conexão vale nos dois, porque
+  /// o IndexedDB também sobrevive a fechar o navegador.
+  ///
+  /// A troca de fábrica acontece ANTES de qualquer consulta. Feita depois, o
+  /// primeiro DAO a rodar já teria aberto o banco com o motor errado.
   static Future<Database> _abrir() async {
+    if (kIsWeb) {
+      databaseFactory = databaseFactoryFfiWeb;
+      return openDatabase(
+        // Sem caminho: na web o nome é a chave do banco no IndexedDB, e juntar
+        // diretório a ele criaria um banco por caminho digitado.
+        Config.nomeBancoLocal,
+        version: _versao,
+        onConfigure: _configurar,
+        onCreate: _criarTabelas,
+        onUpgrade: _atualizar,
+      );
+    }
+
     final caminho = p.join(await getDatabasesPath(), Config.nomeBancoLocal);
     return openDatabase(
       caminho,
-      version: 1,
-      onConfigure: (db) async {
-        // As chaves estrangeiras deste banco apontam para client_id, e é o
-        // SQLite que precisa ser avisado para respeitá-las.
-        await db.execute('PRAGMA foreign_keys = ON');
-      },
+      version: _versao,
+      onConfigure: _configurar,
       onCreate: _criarTabelas,
+      onUpgrade: _atualizar,
     );
   }
 
+  /// Versão 2: entrou a tabela fotos_arquivo, onde a versão web guarda os
+  /// bytes das fotos. No Android ela é criada e fica vazia — a foto lá
+  /// continua sendo um arquivo em disco, como sempre foi.
+  static const int _versao = 2;
+
+  static Future<void> _configurar(Database db) async {
+    // As chaves estrangeiras deste banco apontam para client_id, e é o SQLite
+    // que precisa ser avisado para respeitá-las.
+    await db.execute('PRAGMA foreign_keys = ON');
+  }
+
+  static Future<void> _atualizar(Database db, int de, int para) async {
+    // Instalações que já existem no Android chegam aqui com de = 1. A tabela é
+    // criada e permanece vazia; nada do que já estava gravado é tocado.
+    if (de < 2) await _criarTabelaDeFotos(db);
+  }
+
+  /// Os BYTES da foto, e não o caminho dela.
+  ///
+  /// Só a implementação web escreve aqui. Existe no Android para que o esquema
+  /// seja um só: dois esquemas divergentes é o começo de um bug que só aparece
+  /// numa das plataformas.
+  static Future<void> _criarTabelaDeFotos(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS fotos_arquivo (
+        client_id TEXT PRIMARY KEY,
+        bytes     BLOB NOT NULL
+      )
+    ''');
+  }
+
   static Future<void> _criarTabelas(Database db, int versao) async {
+    await _criarTabelaDeFotos(db);
+
     await db.execute('''
       CREATE TABLE sessao (
         id          TEXT PRIMARY KEY,

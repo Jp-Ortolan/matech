@@ -124,122 +124,131 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
       appBar: AppBar(title: const Text('Cadastrar produtor')),
       body: Form(
         key: _formulario,
-        child: ListView(
+        // SingleChildScrollView + Column, e NÃO ListView.
+        //
+        // A ARMADILHA QUE ISTO CONSERTA, e que custou uma fila travada:
+        //
+        // O ListView é preguiçoso — os filhos que saem da tela são desmontados.
+        // Um TextFormField desmontado SE DESREGISTRA do Form, e o validate()
+        // deixa de enxergá-lo. Como o botão de salvar fica no fim de um
+        // formulário longo, os campos obrigatórios do topo já tinham sido
+        // descartados quando o validador rodava: o formulário salvava sem
+        // reclamar, com campo obrigatório vazio, e o erro só aparecia no
+        // servidor — que recusava o registro e deixava os filhos dele
+        // esperando na fila para sempre.
+        //
+        // O SingleChildScrollView constrói tudo de uma vez. Num formulário de
+        // vinte campos isso não custa nada, e devolve ao validate() a única
+        // coisa que se espera dele: ver o formulário inteiro.
+        //
+        // O stretch é obrigatório: o ListView esticava os filhos na largura
+        // por padrão e a Column, não. Sem ele, botões e campos encolheriam
+        // para o tamanho do conteúdo.
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          children: [
-            const _Secao('Identificação'),
-            TextFormField(
-              controller: _nome,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Nome completo *'),
-              validator:
-                  (v) =>
-                      (v == null || v.trim().length < 3)
-                          ? 'Informe o nome'
-                          : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _documento,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'CPF ou CNPJ *',
-                helperText: 'Só os números',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _Secao('Identificação'),
+              TextFormField(
+                controller: _nome,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Nome completo *'),
+                validator:
+                    (v) =>
+                        (v == null || v.trim().length < 3)
+                            ? 'Informe o nome'
+                            : null,
               ),
-              validator: (v) {
-                final d = _somenteDigitos(v ?? '');
-                if (d.length != 11 && d.length != 14) {
-                  return 'CPF tem 11 dígitos e CNPJ tem 14';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _telefone,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Telefone'),
-            ),
-
-            const SizedBox(height: 24),
-            const _Secao('Localização'),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: TextFormField(
-                    controller: _municipio,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Município'),
-                  ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _documento,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  labelText: 'CPF ou CNPJ *',
+                  helperText: 'Só os números',
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _uf,
-                    textCapitalization: TextCapitalization.characters,
-                    maxLength: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'UF',
-                      counterText: '',
+                validator: (v) {
+                  final d = _somenteDigitos(v ?? '');
+                  if (d.length != 11 && d.length != 14) {
+                    return 'CPF tem 11 dígitos e CNPJ tem 14';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _telefone,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Telefone'),
+              ),
+
+              const SizedBox(height: 24),
+              const _Secao('Localização'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _municipio,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(labelText: 'Município'),
                     ),
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-            const _Secao('Pagamento'),
-            const Text(
-              'A chave vai junto do cadastro para que a ordem de pagamento, '
-              'lá no escritório, já saiba para onde pagar.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.black54,
-                height: 1.4,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _uf,
+                      textCapitalization: TextCapitalization.characters,
+                      maxLength: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'UF',
+                        counterText: '',
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _tipoChave,
-              decoration: const InputDecoration(labelText: 'Tipo de chave Pix'),
-              items:
-                  _tiposDeChave.entries
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ),
-                      )
-                      .toList(),
-              onChanged: (v) => setState(() => _tipoChave = v ?? 'CPF'),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _chavePix,
-              decoration: const InputDecoration(labelText: 'Chave Pix'),
-            ),
 
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: _salvando ? null : _salvar,
-              icon: const Icon(Icons.save_outlined),
-              label: Text(_salvando ? 'Salvando...' : 'Salvar no aparelho'),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'O cadastro é salvo no aparelho na hora e entra na fila de '
-              'sincronização. Não é preciso ter internet agora.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.black54,
-                height: 1.4,
+              const SizedBox(height: 24),
+              const _Secao('Pagamento'),
+              const SizedBox(height: 4),
+              DropdownButtonFormField<String>(
+                initialValue: _tipoChave,
+                decoration: const InputDecoration(labelText: 'Tipo de chave Pix'),
+                items:
+                    _tiposDeChave.entries
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e.key,
+                            child: Text(e.value),
+                          ),
+                        )
+                        .toList(),
+                onChanged: (v) => setState(() => _tipoChave = v ?? 'CPF'),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _chavePix,
+                decoration: const InputDecoration(labelText: 'Chave Pix'),
+              ),
+
+              const SizedBox(height: 32),
+              FilledButton.icon(
+                onPressed: _salvando ? null : _salvar,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(_salvando ? 'Salvando...' : 'Salvar no aparelho'),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Salvo no aparelho. Sobe quando houver sinal.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
+          ),
         ),
       ),
     );

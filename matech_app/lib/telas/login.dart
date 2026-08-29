@@ -167,9 +167,7 @@ class _TelaLoginState extends State<TelaLogin> {
 
                   const SizedBox(height: 24),
                   const Text(
-                    'Entre com sinal antes de sair a campo. Depois disso o '
-                    'aplicativo funciona sem internet, e o que for coletado '
-                    'sobe quando a conexão voltar.',
+                    'Entre com sinal antes de sair a campo.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12,
