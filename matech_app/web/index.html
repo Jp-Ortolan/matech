@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!--
+    O `base href` é substituído pelo valor de --base-href no `flutter build`.
+    Servido da raiz, como em `flutter run -d chrome`, ele vira "/".
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Coleta de avaliações de erva-mate em campo, com funcionamento offline.">
+
+  <!-- Verde da marca. É a cor da barra do navegador no celular. -->
+  <meta name="theme-color" content="#1b4d33">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MATECH">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>MATECH · avaliação em campo</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /*
+      A ESPERA ANTES DO FLUTTER APARECER.
+
+      Compilado para web, o Flutter baixa e inicializa alguns megabytes antes
+      de desenhar o primeiro quadro. Sem nada aqui, isso é uma tela branca de
+      alguns segundos — que numa demonstração parece o sistema travado.
+
+      Então a página já nasce com a marca no meio, na mesma cor do login. O
+      Flutter desenha por cima quando estiver pronto; não é preciso remover
+      nada, porque ele monta num canvas que cobre o corpo inteiro.
+    */
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #e7efe9;
+    }
+
+    #abertura {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #16351f;
+    }
+
+    #abertura img {
+      width: 96px;
+      height: 96px;
+      /* Vinte segundos por volta, igual ao sistema web. */
+      animation: gira 20s linear infinite;
+    }
+
+    #abertura p {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: #4c6354;
+    }
+
+    @keyframes gira {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Quem pediu para a tela parar de se mexer não recebe o giro. */
+    @media (prefers-reduced-motion: reduce) {
+      #abertura img { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="abertura">
+    <img src="icons/Icon-512.png" alt="">
+    <p>MATECH</p>
+  </div>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
