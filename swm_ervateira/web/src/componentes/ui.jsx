@@ -9,6 +9,8 @@
 
 import { useEffect, useState } from 'react'
 import { TAMANHO, SITUACAO, ICONE_DA_ACAO } from '../lib/icones'
+import { faixaDePaginas } from '../lib/paginacao'
+import Marca from './Marca'
 
 /**
  * Desenha um ícone do mapa de lib/icones.js.
@@ -669,8 +671,25 @@ export function Aviso({ children, tom = 'neutro' }) {
 // que precisasse formatar um número a arrastar a biblioteca de interface
 // inteira junto.
 
+/**
+ * A espera, com a engrenagem da marca girando.
+ *
+ * O movimento QUER DIZER alguma coisa aqui, e é por isso que ele existe só
+ * neste componente e no login: engrenagem girando é o sistema trabalhando,
+ * engrenagem parada é o sistema pronto. Um símbolo que gira o tempo todo, em
+ * toda tela, não diz nada — vira ruído periférico, e quem passa o dia aqui
+ * pede para desligar.
+ *
+ * O texto continua, e continua sendo o principal: ele diz o que está sendo
+ * esperado, e a marca só confirma que alguma coisa está acontecendo.
+ */
 export function Carregando({ texto = 'Carregando...' }) {
-  return <p className="px-4 py-8 text-center text-xs text-cinza-400">{texto}</p>
+  return (
+    <div className="flex flex-col items-center gap-3 px-4 py-8" role="status" aria-live="polite">
+      <Marca girando className="h-9 w-9 opacity-90" />
+      <p className="text-center text-xs text-cinza-400">{texto}</p>
+    </div>
+  )
 }
 
 export function Erro({ erro }) {

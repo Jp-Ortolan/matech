@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ROTA_INICIAL } from '../lib/acesso'
 import { useAutenticacao } from '../contexto/Autenticacao'
-import Marca from '../componentes/Marca'
+import { MarcaEscrita } from '../componentes/Marca'
 import { Campo, Botao, Erro } from '../componentes/ui'
 
 export default function Login() {
@@ -41,15 +41,19 @@ export default function Login() {
     <div className="flex h-screen">
       {/* lado esquerdo · identidade */}
       <aside className="hidden w-[46%] max-w-[620px] shrink-0 flex-col justify-center gap-5 bg-barra-900 px-10 lg:flex xl:px-16">
-        <div className="flex items-center gap-3">
-          <Marca sobreEscuro className="h-14 w-14" />
-          <span>
-            <span className="block text-3xl font-bold tracking-widest text-white">MATECH</span>
-            <span className="block text-[11px] font-medium tracking-wide text-white/50">
-              gestão de matéria-prima
-            </span>
-          </span>
-        </div>
+        {/* A MARCA É O M DA PALAVRA.
+            
+            Escrever "MATECH" ao lado dela repetia a letra duas vezes a um
+            centímetro de distância — o símbolo já tem um M dentro. O lockup lê
+            a marca como a primeira letra e completa com "atech".
+            
+            A assinatura "gestão de matéria-prima" saiu junto: o parágrafo
+            logo abaixo diz a mesma coisa, com mais precisão e sem repetir.
+            
+            Aqui a engrenagem gira o tempo todo. Esta é a única tela do sistema
+            em que a pessoa está esperando em vez de trabalhando, e é a única
+            em que movimento contínuo não atrapalha ninguém. */}
+        <MarcaEscrita tamanho={104} girando sobreEscuro className="text-white" />
 
         <p className="max-w-[470px] text-[15px] leading-relaxed text-white/70">
           Sistema de controle de recebimento, avaliação em campo e pagamento de

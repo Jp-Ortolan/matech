@@ -107,6 +107,39 @@ body {
 .tabular { font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------------------
+   A ENGRENAGEM GIRANDO
+   ---------------------------------------------------------------------------
+   Vinte segundos por volta. É devagar de propósito: rápido demais vira um
+   carregador de página, e a marca não é um carregador — no login ela gira o
+   tempo todo, e movimento rápido no canto do olho de quem está digitando a
+   senha incomoda em dez segundos.
+
+   `linear` e não `ease`: engrenagem de verdade não acelera e freia a cada
+   volta. Qualquer curva de suavização entrega que é uma imagem girando.
+
+   `transform-origin: center` é explícito porque a peça é posicionada em
+   absoluto sobre a outra, e a origem padrão do transform depende da caixa —
+   um pixel fora do centro e a marca oscila em vez de girar.
+
+   E respeita quem pediu para o sistema parar de se mexer. `prefers-reduced-
+   motion` não é preferência estética: existe para quem sente enjoo ou tem
+   crise vestibular com movimento na tela. */
+@keyframes marca-gira {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.marca-girando {
+  animation: marca-gira 20s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marca-girando { animation: none; }
+}
+
+/* ---------------------------------------------------------------------------
    TABLET · 600px a 1024px
    ---------------------------------------------------------------------------
    A faixa que o sistema não tinha. O layout ia de "coluna única de celular"
