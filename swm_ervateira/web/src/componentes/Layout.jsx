@@ -46,20 +46,27 @@ function ItemMenu({ rotulo, para, recolhido }) {
     >
       {({ isActive }) => (
         <div className="flex">
-          {/* barra de acento à esquerda, visível só no item ativo */}
-          <span className={`w-[3px] shrink-0 ${isActive ? 'bg-mate-500' : 'bg-transparent'}`} />
+          {/* Barra de acento à esquerda, visível só no item ativo.
+              
+              NO MENU CLARO O ITEM ATIVO PRECISOU FICAR MAIS FORTE. Sobre o
+              fundo escuro antigo bastava um realce discreto para dizer "você
+              está aqui"; sobre o claro, um realce discreto se confunde com o
+              hover. Por isso o ativo virou faixa verde-escura cheia, com
+              texto branco — a única coisa de alto contraste no menu, que é
+              exatamente o que ele tem de ser. */}
+          <span className={`w-[3px] shrink-0 ${isActive ? 'bg-mate-700' : 'bg-transparent'}`} />
           <div
             className={`flex flex-1 items-center gap-2.5 py-2.5 ${recolhido ? 'justify-center px-0' : 'px-4'} ${
-              isActive ? 'bg-barra-800' : ''
+              isActive ? 'bg-mate-700' : 'hover:bg-barra-800'
             }`}
           >
             <Icone
               de={icone}
               tamanho={TAMANHO.menu}
-              className={isActive ? 'text-mate-500' : 'text-white/45'}
+              className={isActive ? 'text-white' : 'text-barra-tenue'}
             />
             {!recolhido && (
-              <span className={`truncate text-[13px] ${isActive ? 'font-semibold text-white' : 'text-white/60'}`}>
+              <span className={`truncate text-[13px] ${isActive ? 'font-semibold text-white' : 'text-barra-tinta'}`}>
                 {rotulo}
               </span>
             )}
@@ -162,7 +169,7 @@ export default function Layout() {
       <header className="flex h-[58px] shrink-0 items-center border-b border-borda bg-white pr-3 md:pr-5 print:h-auto print:border-b-2 print:pl-0">
         <div
           data-fora-da-impressao
-          className={`flex h-full shrink-0 items-center gap-2.5 bg-barra-900 ${larguraDoMenu} ${
+          className={`flex h-full shrink-0 items-center gap-2.5 border-r border-barra-borda bg-barra-900 ${larguraDoMenu} ${
             recolhido ? 'justify-center px-0' : 'px-5'
           }`}
         >
@@ -170,11 +177,12 @@ export default function Layout() {
               letra, e abaixo de uns 30 pixels isso vira mancha. A placa clara
               existe porque o corpo da engrenagem é quase a cor deste fundo —
               sem ela, some a engrenagem e some o M. */}
-          <Marca sobreEscuro className="h-[34px] w-[34px]" />
+          {/* Sem placa atrás: o fundo do menu clareou justamente para isso. */}
+          <Marca className="h-[34px] w-[34px]" />
           {!recolhido && (
             <span className="leading-tight">
-              <span className="block text-[15px] font-bold tracking-wider text-white">MATECH</span>
-              <span className="block text-[8px] font-medium text-white/50">gestão de matéria-prima</span>
+              <span className="block text-[15px] font-bold tracking-wider text-barra-tinta">MATECH</span>
+              <span className="block text-[8px] font-medium text-barra-tenue">gestão de matéria-prima</span>
             </span>
           )}
         </div>
@@ -237,10 +245,13 @@ export default function Layout() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        {/* -------------------------- menu lateral -------------------------- */}
+        {/* -------------------------- menu lateral --------------------------
+            A borda direita existe porque o menu claro perdeu o contraste de
+            bloco que o fundo escuro dava de graça. Sem ela, navegação e
+            conteúdo viram uma superfície só. */}
         <nav
           data-fora-da-impressao
-          className={`flex shrink-0 flex-col overflow-y-auto bg-barra-900 pb-4 pt-2 ${larguraDoMenu}`}
+          className={`flex shrink-0 flex-col overflow-y-auto border-r border-barra-borda bg-barra-900 pb-4 pt-2 ${larguraDoMenu}`}
         >
           {secoes.map((grupo) => (
             <div key={grupo.secao}>
@@ -248,9 +259,9 @@ export default function Layout() {
                   fica a divisão — sem ela os itens viram uma coluna de pontos
                   indistinguíveis. */}
               {recolhido ? (
-                <div className="mx-auto my-2 h-px w-5 bg-white/15" />
+                <div className="mx-auto my-2 h-px w-5 bg-barra-borda" />
               ) : (
-                <p className="px-4 pb-1.5 pt-4 text-[9px] font-semibold tracking-wider text-white/35">
+                <p className="px-4 pb-1.5 pt-4 text-[9px] font-semibold tracking-wider text-barra-tenue">
                   {grupo.secao}
                 </p>
               )}

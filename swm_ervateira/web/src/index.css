@@ -27,9 +27,30 @@
      A barra lateral foi para um tom quase neutro. Não perde identidade: o
      verde continua no ícone da marca, no item ativo e em cada botão primário
      da tela — que é onde ele é lido como intenção, e não como papel de
-     parede. */
-  --color-barra-900: #1c211f;  /* menu lateral e fundo do login */
-  --color-barra-800: #2a312e;  /* item ativo do menu */
+     parede.
+
+     A BARRA LATERAL CLAREOU, E FOI A MARCA QUE PEDIU
+     ----------------------------------------------------------------------
+     Ela era escura. Sobre escuro a marca não aparece, e não por falta de um
+     tom melhor: o M do símbolo é verde-escuro sobre transparente, e contra o
+     antigo #1c211f dava 1,29:1 de contraste — abaixo de qualquer limiar de
+     legibilidade. Testados os candidatos, nenhum verde escuro passava:
+     mate-700 dava 1,30:1, mate-500 dava 2,51:1. Só clareando o fundo o
+     símbolo aparece inteiro, e aí sem precisar de placa branca atrás.
+
+     O tom escolhido é o verde-lavado que o sistema já usava como fundo de
+     destaque, um pouco mais fechado para se separar do branco dos painéis. O
+     M sobre ele dá 10,65:1.
+
+     O QUE ISSO CUSTA: o menu perde o contraste de bloco que separava a
+     navegação do conteúdo. Quem devolve essa separação é a borda direita e o
+     item ativo, que virou uma faixa verde-escura cheia — mais forte do que o
+     realce discreto que bastava no fundo escuro. */
+  --color-barra-900: #e7efe9;  /* menu lateral e painel do login */
+  --color-barra-800: #d8e6dc;  /* item sob o cursor */
+  --color-barra-borda: #cbdcd1;/* separação do menu para o conteúdo */
+  --color-barra-tinta: #16351f;/* texto do menu */
+  --color-barra-tenue: #4c6354;/* texto secundário do menu */
 
   /* Verdes da identidade */
   --color-mate-900: #0e2418;   /* verde profundo, reservado à marca */

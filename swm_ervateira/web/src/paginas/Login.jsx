@@ -40,7 +40,7 @@ export default function Login() {
   return (
     <div className="flex h-screen">
       {/* lado esquerdo · identidade */}
-      <aside className="hidden w-[46%] max-w-[620px] shrink-0 flex-col justify-center gap-5 bg-barra-900 px-10 lg:flex xl:px-16">
+      <aside className="hidden w-[46%] max-w-[620px] shrink-0 flex-col justify-center gap-5 border-r border-barra-borda bg-barra-900 px-10 lg:flex xl:px-16">
         {/* A MARCA É O M DA PALAVRA.
             
             Escrever "MATECH" ao lado dela repetia a letra duas vezes a um
@@ -53,9 +53,9 @@ export default function Login() {
             Aqui a engrenagem gira o tempo todo. Esta é a única tela do sistema
             em que a pessoa está esperando em vez de trabalhando, e é a única
             em que movimento contínuo não atrapalha ninguém. */}
-        <MarcaEscrita tamanho={104} girando sobreEscuro className="text-white" />
+        <MarcaEscrita tamanho={104} girando className="text-barra-tinta" />
 
-        <p className="max-w-[470px] text-[15px] leading-relaxed text-white/70">
+        <p className="max-w-[470px] text-[15px] leading-relaxed text-barra-tenue">
           Sistema de controle de recebimento, avaliação em campo e pagamento de
           matéria-prima em indústrias ervateiras.
         </p>
@@ -66,8 +66,8 @@ export default function Login() {
             'Avaliação em campo mesmo sem internet',
             'Cálculo de pagamento com desconto por qualidade',
           ].map((t) => (
-            <li key={t} className="flex items-center gap-3 text-[13px] text-white/70">
-              <span className="h-[7px] w-[7px] rounded-[1px] bg-mate-500" />
+            <li key={t} className="flex items-center gap-3 text-[13px] text-barra-tenue">
+              <span className="h-[7px] w-[7px] rounded-[1px] bg-mate-700" />
               {t}
             </li>
           ))}
