@@ -334,39 +334,43 @@ class _Miniatura extends StatelessWidget {
         }
 
         final bytes = quadro.data;
+
         // caminho vazio é a marca de "o arquivo sumiu do aparelho" — ver
         // FotoDao.marcarArquivoAusente. A linha continua existindo de
         // propósito: ela é a prova de que a avaliação teve esta foto.
-        final ausente = foto.caminhoLocal.isEmpty || bytes == null;
+        //
+        // O `if` com retorno, e não um ternário com a condição guardada numa
+        // variável: o Dart só promove `bytes` para não-nulo quando o teste
+        // está na própria condição do desvio.
+        if (foto.caminhoLocal.isEmpty || bytes == null) return _semArquivo();
 
-        return ausente ? _semArquivo() : _comArquivo(context, bytes);
+        return _comArquivo(context, bytes);
       },
     );
   }
 
   Widget _semArquivo() {
-    {
-      return Container(
-        height: 100,
-        width: 100,
-        decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.broken_image_outlined, color: Colors.red.shade300),
-            const SizedBox(height: 4),
-            Text(
-              'Arquivo\nsumiu',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, color: Colors.red.shade700),
-            ),
-          ],
-        ),
-      );
-    }
+    return Container(
+      height: 100,
+      width: 100,
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.broken_image_outlined, color: Colors.red.shade300),
+          const SizedBox(height: 4),
+          Text(
+            'Arquivo\nsumiu',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 10, color: Colors.red.shade700),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _comArquivo(BuildContext context, Uint8List bytes) {
     return GestureDetector(

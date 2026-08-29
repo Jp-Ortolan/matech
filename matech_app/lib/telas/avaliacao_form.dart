@@ -365,7 +365,9 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
           caminhoLocal: f.caminho,
           largura: f.largura,
           altura: f.altura,
-          tamanhoBytes: arquivo.lengthSync(),
+          // Os bytes já estão em mãos da conferência acima — o tamanho sai
+          // dali, sem uma segunda ida ao armazenamento.
+          tamanhoBytes: bytes.length,
         ),
       );
     }
