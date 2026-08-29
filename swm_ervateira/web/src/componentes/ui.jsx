@@ -7,6 +7,8 @@
 //
 // As classes vêm do Tailwind, usando as cores declaradas no index.css.
 
+import { useState } from 'react'
+
 export function Botao({ children, variante = 'secundario', className = '', ...props }) {
   const base = 'inline-flex items-center gap-2 rounded-[3px] px-3.5 py-2 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
   const estilos = {
@@ -496,5 +498,66 @@ export function Medidor({ rotulo, texto, valor, maximo, limite, apoio, alerta = 
 
       {apoio && <p className="mt-1.5 text-[10px] text-cinza-600">{apoio}</p>}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Dado sigiloso
+// ---------------------------------------------------------------------------
+// Mostra o valor mascarado que veio do servidor e um botão para pedir o real.
+//
+// A ORDEM IMPORTA, e é o que diferencia isto de teatro: o número em claro não
+// está na tela esperando ser revelado — ele nem saiu do servidor. O botão faz
+// uma requisição, e é o servidor que decide se responde. Se o perfil não pode,
+// volta 403 e o componente diz isso, em vez de fingir que o dado não existe.
+//
+// Depois de revelado, fica revelado até a tela ser recarregada. Esconder de
+// novo sozinho seria irritante justamente para quem tem o direito de ver e
+// está no meio de conferir um pagamento.
+export function Sigiloso({ valor, aoRevelar, rotuloRevelar = 'mostrar' }) {
+  const [aberto, setAberto] = useState(false)
+  const [real, setReal] = useState(null)
+  const [erro, setErro] = useState(null)
+  const [pedindo, setPedindo] = useState(false)
+
+  if (!valor) return <span className="text-cinza-400">—</span>
+
+  async function revelar() {
+    setPedindo(true)
+    setErro(null)
+    try {
+      const v = await aoRevelar()
+      if (v == null || v === '') {
+        setErro({ message: 'não disponível' })
+      } else {
+        setReal(v)
+        setAberto(true)
+      }
+    } catch (e) {
+      setErro(e)
+    } finally {
+      setPedindo(false)
+    }
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="tabular">{aberto ? real : valor}</span>
+      {!aberto && (
+        <button
+          type="button"
+          onClick={revelar}
+          disabled={pedindo}
+          className="text-[10px] font-semibold text-mate-700 hover:underline disabled:opacity-50"
+        >
+          {pedindo ? '...' : rotuloRevelar}
+        </button>
+      )}
+      {erro && (
+        <span className="text-[10px] text-cinza-400" title={erro.detalhe || erro.message}>
+          {erro.message?.includes('permiss') ? 'sem permissão' : erro.message}
+        </span>
+      )}
+    </span>
   )
 }

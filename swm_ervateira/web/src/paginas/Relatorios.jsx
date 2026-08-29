@@ -32,6 +32,7 @@ import { useAutenticacao } from '../contexto/Autenticacao'
 import { baixarCsv, numeroCsv } from '../lib/exportar'
 import { LIMITE_PALITO_PADRAO } from '../lib/calculo'
 import { formatar, contagem } from '../lib/formatar'
+import { motivoResumido } from '../lib/reprovacao'
 
 // A aba financeira só existe para quem pode ler ordens de pagamento. Não é
 // uma regra desta tela: GET /api/pagamentos exige o perfil, e sem ele a aba
@@ -129,8 +130,8 @@ export default function Relatorios() {
         <Painel titulo="Apurando"><Carregando texto="Apurando os números do período..." /></Painel>
       ) : (
         <>
-          {aba === 'recebimento' && <Recebimento lista={lista} />}
-          {aba === 'qualidade' && <Qualidade lista={lista} />}
+          {aba === 'recebimento' && <Recebimento lista={lista} veDinheiro={veDinheiro} />}
+          {aba === 'qualidade' && <Qualidade lista={lista} veDinheiro={veDinheiro} />}
           {aba === 'financeiro' && veDinheiro && <Financeiro ordens={ordens} />}
           {aba === 'acuracia' && <Acuracia lista={lista} />}
         </>
@@ -143,7 +144,7 @@ export default function Relatorios() {
 // ABA 1 · recebimento
 // ---------------------------------------------------------------------------
 
-function Recebimento({ lista }) {
+function Recebimento({ lista, veDinheiro }) {
   const peso = somar(lista, (c) => c.pesoLiquidoKg)
   const bruto = somar(lista, (c) => c.pesoBrutoKg)
   const tara = somar(lista, (c) => c.taraKg)
@@ -160,9 +161,13 @@ function Recebimento({ lista }) {
   function exportar() {
     baixarCsv(
       'matech-recebimento',
+      // O CSV segue a tela: quem não vê preço na coluna também não leva a
+      // coluna no arquivo. Exportar o que a tela esconde seria a porta dos
+      // fundos da segregação de função.
       ['Ticket', 'Data', 'Produtor', 'Matéria-prima', 'Motorista', 'Placa',
-       'Peso bruto (kg)', 'Tara (kg)', 'Peso líquido (kg)', 'Preço base (R$/kg)',
-       'Preço ajustado (R$/kg)', 'Valor (R$)', 'Situação'],
+       'Peso bruto (kg)', 'Tara (kg)', 'Peso líquido (kg)',
+       ...(veDinheiro ? ['Preço base (R$/kg)', 'Preço ajustado (R$/kg)', 'Valor (R$)'] : []),
+       'Situação'],
       lista.map((c) => [
         c.numeroTicket,
         formatar.dataHora(c.dataHora),
@@ -173,9 +178,9 @@ function Recebimento({ lista }) {
         numeroCsv(c.pesoBrutoKg),
         numeroCsv(c.taraKg),
         numeroCsv(c.pesoLiquidoKg),
-        numeroCsv(c.precoBaseKg, 4),
-        numeroCsv(c.analise?.precoAjustadoKg, 4),
-        numeroCsv(c.analise?.valorTotal),
+        ...(veDinheiro
+          ? [numeroCsv(c.precoBaseKg, 4), numeroCsv(c.analise?.precoAjustadoKg, 4), numeroCsv(c.analise?.valorTotal)]
+          : []),
         c.situacao,
       ])
     )
@@ -202,7 +207,9 @@ function Recebimento({ lista }) {
               { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita' },
               { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', forte: true, render: (g) => formatar.kg(g.peso) },
               { chave: 'part', titulo: 'Part.', alinhar: 'direita', render: (g) => formatar.porcento((g.peso / peso) * 100) },
-              { chave: 'valor', titulo: 'Valor analisado', alinhar: 'direita', forte: true, render: (g) => (g.valor ? formatar.reais(g.valor) : '—') },
+              ...(veDinheiro
+                ? [{ chave: 'valor', titulo: 'Valor analisado', alinhar: 'direita', forte: true, render: (g) => (g.valor ? formatar.reais(g.valor) : '—') }]
+                : []),
               {
                 chave: 'barra', titulo: '', largura: '120px', oculta: 'xl',
                 render: (g) => (
@@ -251,7 +258,7 @@ function Recebimento({ lista }) {
 // ABA 2 · qualidade
 // ---------------------------------------------------------------------------
 
-function Qualidade({ lista }) {
+function Qualidade({ lista, veDinheiro }) {
   const analisadas = lista.filter((c) => c.analise)
   const pendentes = lista.filter((c) => !c.analise)
 
@@ -298,7 +305,8 @@ function Qualidade({ lista }) {
       'matech-qualidade',
       ['Ticket', 'Data', 'Produtor', 'Matéria-prima', 'Peso líquido (kg)',
        'Palito (%)', 'Umidade (%)', 'Folha (%)', 'Limite (%)', 'Desconto (%)',
-       'Preço base (R$/kg)', 'Preço ajustado (R$/kg)', 'Valor (R$)', 'Aprovada'],
+       ...(veDinheiro ? ['Preço base (R$/kg)', 'Preço ajustado (R$/kg)', 'Valor (R$)'] : []),
+       'Aprovada', 'Motivo'],
       analisadas.map((c) => [
         c.numeroTicket,
         formatar.dataHora(c.analise.dataHora),
@@ -310,10 +318,11 @@ function Qualidade({ lista }) {
         numeroCsv(c.analise.folhaPercentual, 1),
         numeroCsv(c.analise.limitePalito, 1),
         numeroCsv(c.analise.descontoPercentual, 2),
-        numeroCsv(c.precoBaseKg, 4),
-        numeroCsv(c.analise.precoAjustadoKg, 4),
-        numeroCsv(c.analise.valorTotal),
+        ...(veDinheiro
+          ? [numeroCsv(c.precoBaseKg, 4), numeroCsv(c.analise.precoAjustadoKg, 4), numeroCsv(c.analise.valorTotal)]
+          : []),
         c.analise.aprovada === false ? 'Não' : 'Sim',
+        c.analise.aprovada === false ? motivoResumido(c.analise) : '',
       ])
     )
   }
@@ -329,11 +338,11 @@ function Qualidade({ lista }) {
         <Indicador rotulo="Acima do limite" valor={acimaDoLimite.length} unidade="cargas"
                    apoio={`${formatar.porcento((acimaDoLimite.length / analisadas.length) * 100)} das analisadas`}
                    cor="text-alerta" />
-        <Indicador rotulo="Desconto concedido" valor={formatar.reais(descontoEmReais)}
+        {veDinheiro && <Indicador rotulo="Desconto concedido" valor={formatar.reais(descontoEmReais)}
                    apoio={comPreco.length
                      ? `${contagem(comPreco.length, 'carga já precificada', 'cargas já precificadas')} · média de ${formatar.porcento(descontoMedio, 2)}`
                      : 'nenhuma carga precificada ainda'}
-                   cor="text-perigo" />
+                   cor="text-perigo" />}
       </div>
 
       <div className="mb-3 grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_360px]">
@@ -360,6 +369,12 @@ function Qualidade({ lista }) {
               },
               { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise.valorTotal) },
               {
+                chave: 'motivo', titulo: 'Motivo', truncar: 240, oculta: 'xl',
+                render: (c) => (c.analise.aprovada === false
+                  ? <span className="text-perigo">{motivoResumido(c.analise)}</span>
+                  : '—'),
+              },
+              {
                 chave: 'aprovada', titulo: 'Resultado',
                 render: (c) => c.analise.aprovada === false
                   ? <Etiqueta tom="perigo">reprovada</Etiqueta>
@@ -370,7 +385,9 @@ function Qualidade({ lista }) {
             rodape={
               <>
                 <span>{analisadas.length} análises · {reprovadas.length} reprovadas</span>
-                <span className="font-medium text-mate-700">{formatar.reais(valorAnalisado)} apurados</span>
+                {veDinheiro && (
+                  <span className="font-medium text-mate-700">{formatar.reais(valorAnalisado)} apurados</span>
+                )}
               </>
             }
           />

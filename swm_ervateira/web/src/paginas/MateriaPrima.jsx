@@ -15,13 +15,21 @@ import {
   Carregando, Erro
 } from '../componentes/ui'
 import { baixarCsv, numeroCsv } from '../lib/exportar'
-import { formatar } from '../lib/formatar'
+import { useAutenticacao } from '../contexto/Autenticacao'
+import { formatar, contagem } from '../lib/formatar'
 
 // A mesma ordem do enum no banco, para a tela não sugerir uma hierarquia
 // que o modelo não tem.
 const TIPOS = ['ERVA_MATE_PLANTADA', 'ERVA_MATE_NATIVA', 'PALITO', 'LENHA']
 
 export default function MateriaPrima() {
+  // Esta tela é metade volume e metade preço. Sem o perfil que vê dinheiro, o
+  // servidor não manda preço nem valor — e a metade de preço some inteira, em
+  // vez de virar uma tabela de travessões. O que sobra continua sendo útil:
+  // quanto de cada matéria-prima entrou, e a participação de cada uma.
+  const { podeFazer } = useAutenticacao()
+  const veDinheiro = podeFazer('ADMINISTRATIVO')
+
   const [filtros, setFiltros] = useState({ de: '', ate: '' })
   const [tipo, setTipo] = useState('')
   const [lista, setLista] = useState([])
@@ -98,26 +106,32 @@ export default function MateriaPrima() {
       ) : (
         <>
           <div className="mb-3 flex flex-wrap gap-2 xl:gap-2.5">
-            <Indicador rotulo="Valor já analisado" valor={formatar.reais(valorGeral)}
-                       apoio="cargas com análise lançada" cor="text-mate-700" />
-            <Indicador rotulo="Preço médio praticado"
-                       valor={formatar.precoKg(mediaPonderada(lista, (c) => c.precoBaseKg))}
-                       apoio="ponderado pelo peso" />
+            {veDinheiro && (
+              <>
+                <Indicador rotulo="Valor já analisado" valor={formatar.reais(valorGeral)}
+                           apoio="cargas com análise lançada" cor="text-mate-700" />
+                <Indicador rotulo="Preço médio praticado"
+                           valor={formatar.precoKg(mediaPonderada(lista, (c) => c.precoBaseKg))}
+                           apoio="ponderado pelo peso" />
+              </>
+            )}
             <Indicador rotulo="Peso recebido" valor={formatar.numero(pesoGeral)} unidade="kg"
-                       apoio={`${lista.length} cargas no período`} />
+                       apoio={contagem(lista.length, 'carga no período', 'cargas no período')} />
           </div>
 
-          <Painel className="mb-3" titulo="Preços praticados por tipo">
+          <Painel className="mb-3" titulo={veDinheiro ? 'Preços praticados por tipo' : 'Recebido por tipo'}>
             <Tabela
               colunas={[
                 { chave: 'tipo', titulo: 'Matéria-prima', forte: true, render: (r) => formatar.materiaPrima(r.tipo) },
                 { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', render: (r) => r.cargas || '—' },
                 { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', forte: true, render: (r) => (r.cargas ? formatar.kg(r.peso) : '—') },
                 { chave: 'part', titulo: 'Part.', alinhar: 'direita', render: (r) => (pesoGeral && r.peso ? formatar.porcento((r.peso / pesoGeral) * 100, 0) : '—') },
-                { chave: 'base', titulo: 'Preço base', alinhar: 'direita', render: (r) => formatar.precoKg(r.precoBaseMedio) },
-                { chave: 'faixa', titulo: 'Faixa praticada', alinhar: 'direita', oculta: 'lg', render: (r) => (r.precoMinimo == null ? '—' : `${formatar.reais(r.precoMinimo)} a ${formatar.reais(r.precoMaximo)}`) },
-                { chave: 'ajustado', titulo: 'Após análise', alinhar: 'direita', render: (r) => formatar.precoKg(r.precoAjustadoMedio) },
-                { chave: 'valor', titulo: 'Valor analisado', alinhar: 'direita', forte: true, render: (r) => (r.valor ? formatar.reais(r.valor) : '—') },
+                ...(veDinheiro ? [
+                  { chave: 'base', titulo: 'Preço base', alinhar: 'direita', render: (r) => formatar.precoKg(r.precoBaseMedio) },
+                  { chave: 'faixa', titulo: 'Faixa praticada', alinhar: 'direita', oculta: 'lg', render: (r) => (r.precoMinimo == null ? '—' : `${formatar.reais(r.precoMinimo)} a ${formatar.reais(r.precoMaximo)}`) },
+                  { chave: 'ajustado', titulo: 'Após análise', alinhar: 'direita', render: (r) => formatar.precoKg(r.precoAjustadoMedio) },
+                  { chave: 'valor', titulo: 'Valor analisado', alinhar: 'direita', forte: true, render: (r) => (r.valor ? formatar.reais(r.valor) : '—') },
+                ] : []),
               ]}
               dados={resumo}
               vazio="Nenhuma carga no período."
@@ -135,16 +149,18 @@ export default function MateriaPrima() {
                 { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 190, render: (c) => c.produtor?.nome },
                 { chave: 'tipo', titulo: 'Matéria-prima', oculta: 'lg', render: (c) => formatar.materiaPrima(c.tipoMateriaPrima) },
                 { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', forte: true, render: (c) => formatar.kg(c.pesoLiquidoKg) },
-                { chave: 'base', titulo: 'Preço base', alinhar: 'direita', render: (c) => formatar.precoKg(c.precoBaseKg) },
-                {
-                  chave: 'ajustado', titulo: 'Após análise', alinhar: 'direita',
-                  render: (c) => c.analise
-                    ? <span className={Number(c.analise.descontoPercentual) > 0 ? 'text-perigo' : ''}>
-                        {formatar.precoKg(c.analise.precoAjustadoKg)}
-                      </span>
-                    : <span className="text-cinza-400">—</span>,
-                },
-                { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise?.valorTotal) },
+                ...(veDinheiro ? [
+                  { chave: 'base', titulo: 'Preço base', alinhar: 'direita', render: (c) => formatar.precoKg(c.precoBaseKg) },
+                  {
+                    chave: 'ajustado', titulo: 'Após análise', alinhar: 'direita',
+                    render: (c) => c.analise
+                      ? <span className={Number(c.analise.descontoPercentual) > 0 ? 'text-perigo' : ''}>
+                          {formatar.precoKg(c.analise.precoAjustadoKg)}
+                        </span>
+                      : <span className="text-cinza-400">—</span>,
+                  },
+                  { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise?.valorTotal) },
+                ] : []),
                 { chave: 'situacao', titulo: 'Situação', render: (c) => <Situacao valor={c.situacao} /> },
               ]}
               dados={cargasDoTipo}

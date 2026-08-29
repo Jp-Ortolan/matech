@@ -32,12 +32,30 @@ export const auth = {
     limparSessao()
   },
   eu: () => api.get('/api/auth/eu'),
+  // Troca da própria senha. O servidor tira o id do token: não há como
+  // pedir a troca da senha de outra pessoa por esta rota.
+  trocarSenha: (senhaAtual, senhaNova) =>
+    api.post('/api/auth/senha', { senhaAtual, senhaNova }),
+}
+
+// ----------------------- usuários (só administrador) ------------------------
+// Todas passam por apenas('ADMINISTRADOR') no servidor. Um usuário comum que
+// chamasse estas rotas à mão receberia 403 — o menu escondido é conveniência,
+// não a proteção.
+export const usuarios = {
+  listar: () => api.get('/api/usuarios'),
+  criar: (dados) => api.post('/api/usuarios', dados),
+  atualizar: (id, dados) => api.put(`/api/usuarios/${id}`, dados),
+  redefinirSenha: (id, senha) => api.put(`/api/usuarios/${id}/senha`, { senha }),
 }
 
 // ---------------------------- produtores ------------------------------
 export const produtores = {
   listar: (busca) => api.get('/api/produtores' + montarQuery({ busca })),
   buscar: (id) => api.get(`/api/produtores/${id}`),
+  // O dado pessoal em claro. Vem mascarado em listar e buscar; esta rota é o
+  // pedido explícito, e o servidor devolve apenas o que o perfil pode ver.
+  sigilosos: (id) => api.get(`/api/produtores/${id}/sigilosos`),
   criar: (dados) => api.post('/api/produtores', dados),
   atualizar: (id, dados) => api.put(`/api/produtores/${id}`, dados),
 }
@@ -84,9 +102,21 @@ export const qualidade = {
 
 // ---------------------------- pagamentos ------------------------------
 export const pagamentos = {
+  // O que entraria na ordem, antes de emitir. É a tela que permite informar o
+  // preço olhando para a carga concreta em vez de digitar no escuro.
+  previa: (filtros) => api.get('/api/pagamentos/previa' + montarQuery(filtros)),
   listar: (filtros = {}) => api.get('/api/pagamentos' + montarQuery(filtros)),
   gerar: (dados) => api.post('/api/pagamentos', dados),
   confirmar: (id) => api.post(`/api/pagamentos/${id}/confirmar`),
+}
+
+// -------------------------- parâmetros ---------------------------------
+// A régua da ervateira: limite de palito, desconto por ponto e os limites de
+// reprovação. Ler é aberto — o analista precisa ver o limite ao lançar a
+// análise. Gravar exige o perfil administrativo.
+export const parametros = {
+  qualidade: () => api.get('/api/parametros/qualidade'),
+  salvarQualidade: (dados) => api.put('/api/parametros/qualidade', dados),
 }
 
 // ------------------------------ sistema -------------------------------

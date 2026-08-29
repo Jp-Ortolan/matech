@@ -27,7 +27,7 @@ import {
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, Filtros, Tabela, Situacao, Campo, Selecao, Botao,
+  Painel, Filtros, Tabela, Situacao, Campo, Selecao, Botao, Sigiloso,
   Carregando, Erro, Sucesso, Vazio, Etiqueta, LinhaDado, Aviso
 } from '../componentes/ui'
 import { formatar } from '../lib/formatar'
@@ -132,7 +132,13 @@ export default function Produtores() {
                     </span>
                   ),
                 },
-                { chave: 'cpfCnpj', titulo: 'CPF / CNPJ', render: (p) => formatar.documento(p.cpfCnpj) },
+                {
+                  // Já vem mascarado do servidor. Não passa por
+                  // formatar.documento porque o valor não é mais um documento:
+                  // é a máscara dele, e reformatar embaralharia os asteriscos.
+                  chave: 'cpfCnpj', titulo: 'CPF / CNPJ',
+                  render: (p) => <span className="tabular">{p.cpfCnpj || '—'}</span>,
+                },
                 { chave: 'municipio', titulo: 'Município', truncar: 150, oculta: 'lg', render: (p) => (p.municipio ? `${p.municipio}${p.uf ? `/${p.uf}` : ''}` : '—') },
                 { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', forte: true, render: (p) => p._count?.cargas ?? 0 },
               ]}
@@ -224,7 +230,15 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
         )}
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          <LinhaDado rotulo="CPF / CNPJ" valor={formatar.documento(produtor.cpfCnpj)} />
+          <LinhaDado
+            rotulo="CPF / CNPJ"
+            valor={
+              <Sigiloso
+                valor={produtor.cpfCnpj}
+                aoRevelar={async () => formatar.documento((await apiProdutores.sigilosos(produtor.id)).cpfCnpj)}
+              />
+            }
+          />
           <LinhaDado rotulo="Telefone" valor={produtor.telefone} />
           <LinhaDado rotulo="Município" valor={produtor.municipio ? `${produtor.municipio}${produtor.uf ? `/${produtor.uf}` : ''}` : null} />
           <LinhaDado rotulo="Cadastrado em" valor={formatar.data(produtor.criadoEm)} />
@@ -242,7 +256,15 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
             {pix && (
               <>
                 <LinhaDado rotulo="Tipo da chave" valor={formatar.chavePix(produtor.tipoChavePix)} />
-                <LinhaDado rotulo="Chave Pix" valor={produtor.chavePix ? <span className="tabular">{produtor.chavePix}</span> : null} />
+                <LinhaDado
+                  rotulo="Chave Pix"
+                  valor={
+                    <Sigiloso
+                      valor={produtor.chavePix}
+                      aoRevelar={async () => (await apiProdutores.sigilosos(produtor.id)).chavePix}
+                    />
+                  }
+                />
               </>
             )}
             {conta && (
@@ -397,6 +419,37 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   const [enviando, setEnviando] = useState(false)
   const [buscando, setBuscando] = useState(null)   // 'cep' | 'cnpj' | null
   const [achado, setAchado] = useState(null)       // aviso do que foi preenchido
+
+  // -------------------------------------------------------------------------
+  // O FORMULÁRIO PRECISA DO DADO EM CLARO, e a ficha não tem
+  // -------------------------------------------------------------------------
+  // A ficha traz CPF e chave Pix mascarados, o que é certo para ler e errado
+  // para editar: salvar "123.***.***-01" gravaria a máscara por cima do
+  // documento. Então, ao abrir a edição, o formulário pede os valores reais na
+  // mesma rota que o botão "mostrar" usa — e quem edita produtor é justamente
+  // o perfil que pode vê-los.
+  //
+  // Se a rota recusar, os campos ficam vazios em vez de mascarados: campo
+  // vazio o usuário percebe, máscara salva ele não percebe.
+  useEffect(() => {
+    if (!produtor?.id) return
+    let vivo = true
+    apiProdutores
+      .sigilosos(produtor.id)
+      .then((r) => {
+        if (!vivo) return
+        setForm((f) => ({
+          ...f,
+          cpfCnpj: r.cpfCnpj ?? '',
+          chavePix: r.chavePix ?? (f.chavePix === produtor.chavePix ? '' : f.chavePix),
+          conta: r.conta ?? (f.conta === produtor.conta ? '' : f.conta),
+        }))
+      })
+      .catch(() => {
+        if (vivo) setForm((f) => ({ ...f, cpfCnpj: '', chavePix: '', conta: '' }))
+      })
+    return () => { vivo = false }
+  }, [produtor?.id, produtor?.chavePix, produtor?.conta])
 
   function alterar(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor }))

@@ -28,6 +28,12 @@ enum PerfilUsuario {
   ANALISTA_QUALIDADE
   COMPRADOR_AVALIADOR
   ADMINISTRATIVO
+
+  /// Administrador do sistema. Diferente do ADMINISTRATIVO, que é o setor:
+  /// o administrativo cuida do negócio (emite ordem, dá baixa em pagamento) e
+  /// o administrador cuida das contas de acesso. É o único perfil que entra
+  /// em /api/usuarios, e a única operação que o administrativo NÃO faz.
+  ADMINISTRADOR
 }
 
 enum TipoErva {
@@ -117,6 +123,7 @@ model Usuario {
   avaliacoes Avaliacao[]
   pesagens   Carga[]
   analises   AnaliseQualidade[]
+  parametrosQualidade ParametroQualidade[]
 
   @@map("usuarios")
 }
@@ -326,7 +333,12 @@ model Carga {
   pesoEstimadoCampoKg Decimal? @db.Decimal(12, 2)
 
   /// Preço antes do desconto por qualidade.
-  precoBaseKg Decimal @db.Decimal(10, 4)
+  /// Preço por quilo. ANULÁVEL desde que o preço saiu da balança: quem o define
+  /// é o administrativo, na emissão da ordem de pagamento, porque é lá que o
+  /// valor final é acordado. Continua aqui para as cargas antigas, que nasceram
+  /// com o preço digitado na pesagem, e para o caso de o preço já vir combinado
+  /// do campo.
+  precoBaseKg Decimal? @db.Decimal(10, 4)
 
   situacao  SituacaoCarga @default(AGUARDANDO_ANALISE)
   observacoes String?
@@ -363,13 +375,34 @@ model AnaliseQualidade {
   folhaPercentual    Decimal? @db.Decimal(5, 2)
   observacoes        String?
 
-  /// Regra de negócio a confirmar com a ervateira: acima do limite de palito,
-  /// cada ponto percentual excedente gera desconto sobre o preço.
+  /// OS LIMITES QUE VALIAM NO DIA DA ANÁLISE, copiados para cá.
+  ///
+  /// Não são lidos dos parâmetros na hora de consultar, e isso é deliberado:
+  /// se a ervateira mudar o limite de palito de 30% para 28% no ano que vem,
+  /// as análises de hoje continuam dizendo o que diziam. Sem esta cópia, um
+  /// laudo antigo passaria a acusar reprovação por um limite que não existia
+  /// quando a amostra foi medida.
+  ///
+  /// Os três de reprovação são anuláveis porque são opcionais: a ervateira que
+  /// não quiser reprovar por umidade simplesmente não define o limite.
   limitePalito       Decimal  @db.Decimal(5, 2) @default(30.00)
   descontoPercentual Decimal  @db.Decimal(5, 2) @default(0)
-  /// Preço base menos o desconto. É o valor que efetivamente multiplica o peso.
-  precoAjustadoKg    Decimal  @db.Decimal(10, 4)
-  valorTotal         Decimal  @db.Decimal(12, 2)
+  palitoMaximo       Decimal? @db.Decimal(5, 2)
+  umidadeMaxima      Decimal? @db.Decimal(5, 2)
+  folhaMinima        Decimal? @db.Decimal(5, 2)
+  /// Motivo escrito pelo analista quando ele reprova sem limite estourado —
+  /// ou aprova apesar de um limite estourado. Nos demais casos o motivo é
+  /// deduzido das medidas e dos limites acima, sem texto guardado.
+  motivoReprovacao   String?
+  /// Preço menos o desconto, e o valor que ele produz.
+  ///
+  /// ANULÁVEIS de propósito: a análise mede QUALIDADE, e qualidade não depende
+  /// de preço. O laboratório registra o percentual de palito e o desconto que
+  /// ele gera; o preço só entra na emissão da ordem. Quando a ordem é emitida,
+  /// ela grava estes dois campos de volta aqui — assim o histórico da análise
+  /// fica completo e as consultas de valor continuam funcionando.
+  precoAjustadoKg    Decimal? @db.Decimal(10, 4)
+  valorTotal         Decimal? @db.Decimal(12, 2)
   aprovada           Boolean  @default(true)
 
   criadoEm     DateTime @default(now())
@@ -455,4 +488,41 @@ model RegistroSincronizacao {
   @@index([dispositivoId])
   @@index([situacao])
   @@map("registros_sincronizacao")
+}
+
+// ---------------------------------------------------------------------------
+// PARÂMETROS DE QUALIDADE · a régua da ervateira
+// ---------------------------------------------------------------------------
+// Os limites não são do sistema, são de quem compra. Uma ervateira aceita
+// palito até 30% e desconta um ponto por ponto excedente; outra trabalha com
+// 25% e desconta dois. Deixar isso no código obrigaria a recompilar o sistema
+// para cada cliente — e, pior, esconderia dentro do programa uma regra que é
+// comercial e muda por negociação.
+//
+// LINHA ÚNICA, e não uma por ervateira: cada instalação atende uma. O id fixo
+// 'padrao' torna a leitura e a gravação um upsert simples, sem precisar
+// descobrir qual linha é a boa.
+//
+// Os três limites de reprovação são ANULÁVEIS de propósito. Nulo quer dizer
+// "não reprovamos por isso" — que é diferente de zero, e é o estado inicial:
+// enquanto ninguém definir, o sistema mede e registra sem reprovar sozinho.
+model ParametroQualidade {
+  id String @id @default("padrao")
+
+  /// Acima deste percentual de palito começa o desconto.
+  limitePalito     Decimal @db.Decimal(5, 2) @default(30.00)
+  /// Quantos pontos de desconto no preço cada ponto percentual excedente gera.
+  descontoPorPonto Decimal @db.Decimal(5, 2) @default(1.00)
+
+  /// Limites de reprovação. Nulo = não reprova por este critério.
+  palitoMaximo  Decimal? @db.Decimal(5, 2)
+  umidadeMaxima Decimal? @db.Decimal(5, 2)
+  folhaMinima   Decimal? @db.Decimal(5, 2)
+
+  atualizadoEm DateTime @updatedAt
+  usuarioId    String?
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("parametros_qualidade")
 }

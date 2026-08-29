@@ -22,6 +22,7 @@ const { PASTA_UPLOADS } = require('./config/env')
 const { naoEncontrado, tratarErros } = require('./middlewares/erros')
 
 const authRoutes = require('./modules/auth/auth.routes')
+const usuariosRoutes = require('./modules/usuarios/usuarios.routes')
 const produtoresRoutes = require('./modules/produtores/produtores.routes')
 const cargasRoutes = require('./modules/cargas/cargas.routes')
 const motoristasRoutes = require('./modules/motoristas/motoristas.routes')
@@ -29,6 +30,7 @@ const avaliacoesRoutes = require('./modules/avaliacoes/avaliacoes.routes')
 const qualidadeRoutes = require('./modules/qualidade/qualidade.routes')
 const pagamentosRoutes = require('./modules/pagamentos/pagamentos.routes')
 const sincronizacaoRoutes = require('./modules/sincronizacao/sincronizacao.routes')
+const parametrosRoutes = require('./modules/parametros/parametros.routes')
 
 const app = express()
 
@@ -43,6 +45,7 @@ app.get('/health', async (req, res) => {
 
 // Cada módulo cuida do seu pedaço da API.
 app.use('/api/auth', authRoutes)
+app.use('/api/usuarios', usuariosRoutes)
 app.use('/api/produtores', produtoresRoutes)
 app.use('/api/cargas', cargasRoutes)
 app.use('/api/motoristas', motoristasRoutes)
@@ -50,6 +53,7 @@ app.use('/api/avaliacoes', avaliacoesRoutes)
 app.use('/api/qualidade', qualidadeRoutes)
 app.use('/api/pagamentos', pagamentosRoutes)
 app.use('/api/sincronizacao', sincronizacaoRoutes)
+app.use('/api/parametros', parametrosRoutes)
 
 // As fotos enviadas pelo aplicativo ficam acessíveis por URL, para que a web
 // consiga exibi-las. express.static é do próprio Express — nenhuma biblioteca

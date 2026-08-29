@@ -13,14 +13,20 @@
 //    "imprimir para PDF", se o operador quiser guardar. Uma dependência a
 //    menos e um formato a menos para manter.
 //
+// 3. O CPF DO PRODUTOR NÃO SAI MAIS AQUI. Este papel vai para a mão do
+//    motorista, que é um terceiro — é o único ponto do sistema em que dado
+//    pessoal deixa a empresa em suporte físico. O ticket serve para
+//    identificar a CARGA; o nome do produtor basta para isso, e o CPF só
+//    estava ali por hábito de formulário.
+//
 // 2. O VALOR VAI MARCADO COMO PREVISTO. É a parte mais importante do papel.
 //    Nesse momento a análise de laboratório ainda não aconteceu, e o palito
 //    pode descontar o preço. Imprimir um número sem essa ressalva criaria uma
 //    expectativa que o pagamento talvez não cumpra — e a discussão sobraria
 //    para quem está na balança, com o produtor na frente.
 
-import {} from './ui'
 import { formatar } from '../lib/formatar'
+import { motivosDaAnalise } from '../lib/reprovacao'
 
 export default function TicketPesagem({ carga, aoFechar }) {
   if (!carga) return null
@@ -70,7 +76,6 @@ export default function TicketPesagem({ carga, aoFechar }) {
 
           <Linha rotulo="Data e hora" valor={formatar.dataHora(carga.dataHora)} />
           <Linha rotulo="Produtor" valor={carga.produtor?.nome} />
-          <Linha rotulo="CPF / CNPJ" valor={carga.produtor?.cpfCnpj} />
           <Linha rotulo="Motorista" valor={carga.motorista?.nome} />
           <Linha rotulo="Veículo" valor={carga.veiculo?.placa} />
           <Linha rotulo="Matéria-prima" valor={formatar.materiaPrima(carga.tipoMateriaPrima)} />
@@ -80,6 +85,27 @@ export default function TicketPesagem({ carga, aoFechar }) {
             <Linha rotulo="Tara" valor={formatar.kg(carga.taraKg)} />
             <Linha rotulo="Peso líquido" valor={formatar.kg(carga.pesoLiquidoKg)} destaque />
           </div>
+
+          {/* A REIMPRESSÃO de uma carga reprovada leva o motivo junto.
+              O ticket sai duas vezes: na balança, quando ainda não há análise,
+              e depois, quando o produtor volta perguntando. É na segunda que
+              este bloco existe — e é a diferença entre entregar um papel que
+              explica e mandar a pessoa procurar alguém que saiba. */}
+          {carga.analise?.aprovada === false && (
+            <div className="mt-3 border border-tinta px-3 py-2">
+              <p className="text-[9px] font-semibold uppercase tracking-wide">
+                Carga reprovada na análise
+              </p>
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {motivosDaAnalise(carga.analise).map((frase, i) => (
+                  <li key={i} className="text-[10px] leading-relaxed">{frase}</li>
+                ))}
+              </ul>
+              <p className="mt-1 text-[9px] text-cinza-600">
+                Análise de {formatar.dataHora(carga.analise.dataHora)}. Carga reprovada não gera pagamento.
+              </p>
+            </div>
+          )}
 
           <p className="mt-3 border border-borda px-3 py-2 text-[9.5px] leading-relaxed text-cinza-600">
             <strong className="text-tinta">Comprovante de pesagem.</strong> O valor a pagar

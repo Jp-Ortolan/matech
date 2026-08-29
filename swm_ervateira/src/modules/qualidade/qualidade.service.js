@@ -21,11 +21,8 @@
 const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { calcularPagamento } = require('../cargas/cargas.service')
-
-// Parâmetros provisórios da regra de desconto.
-// Quando a ervateira informar a fórmula oficial, é só trocar aqui.
-const LIMITE_PALITO_PADRAO = 30
-const DESCONTO_POR_PONTO = 1
+const parametros = require('../parametros/parametros.service')
+const { conferirLimites, exigeJustificativa } = require('./limites')
 
 // ---------------------------------------------------------------------------
 // REGRA · carga reprovada não tem valor
@@ -71,14 +68,44 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
   if (carga.analise) throw new ErroDeNegocio('Esta carga já possui análise registrada', 409)
   if (carga.situacao === 'PAGA') throw new ErroDeNegocio('Esta carga já foi paga', 409)
 
+  // A RÉGUA VEM DO BANCO, e não de uma constante deste arquivo.
+  // Quem define até quanto de palito se aceita é a ervateira, não o programa.
+  const regua = await parametros.obter()
+
+  const umidade = umidadePercentual != null ? Number(umidadePercentual) : null
+  const folha = folhaPercentual != null ? Number(folhaPercentual) : null
+
+  // O servidor CONFERE; quem decide continua sendo o analista, que já mandou
+  // seu `aprovada` no corpo. A conferência serve para duas coisas: explicar a
+  // reprovação sem depender de texto livre, e obrigar a justificar quando a
+  // pessoa contraria a régua.
+  const limitesEstourados = conferirLimites(
+    { palitoPercentual: palito, umidadePercentual: umidade, folhaPercentual: folha },
+    regua
+  )
+
+  const precisaJustificar = exigeJustificativa({ aprovada, limitesEstourados })
+  const justificativa = String(dados.motivoReprovacao ?? '').trim()
+  if (precisaJustificar && !justificativa) {
+    throw new ErroDeNegocio(
+      aprovada
+        ? 'Explique por que está aprovando apesar do limite'
+        : 'Informe o motivo da reprovação',
+      400,
+      aprovada
+        ? 'A amostra estourou um limite e mesmo assim está sendo aprovada. Registrar o porquê é o que permite entender a decisão depois.'
+        : 'Nenhum limite foi estourado. Sem o motivo escrito, ninguém saberá em que a reprovação se baseou.'
+    )
+  }
+
   // A conta acontece aqui — a mesma função usada na consulta de cálculo.
   // Com precoBaseKg nulo, ela devolve o desconto e deixa preço e valor nulos.
   const calculo = calcularPagamento({
     pesoLiquidoKg: carga.pesoLiquidoKg,
     precoBaseKg: carga.precoBaseKg,
     palitoPercentual: palito,
-    limitePalito: LIMITE_PALITO_PADRAO,
-    descontoPorPonto: DESCONTO_POR_PONTO,
+    limitePalito: regua.limitePalito,
+    descontoPorPonto: regua.descontoPorPonto,
   })
 
   const { precoAjustadoKg, valorTotal } = valorDaAnalise(calculo, aprovada)
@@ -89,10 +116,16 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
         cargaId,
         usuarioId,
         palitoPercentual: palito,
-        umidadePercentual: umidadePercentual != null ? Number(umidadePercentual) : null,
-        folhaPercentual: folhaPercentual != null ? Number(folhaPercentual) : null,
+        umidadePercentual: umidade,
+        folhaPercentual: folha,
         observacoes,
-        limitePalito: LIMITE_PALITO_PADRAO,
+        // OS LIMITES DO DIA, copiados para dentro da análise. Se a ervateira
+        // mudar a régua amanhã, este laudo continua dizendo o que disse.
+        limitePalito: regua.limitePalito,
+        palitoMaximo: regua.palitoMaximo,
+        umidadeMaxima: regua.umidadeMaxima,
+        folhaMinima: regua.folhaMinima,
+        motivoReprovacao: justificativa || null,
         descontoPercentual: calculo.descontoPercentual,
         precoAjustadoKg,
         valorTotal,
@@ -108,7 +141,11 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
   // Devolve o cálculo COMO FOI GRAVADO, e não como foi computado: a tela mostra
   // este retorno, e mostrar um valor que o banco não guardou seria mentir para
   // o analista no exato momento em que ele reprova a carga.
-  return { analise, calculo: { ...calculo, precoAjustadoKg, valorTotal } }
+  return {
+    analise,
+    calculo: { ...calculo, precoAjustadoKg, valorTotal },
+    limitesEstourados,
+  }
 }
 
 /** Cargas que chegaram e ainda não foram analisadas — a fila do laboratório. */
@@ -125,4 +162,4 @@ async function filaDeAmostras() {
   return { total: cargas.length, cargas }
 }
 
-module.exports = { registrarAnalise, filaDeAmostras, valorDaAnalise, LIMITE_PALITO_PADRAO, DESCONTO_POR_PONTO }
+module.exports = { registrarAnalise, filaDeAmostras, valorDaAnalise }

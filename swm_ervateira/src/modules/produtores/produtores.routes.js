@@ -10,6 +10,7 @@ const { Router } = require('express')
 const { prisma } = require('../../lib/prisma')
 const { autenticar } = require('../../middlewares/autenticacao')
 const { permitir, podeNegocio } = require('../../middlewares/autorizacao')
+const { ocultarDoProdutor } = require('../../lib/sigilo')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { apenasDigitos, erroNoDocumento } = require('../../lib/documentos')
 
@@ -119,7 +120,16 @@ router.get('/', async (req, res) => {
     },
   })
 
-  res.json({ total: produtores.length, produtores })
+  // A LISTA SAI SEMPRE MASCARADA, para todo perfil.
+  //
+  // Ninguém precisa do CPF inteiro de trinta produtores numa tabela: quem
+  // procura confere pelos últimos dígitos, e quem vai usar o número abre a
+  // ficha e pede para ver. Mandar tudo em claro seria expor o cadastro
+  // completo a cada carregamento de tela.
+  res.json({
+    total: produtores.length,
+    produtores: produtores.map(ocultarDoProdutor),
+  })
 })
 
 // GET /api/produtores/:id
@@ -144,7 +154,48 @@ router.get('/:id', async (req, res) => {
     },
   })
   if (!produtor) return res.status(404).json({ erro: 'Produtor não encontrado' })
-  res.json(produtor)
+
+  // A ficha também sai mascarada. Quem precisa do número pede em
+  // /sigilosos, abaixo — e aí o pedido fica atribuído a um usuário.
+  res.json(ocultarDoProdutor(produtor))
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/produtores/:id/sigilosos — o dado pessoal em claro
+// ---------------------------------------------------------------------------
+// Uma rota só, que devolve APENAS o que o perfil de quem pediu pode ver:
+//
+//   documento  → quem cadastra produtor precisa conferir e corrigir o CPF
+//   chave Pix  → quem paga precisa do destino do dinheiro
+//
+// Perfil que não pode ver nenhum dos dois recebe 403, e não um objeto vazio:
+// objeto vazio pareceria "este produtor não tem CPF cadastrado", que é uma
+// informação diferente e errada.
+router.get('/:id/sigilosos', async (req, res) => {
+  const perfil = req.usuario.perfil
+  const veDocumento = podeNegocio(perfil, 'COMPRADOR_AVALIADOR')
+  const vePagamento = podeNegocio(perfil, 'ADMINISTRATIVO')
+
+  if (!veDocumento && !vePagamento) {
+    return res.status(403).json({
+      erro: 'Sem permissão',
+      detalhe: `O perfil ${perfil} não pode ver dados pessoais de produtor.`,
+    })
+  }
+
+  const produtor = await prisma.produtor.findUnique({
+    where: { id: req.params.id },
+    select: { id: true, cpfCnpj: true, chavePix: true, tipoChavePix: true, conta: true, agencia: true },
+  })
+  if (!produtor) return res.status(404).json({ erro: 'Produtor não encontrado' })
+
+  const resposta = {}
+  if (veDocumento) resposta.cpfCnpj = produtor.cpfCnpj
+  if (vePagamento) {
+    resposta.chavePix = produtor.chavePix
+    resposta.conta = produtor.conta
+  }
+  res.json(resposta)
 })
 
 // POST /api/produtores — cadastro (o avaliador cadastra em campo)

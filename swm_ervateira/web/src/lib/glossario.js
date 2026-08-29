@@ -10,10 +10,10 @@
 // Fica num arquivo de dados, e não escrito na tela, porque a mesma definição
 // há de servir a mais de um lugar quando as dicas de campo chegarem.
 //
-// ATENÇÃO ao editar: os números citados aqui (limite de 30%, 1 ponto de
-// desconto) são os mesmos que estão em cargas.service.js e em lib/calculo.js,
-// e são PROVISÓRIOS até a ervateira confirmar a fórmula. Se mudarem lá, mudam
-// aqui — por isso o texto os cita como "limite acordado" e não como lei.
+// ATENÇÃO ao editar: nenhum texto daqui cita número. Os limites são
+// configuráveis na régua de qualidade, logo acima nesta mesma tela, e mudam de
+// ervateira para ervateira — um glossário que dissesse "30%" ficaria mentindo
+// no dia em que alguém trocasse o valor.
 
 export const GLOSSARIO = [
   {
@@ -50,15 +50,15 @@ export const GLOSSARIO = [
       },
       {
         termo: 'Limite de palito',
-        texto: 'O percentual acordado com o produtor, acima do qual começa o desconto. Hoje 30%, e é valor provisório até a ervateira confirmar a fórmula.',
+        texto: 'O percentual acima do qual começa o desconto. Quem define é a ervateira, na régua de qualidade — e o valor que valia no dia fica gravado em cada análise.',
       },
       {
         termo: 'Desconto por qualidade',
-        texto: 'Cada ponto percentual de palito acima do limite tira um ponto do preço. Palito de 34% com limite de 30% dá 4% de desconto.',
+        texto: 'Cada ponto percentual de palito acima do limite tira do preço a fração definida na régua. Com limite de 30% e um ponto por ponto, palito de 34% dá 4% de desconto.',
       },
       {
         termo: 'Aprovada e reprovada',
-        texto: 'A decisão do laboratório sobre aceitar a carga. Reprovada não vira pagamento: ela sai do fluxo e não entra em ordem nenhuma.',
+        texto: 'A decisão do laboratório sobre aceitar a carga. O sistema confere os limites da régua e avisa, mas quem decide é quem tem a amostra na mão — e quando a decisão contraria a régua, o motivo fica registrado. Reprovada não vira pagamento.',
       },
     ],
   },

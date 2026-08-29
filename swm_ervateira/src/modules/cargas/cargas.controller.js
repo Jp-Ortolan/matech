@@ -5,6 +5,18 @@
 // Repare que não há nenhuma conta aqui: toda regra está no cargas.service.js.
 
 const servico = require('./cargas.service')
+const { podeNegocio } = require('../../middlewares/autorizacao')
+const { ocultarDaCarga } = require('../../lib/sigilo')
+
+// GET /api/cargas é aberto a todo perfil — é a base de Pesagem, Matéria-prima,
+// Relatórios e do painel. O que NÃO é aberto é o que vai dentro dela: preço,
+// valor e o CPF do produtor saem da resposta para quem não tem o perfil.
+//
+// Filtrar aqui, e não na tela, é o que fecha a segregação de função: escondida
+// no front, a coluna some da tabela e o número continua no corpo da resposta.
+function comoEsteUsuarioPodeVer(req) {
+  return { veDinheiro: podeNegocio(req.usuario.perfil, 'ADMINISTRATIVO') }
+}
 
 // Teto de registros por página. Existe para que uma requisição com
 // ?porPagina=999999 não obrigue o banco a montar a tabela inteira em memória.
@@ -24,13 +36,15 @@ async function listar(req, res) {
     pagina: Number(pagina) || 1,
     porPagina: tamanho,
   })
-  res.json(resultado)
+
+  const visao = comoEsteUsuarioPodeVer(req)
+  res.json({ ...resultado, cargas: resultado.cargas.map((c) => ocultarDaCarga(c, visao)) })
 }
 
 // GET /api/cargas/:id
 async function buscar(req, res) {
   const carga = await servico.buscarPorId(req.params.id)
-  res.json(carga)
+  res.json(ocultarDaCarga(carga, comoEsteUsuarioPodeVer(req)))
 }
 
 // POST /api/cargas
@@ -38,7 +52,9 @@ async function buscar(req, res) {
 // Se viesse do corpo, qualquer um poderia registrar uma carga no nome de outro.
 async function registrar(req, res) {
   const carga = await servico.registrarPesagem(req.body, req.usuario.id)
-  res.status(201).json(carga)   // 201 = criado
+  // Passa pelo mesmo filtro da consulta: é desta resposta que sai o ticket
+  // impresso, e o operador de balança não é quem vê preço.
+  res.status(201).json(ocultarDaCarga(carga, comoEsteUsuarioPodeVer(req)))   // 201 = criado
 }
 
 // GET /api/cargas/:id/calculo

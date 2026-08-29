@@ -415,7 +415,9 @@ export default function Dashboard() {
             { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 220, render: (c) => c.produtor?.nome },
             { chave: 'tipo', titulo: 'Matéria-prima', render: (c) => formatar.materiaPrima(c.tipoMateriaPrima) },
             { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', forte: true, render: (c) => formatar.kg(c.pesoLiquidoKg) },
-            { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise?.valorTotal) },
+            ...(veDinheiro
+              ? [{ chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise?.valorTotal) }]
+              : []),
             { chave: 'situacao', titulo: 'Situação', render: (c) => <Situacao valor={c.situacao} /> },
           ]}
           dados={lista.slice(0, 8)}
