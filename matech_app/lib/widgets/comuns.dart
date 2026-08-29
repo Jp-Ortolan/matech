@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 
 import '../modelos/operacao_pendente.dart';
+import 'tema.dart';
 
 /// Etiqueta do estado de sincronização de um registro.
 ///
@@ -34,27 +35,27 @@ class EtiquetaSincronizacao extends StatelessWidget {
     final (texto, cor, icone) = switch (situacao) {
       OperacaoPendente.enviada => (
         'Sincronizada',
-        Colors.green.shade700,
+        Cores.mate700,
         Icons.cloud_done_outlined,
       ),
       OperacaoPendente.erro => (
         'Recusada',
-        Colors.red.shade700,
+        Cores.perigo,
         Icons.error_outline,
       ),
       OperacaoPendente.dependencia => (
         'Aguardando',
-        Colors.orange.shade800,
+        Cores.alerta,
         Icons.hourglass_empty,
       ),
-      _ => ('Pendente', Colors.blueGrey.shade600, Icons.smartphone),
+      _ => ('Pendente', Cores.cinza600, Icons.smartphone),
     };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: cor.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(raio),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -99,7 +100,7 @@ class Vazio extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icone, size: 56, color: Colors.black26),
+          Icon(icone, size: 56, color: Cores.cinza400),
           const SizedBox(height: 16),
           Text(
             titulo,
@@ -110,7 +111,7 @@ class Vazio extends StatelessWidget {
           Text(
             descricao,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.black54, height: 1.4),
+            style: const TextStyle(color: Cores.cinza600, height: 1.4),
           ),
           if (acao != null) ...[const SizedBox(height: 24), acao!],
         ],
@@ -133,7 +134,7 @@ class LinhaDado extends StatelessWidget {
       children: [
         SizedBox(
           width: 130,
-          child: Text(rotulo, style: const TextStyle(color: Colors.black54)),
+          child: Text(rotulo, style: const TextStyle(color: Cores.cinza600)),
         ),
         Expanded(
           child: Text(
@@ -152,7 +153,7 @@ void avisar(BuildContext context, String mensagem, {bool erro = false}) {
     ..showSnackBar(
       SnackBar(
         content: Text(mensagem),
-        backgroundColor: erro ? Colors.red.shade700 : null,
+        backgroundColor: erro ? Cores.perigo : null,
         behavior: SnackBarBehavior.floating,
       ),
     );

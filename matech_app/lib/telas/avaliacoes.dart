@@ -15,6 +15,7 @@ import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
 import 'avaliacao_detalhe.dart';
 import 'avaliacao_form.dart';
+import '../widgets/tema.dart';
 
 class TelaAvaliacoes extends StatefulWidget {
   const TelaAvaliacoes({super.key});
@@ -102,11 +103,23 @@ class _TelaAvaliacoesState extends State<TelaAvaliacoes> {
                       ),
                 ),
               ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _abrirFormulario,
-        icon: const Icon(Icons.add),
-        label: const Text('Avaliar'),
-      ),
+      // O BOTÃO FLUTUANTE SOME COM A LISTA VAZIA.
+      //
+      // Com a lista vazia havia dois botões para a mesma ação a dez
+      // centímetros um do outro: o "Nova avaliação" no meio da tela e o
+      // "Avaliar" flutuando no canto. Dois convites para a mesma coisa fazem a
+      // pessoa parar para descobrir a diferença — e não há diferença.
+      //
+      // Com a lista cheia o flutuante é necessário: ele acompanha a rolagem, e
+      // é a única forma de começar uma avaliação sem voltar ao topo.
+      floatingActionButton:
+          _carregando || _lista.isEmpty
+              ? null
+              : FloatingActionButton.extended(
+                onPressed: _abrirFormulario,
+                icon: const Icon(Icons.add),
+                label: const Text('Avaliar'),
+              ),
     );
   }
 }
@@ -123,7 +136,7 @@ class _CartaoAvaliacao extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: aoTocar,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(raio),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -147,7 +160,7 @@ class _CartaoAvaliacao extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 resumo.ervalIdentificacao,
-                style: const TextStyle(color: Colors.black54, fontSize: 13),
+                style: const TextStyle(color: Cores.cinza600, fontSize: 13),
               ),
 
               const SizedBox(height: 12),
@@ -185,7 +198,7 @@ class _CartaoAvaliacao extends StatelessWidget {
                   a.observacoes!,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  style: const TextStyle(fontSize: 13, color: Cores.tinta),
                 ),
               ],
             ],
@@ -205,9 +218,9 @@ class _Dado extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icone, size: 14, color: Colors.black45),
+      Icon(icone, size: 14, color: Cores.cinza400),
       const SizedBox(width: 4),
-      Text(texto, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+      Text(texto, style: const TextStyle(fontSize: 13, color: Cores.tinta)),
     ],
   );
 }

@@ -123,15 +123,15 @@ class _TelaLoginState extends State<TelaLogin> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
+                        color: Cores.perigoFundo,
+                        borderRadius: BorderRadius.circular(raio),
+                        border: Border.all(color: Cores.perigo),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.error_outline,
-                            color: Colors.red.shade700,
+                            color: Cores.perigo,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -139,7 +139,7 @@ class _TelaLoginState extends State<TelaLogin> {
                             child: Text(
                               _erro!,
                               style: TextStyle(
-                                color: Colors.red.shade900,
+                                color: Cores.perigo,
                                 fontSize: 13,
                               ),
                             ),
@@ -171,7 +171,7 @@ class _TelaLoginState extends State<TelaLogin> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.black54,
+                      color: Cores.cinza600,
                       height: 1.5,
                     ),
                   ),
@@ -189,30 +189,37 @@ class _Marca extends StatelessWidget {
   const _Marca();
 
   @override
+  // A MARCA É O M DA PALAVRA, igual ao login da web.
+  //
+  // Antes era um Icons.eco_outlined branco num quadrado verde — um ícone
+  // genérico do Material, que não é a marca de nada e não aparecia em lugar
+  // nenhum do sistema web. Agora é o símbolo de verdade, e escrever "MATECH"
+  // ao lado dele repetiria a letra duas vezes: o símbolo já tem um M dentro.
   Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
     children: [
-      Container(
-        height: 72,
-        width: 72,
-        decoration: BoxDecoration(
-          color: verdeMatech,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: const Icon(Icons.eco_outlined, color: Colors.white, size: 40),
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const MarcaMatech(tamanho: 76),
+          const SizedBox(width: 7),
+          const Text(
+            'atech',
+            style: TextStyle(
+              fontSize: 42,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2.5,
+              color: Cores.barraTinta,
+              height: 1,
+            ),
+          ),
+        ],
       ),
-      const SizedBox(height: 16),
-      const Text(
-        'MATECH',
-        style: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 4,
-        ),
-      ),
-      const SizedBox(height: 4),
+      const SizedBox(height: 12),
       const Text(
         'Avaliação de matéria-prima em campo',
-        style: TextStyle(color: Colors.black54),
+        style: TextStyle(color: Cores.cinza600, fontSize: 13.5),
       ),
     ],
   );

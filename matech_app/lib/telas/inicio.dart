@@ -23,6 +23,7 @@ import 'avaliacoes.dart';
 import 'preparo.dart';
 import 'produtores.dart';
 import 'sincronizacao.dart';
+import '../widgets/tema.dart';
 
 class TelaInicio extends StatefulWidget {
   const TelaInicio({super.key});
@@ -178,8 +179,8 @@ class _TelaInicioState extends State<TelaInicio> {
                     ),
                     backgroundColor:
                         sincronizador.comErro > 0
-                            ? Colors.red.shade700
-                            : Colors.orange.shade800,
+                            ? Cores.perigo
+                            : Cores.alerta,
                     child: const Icon(Icons.sync_outlined),
                   ),
                   selectedIcon: const Icon(Icons.sync),

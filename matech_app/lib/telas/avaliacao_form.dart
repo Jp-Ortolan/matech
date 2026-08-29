@@ -34,6 +34,7 @@ import '../servicos/identificadores.dart';
 import '../servicos/localizacao.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
+import '../widgets/tema.dart';
 
 class FormularioAvaliacao extends StatefulWidget {
   const FormularioAvaliacao({super.key});
@@ -593,10 +594,10 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
                           : Icons.location_on,
                       color:
                           _localizacao == null
-                              ? Colors.black45
+                              ? Cores.cinza400
                               : _localizacao!.aproximada
-                              ? Colors.orange.shade800
-                              : Colors.green.shade700,
+                              ? Cores.alerta
+                              : Cores.mate700,
                     ),
                     title: Text(_localizacao?.resumo ?? 'Sem coordenada'),
                     subtitle: Text(
@@ -668,7 +669,7 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
                 const Text(
                   'Salva no aparelho na hora. Sobe sozinha quando houver sinal.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                  style: TextStyle(fontSize: 12, color: Cores.cinza600),
                 ),
               ],
             ],
@@ -695,12 +696,12 @@ class _GradeDeFotos extends StatelessWidget {
         height: 80,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.black12),
-          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Cores.borda),
+          borderRadius: BorderRadius.circular(raio),
         ),
         child: const Text(
           'Nenhuma foto ainda',
-          style: TextStyle(color: Colors.black45),
+          style: TextStyle(color: Cores.cinza400),
         ),
       );
     }
@@ -714,7 +715,7 @@ class _GradeDeFotos extends StatelessWidget {
                 (f) => Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(raio),
                       child: _MiniaturaDaCaptura(
                         caminho: f.caminho,
                         // cacheWidth de 192 para uma miniatura de 96: sem ele o
@@ -732,20 +733,20 @@ class _GradeDeFotos extends StatelessWidget {
                             (context, erro, pilha) => Container(
                               height: 96,
                               width: 96,
-                              color: Colors.red.shade50,
+                              color: Cores.perigoFundo,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.broken_image_outlined,
-                                    color: Colors.red.shade300,
+                                    color: Cores.perigo,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'Sumiu',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.red.shade700,
+                                      color: Cores.perigo,
                                     ),
                                   ),
                                 ],
@@ -760,7 +761,7 @@ class _GradeDeFotos extends StatelessWidget {
                         onTap: () => aoRemover(f),
                         child: Container(
                           decoration: const BoxDecoration(
-                            color: Colors.black54,
+                            color: Cores.cinza600,
                             shape: BoxShape.circle,
                           ),
                           padding: const EdgeInsets.all(3),
@@ -824,8 +825,8 @@ class _SeletorDeProdutorState extends State<_SeletorDeProdutor> {
               height: 4,
               width: 40,
               decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(2),
+                color: Cores.cinza400,
+                borderRadius: BorderRadius.circular(raio),
               ),
             ),
             Padding(
@@ -885,7 +886,7 @@ class _Secao extends StatelessWidget {
         fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: 1,
-        color: Colors.black45,
+        color: Cores.cinza400,
       ),
     ),
   );
@@ -934,7 +935,7 @@ class _MiniaturaDaCaptura extends StatelessWidget {
           return SizedBox(
             height: height,
             width: width,
-            child: ColoredBox(color: Colors.grey.shade200),
+            child: ColoredBox(color: Cores.cabecalho),
           );
         }
 

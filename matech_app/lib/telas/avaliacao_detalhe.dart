@@ -25,6 +25,7 @@ import '../servicos/arquivos.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
 import 'avaliacao_editar.dart';
+import '../widgets/tema.dart';
 
 class TelaDetalheAvaliacao extends StatefulWidget {
   final String clientId;
@@ -137,7 +138,7 @@ class _TelaDetalheAvaliacaoState extends State<TelaDetalheAvaliacao> {
                     ),
                     Text(
                       r.ervalIdentificacao,
-                      style: const TextStyle(color: Colors.black54),
+                      style: const TextStyle(color: Cores.cinza600),
                     ),
                     const Divider(height: 28),
                     LinhaDado('Data', formatarDataHora(a.dataAvaliacao)),
@@ -185,7 +186,7 @@ class _TelaDetalheAvaliacaoState extends State<TelaDetalheAvaliacao> {
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1,
-                          color: Colors.black45,
+                          color: Cores.cinza400,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -221,13 +222,13 @@ class _FaixaDeEstado extends StatelessWidget {
             : 'Esta avaliação existe SÓ neste aparelho. Ela sobe sozinha quando '
                 'houver sinal.';
 
-    final cor = sincronizada ? Colors.green : Colors.blueGrey;
+    final cor = sincronizada ? Cores.mate700 : Cores.cinza600;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cor.shade50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(raio),
         border: Border.all(color: cor.shade200),
       ),
       child: Column(
@@ -243,7 +244,7 @@ class _FaixaDeEstado extends StatelessWidget {
               // explica qual venceu.
               Text(
                 'alterada ${formatarDataHora(avaliacao.alteradoEmOrigem)}',
-                style: const TextStyle(fontSize: 11, color: Colors.black45),
+                style: const TextStyle(fontSize: 11, color: Cores.cinza400),
               ),
             ],
           ),
@@ -271,7 +272,7 @@ class _Fotos extends StatelessWidget {
           child: Center(
             child: Text(
               'Nenhuma foto nesta avaliação',
-              style: TextStyle(color: Colors.black45),
+              style: TextStyle(color: Cores.cinza400),
             ),
           ),
         ),
@@ -290,7 +291,7 @@ class _Fotos extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
-                color: Colors.black45,
+                color: Cores.cinza400,
               ),
             ),
             const SizedBox(height: 12),
@@ -327,8 +328,8 @@ class _Miniatura extends StatelessWidget {
             height: 100,
             width: 100,
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(8),
+              color: Cores.cabecalho,
+              borderRadius: BorderRadius.circular(raio),
             ),
           );
         }
@@ -354,18 +355,18 @@ class _Miniatura extends StatelessWidget {
       height: 100,
       width: 100,
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(8),
+        color: Cores.perigoFundo,
+        borderRadius: BorderRadius.circular(raio),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.broken_image_outlined, color: Colors.red.shade300),
+          Icon(Icons.broken_image_outlined, color: Cores.perigo),
           const SizedBox(height: 4),
           Text(
             'Arquivo\nsumiu',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 10, color: Colors.red.shade700),
+            style: TextStyle(fontSize: 10, color: Cores.perigo),
           ),
         ],
       ),
@@ -382,7 +383,7 @@ class _Miniatura extends StatelessWidget {
       child: Stack(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(raio),
             child: Image.memory(
               bytes,
               height: 100,
@@ -398,7 +399,7 @@ class _Miniatura extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(3),
                 decoration: const BoxDecoration(
-                  color: Colors.black54,
+                  color: Cores.cinza600,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

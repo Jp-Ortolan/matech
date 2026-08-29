@@ -18,6 +18,7 @@ import '../servicos/api.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
 import 'produtor_form.dart';
+import '../widgets/tema.dart';
 
 class TelaProdutores extends StatefulWidget {
   const TelaProdutores({super.key});
@@ -209,25 +210,25 @@ class _CartaoProdutor extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               produtor.cpfCnpj,
-              style: const TextStyle(color: Colors.black54),
+              style: const TextStyle(color: Cores.cinza600),
             ),
             if (produtor.municipio != null)
               Text(
                 '${produtor.municipio}${produtor.uf != null ? " · ${produtor.uf}" : ""}',
-                style: const TextStyle(color: Colors.black54, fontSize: 13),
+                style: const TextStyle(color: Cores.cinza600, fontSize: 13),
               ),
             if (produtor.chavePix != null && produtor.chavePix!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.pix, size: 14, color: Colors.black45),
+                  const Icon(Icons.pix, size: 14, color: Cores.cinza400),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       produtor.chavePix!,
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.black54,
+                        color: Cores.cinza600,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),

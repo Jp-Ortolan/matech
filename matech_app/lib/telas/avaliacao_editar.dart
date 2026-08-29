@@ -43,6 +43,7 @@ import '../servicos/captura_de_fotos.dart';
 import '../servicos/localizacao.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
+import '../widgets/tema.dart';
 
 class TelaEditarAvaliacao extends StatefulWidget {
   final Avaliacao original;
@@ -250,7 +251,7 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
                       const SizedBox(height: 4),
                       const Text(
                         'Produtor, área e data não mudam.',
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                        style: TextStyle(fontSize: 12, color: Cores.cinza600),
                       ),
                     ],
                   ),
@@ -347,8 +348,8 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
                         : Icons.location_off_outlined,
                     color:
                         (_localizacaoNova != null || a.temLocalizacao)
-                            ? Colors.green.shade700
-                            : Colors.black45,
+                            ? Cores.mate700
+                            : Cores.cinza400,
                   ),
                   title: Text(
                     _localizacaoNova?.resumo ??
@@ -448,7 +449,7 @@ class _Secao extends StatelessWidget {
         fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: 1,
-        color: Colors.black45,
+        color: Cores.cinza400,
       ),
     ),
   );

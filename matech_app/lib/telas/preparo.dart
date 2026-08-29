@@ -31,6 +31,7 @@ import '../servicos/arquivos.dart';
 import '../servicos/captura_de_fotos.dart';
 import '../servicos/localizacao.dart';
 import '../servicos/sincronizador.dart';
+import '../widgets/tema.dart';
 
 /// Estado de cada passo, para a tela saber que ícone mostrar.
 enum _Passo { pendente, fazendo, feito, falhou }
@@ -218,7 +219,7 @@ class _TelaPreparoState extends State<TelaPreparo> {
           const Text(
             'Se pular, cada permissão é pedida na hora de usar.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.black54),
+            style: TextStyle(fontSize: 12, color: Cores.cinza600),
           ),
         ],
       ),
@@ -246,21 +247,21 @@ class _CartaoDePasso extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (cor, marca) = switch (estado) {
-      _Passo.feito => (Colors.green.shade700, Icons.check_circle),
-      _Passo.falhou => (Colors.orange.shade800, Icons.error_outline),
-      _ => (Colors.black26, Icons.chevron_right),
+      _Passo.feito => (Cores.mate700, Icons.check_circle),
+      _Passo.falhou => (Cores.alerta, Icons.error_outline),
+      _ => (Cores.cinza400, Icons.chevron_right),
     };
 
     return Card(
       child: InkWell(
         onTap: aoTocar,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(raio),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icone, color: Colors.black54),
+              Icon(icone, color: Cores.cinza600),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -278,7 +279,7 @@ class _CartaoDePasso extends StatelessWidget {
                       descricao,
                       style: const TextStyle(
                         fontSize: 13,
-                        color: Colors.black54,
+                        color: Cores.cinza600,
                         height: 1.4,
                       ),
                     ),

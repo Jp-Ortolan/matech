@@ -26,6 +26,7 @@ import '../modelos/operacao_pendente.dart';
 import '../servicos/sessao.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
+import '../widgets/tema.dart';
 
 class TelaSincronizacao extends StatefulWidget {
   const TelaSincronizacao({super.key});
@@ -114,14 +115,14 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.04),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(raio),
                     ),
                     child: Row(
                       children: [
                         const Icon(
                           Icons.info_outline,
                           size: 18,
-                          color: Colors.black45,
+                          color: Cores.cinza400,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -145,7 +146,7 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                       const Icon(
                         Icons.schedule,
                         size: 14,
-                        color: Colors.black38,
+                        color: Cores.cinza400,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -154,7 +155,7 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                           '${_hora(sincronizador.proximoDespertar!)}',
                           style: const TextStyle(
                             fontSize: 12,
-                            color: Colors.black54,
+                            color: Cores.cinza600,
                           ),
                         ),
                       ),
@@ -167,12 +168,12 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                       Icon(
                         Icons.check_circle_outline,
                         size: 14,
-                        color: Colors.black38,
+                        color: Cores.cinza400,
                       ),
                       SizedBox(width: 6),
                       Text(
                         'Tudo que foi coletado já está no servidor.',
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                        style: TextStyle(fontSize: 12, color: Cores.cinza600),
                       ),
                     ],
                   ),
@@ -181,7 +182,7 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                 Text(
                   'Aparelho ${sessao.dispositivoId}'
                   '${sincronizador.ultimaTentativa == null ? "" : " · última tentativa às ${_hora(sincronizador.ultimaTentativa!)}"}',
-                  style: const TextStyle(fontSize: 11, color: Colors.black38),
+                  style: const TextStyle(fontSize: 11, color: Cores.cinza400),
                 ),
 
                 const SizedBox(height: 24),
@@ -191,7 +192,7 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1,
-                    color: Colors.black45,
+                    color: Cores.cinza400,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -243,17 +244,17 @@ class _Placar extends StatelessWidget {
                 _Numero(
                   '${sincronizador.pendentes}',
                   'na fila',
-                  Colors.orange.shade800,
+                  Cores.alerta,
                 ),
                 _Numero(
                   '${sincronizador.enviadas}',
                   'no servidor',
-                  Colors.green.shade700,
+                  Cores.mate700,
                 ),
                 _Numero(
                   '${sincronizador.comErro}',
                   'recusados',
-                  Colors.red.shade700,
+                  Cores.perigo,
                 ),
               ],
             ),
@@ -278,17 +279,17 @@ class _Placar extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(raio),
                 child: LinearProgressIndicator(
                   value: taxa / 100,
                   minHeight: 8,
-                  backgroundColor: Colors.black12,
+                  backgroundColor: Cores.borda,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
                 'confirmados ÷ coletados',
-                style: TextStyle(fontSize: 11, color: Colors.black45),
+                style: TextStyle(fontSize: 11, color: Cores.cinza400),
               ),
             ],
           ],
@@ -311,7 +312,7 @@ class _Numero extends StatelessWidget {
         valor,
         style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cor),
       ),
-      Text(rotulo, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+      Text(rotulo, style: const TextStyle(fontSize: 12, color: Cores.cinza600)),
     ],
   );
 }
@@ -354,7 +355,7 @@ class _LinhaDaFila extends StatelessWidget {
             Text(
               'Criado em ${formatarDataHora(operacao.criadoEmOrigem)}'
               '${operacao.tentativas > 0 ? " · ${operacao.tentativas} ${operacao.tentativas == 1 ? "tentativa" : "tentativas"}" : ""}',
-              style: const TextStyle(fontSize: 12, color: Colors.black54),
+              style: const TextStyle(fontSize: 12, color: Cores.cinza600),
             ),
             if (operacao.ultimoErro != null) ...[
               const SizedBox(height: 8),
@@ -363,7 +364,7 @@ class _LinhaDaFila extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color:
-                      recusada ? Colors.red.shade800 : Colors.orange.shade900,
+                      recusada ? Cores.perigo : Cores.alerta.shade900,
                 ),
               ),
             ],

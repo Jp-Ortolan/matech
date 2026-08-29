@@ -27,6 +27,7 @@ import '../modelos/produtor.dart';
 import '../servicos/identificadores.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
+import '../widgets/tema.dart';
 
 const _tiposDeChave = {
   'CPF': 'CPF',
@@ -245,7 +246,7 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
               const Text(
                 'Salvo no aparelho. Sobe quando houver sinal.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.black54),
+                style: TextStyle(fontSize: 12, color: Cores.cinza600),
               ),
             ],
           ),
@@ -268,7 +269,7 @@ class _Secao extends StatelessWidget {
         fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: 1,
-        color: Colors.black45,
+        color: Cores.cinza400,
       ),
     ),
   );
