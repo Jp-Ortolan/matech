@@ -27,7 +27,7 @@ import {
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, Tabela, Indicador, Situacao, Campo, Selecao, Botao,
+  Painel, Filtros, Tabela, Situacao, Campo, Selecao, Botao,
   Carregando, Erro, Sucesso, Vazio, Etiqueta, LinhaDado, Aviso, formatar,
 } from '../componentes/ui'
 
@@ -70,9 +70,6 @@ export default function Produtores() {
     return () => clearTimeout(relogio)
   }, [busca, buscar])
 
-  const totalErvais = lista.reduce((s, p) => s + (p.ervais?.length || 0), 0)
-  const deCampo = lista.filter((p) => p.criadoOffline).length
-
   function aoSalvar(mensagem) {
     setFormulario(null)
     setAviso(mensagem)
@@ -81,10 +78,7 @@ export default function Produtores() {
 
   return (
     <>
-      <CabecalhoPagina
-        titulo="Produtores e fornecedores"
-        subtitulo={`Quem entrega matéria-prima, e para onde o pagamento vai · ${total} ${total === 1 ? 'cadastrado' : 'cadastrados'}`}
-      >
+      <CabecalhoPagina titulo="Produtores">
         {podeCadastrar && (
           <Botao
             variante="primario"
@@ -95,13 +89,16 @@ export default function Produtores() {
         )}
       </CabecalhoPagina>
 
-      {/* Só o que NÃO existe no Dashboard. O total de produtores e o de cargas
-          saíram daqui: repetir o mesmo número em duas telas não informa, só
-          obriga quem lê a conferir se os dois batem. */}
-      <div className="mb-3 flex flex-wrap gap-2 xl:mb-4 xl:gap-3">
-        <Indicador rotulo="Ervais vinculados" valor={totalErvais} unidade="áreas" apoio="origem da matéria-prima" />
-        <Indicador rotulo="Cadastrados em campo" valor={deCampo} unidade="pelo aplicativo" apoio="enviados na sincronização" cor="text-mate-700" />
-      </div>
+      <Filtros>
+        <Campo
+          rotulo="Buscar por nome ou CPF/CNPJ"
+          className="min-w-[240px] flex-[2]"
+          placeholder="digite para filtrar"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+        <span className="flex-1" />
+      </Filtros>
 
       {formulario && (
         <FormularioProdutor
@@ -115,20 +112,11 @@ export default function Produtores() {
       {aviso && <div className="mb-3"><Sucesso texto={aviso} /></div>}
       <Erro erro={erro} />
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_430px]">
+      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_400px]">
         <Painel
           titulo="Produtores"
-          acao={carregando ? 'buscando...' : `${lista.length} na lista`}
+          acao={carregando ? 'buscando...' : `${lista.length} de ${total}`}
         >
-          <div className="border-b border-borda px-4 py-3">
-            <Campo
-              rotulo="Buscar por nome ou CPF/CNPJ"
-              placeholder="digite para filtrar"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
-          </div>
-
           {carregando ? (
             <Carregando />
           ) : (
@@ -138,15 +126,13 @@ export default function Produtores() {
                   chave: 'nome', titulo: 'Produtor', forte: true,
                   render: (p) => (
                     <span className="flex items-center gap-2">
-                      {p.nome}
+                      <span className="min-w-0 max-w-[220px] truncate" title={p.nome}>{p.nome}</span>
                       {p.criadoOffline && <Etiqueta tom="verde">campo</Etiqueta>}
                     </span>
                   ),
                 },
-                { chave: 'cpfCnpj', titulo: 'CPF / CNPJ' },
-                { chave: 'municipio', titulo: 'Município', render: (p) => (p.municipio ? `${p.municipio}${p.uf ? `/${p.uf}` : ''}` : '—') },
-                { chave: 'telefone', titulo: 'Telefone', render: (p) => p.telefone || '—' },
-                { chave: 'ervais', titulo: 'Ervais', alinhar: 'direita', render: (p) => p.ervais?.length ?? 0 },
+                { chave: 'cpfCnpj', titulo: 'CPF / CNPJ', render: (p) => formatar.documento(p.cpfCnpj) },
+                { chave: 'municipio', titulo: 'Município', truncar: 150, oculta: 'lg', render: (p) => (p.municipio ? `${p.municipio}${p.uf ? `/${p.uf}` : ''}` : '—') },
                 { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', forte: true, render: (p) => p._count?.cargas ?? 0 },
                 {
                   chave: 'acao', titulo: '',
@@ -277,9 +263,8 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
               </>
             )}
             {!pix && !conta && (
-              <p className="col-span-2 text-[10.5px] leading-relaxed text-cinza-600">
-                Pagamento em espécie. Não há destino bancário guardado — a baixa da
-                ordem é dada à mão, por quem entregou o dinheiro.
+              <p className="col-span-2 text-[10.5px] text-cinza-600">
+                Sem destino bancário guardado.
               </p>
             )}
           </div>
@@ -309,8 +294,8 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
               ))}
             </div>
           ) : (
-            <p className="rounded-[3px] border border-dashed border-borda px-3 py-4 text-center text-[11px] text-cinza-400">
-              Nenhum erval vinculado. O cadastro do erval é feito pelo aplicativo, em campo.
+            <p className="rounded-[3px] border border-dashed border-borda px-3 py-3 text-center text-[11px] text-cinza-400">
+              Nenhum erval vinculado.
             </p>
           )}
         </div>
@@ -337,17 +322,23 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
             </div>
           ) : (
             <p className="rounded-[3px] border border-dashed border-borda px-3 py-4 text-center text-[11px] text-cinza-400">
-              Este produtor ainda não entregou nenhuma carga.
+              Nenhuma carga entregue.
             </p>
           )}
         </div>
 
         {/* ---------------------- ordens de pagamento ------------------- */}
+        {/* A ficha vem SEM esta lista quando o perfil não pode ver dinheiro —
+            o servidor não a envia. Por isso a verificação é pela ausência da
+            chave, e não por perfil: quem decide continua sendo a rota.
+            Lista vazia (`[]`) é outra coisa, e continua dizendo que não há
+            ordem nenhuma. */}
+        {produtor.ordensPagamento && (
         <div>
           <p className="mb-2 text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
             Últimas ordens de pagamento
           </p>
-          {produtor.ordensPagamento?.length ? (
+          {produtor.ordensPagamento.length ? (
             <div className="rounded-[3px] border border-borda">
               {produtor.ordensPagamento.map((o, i) => (
                 <div key={o.id} className={`flex items-center gap-2 px-3 py-2 ${i ? 'border-t border-borda' : ''}`}>
@@ -364,10 +355,11 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
             </div>
           ) : (
             <p className="rounded-[3px] border border-dashed border-borda px-3 py-4 text-center text-[11px] text-cinza-400">
-              Nenhuma ordem emitida para este produtor.
+              Nenhuma ordem emitida.
             </p>
           )}
         </div>
+        )}
       </div>
     </Painel>
   )
@@ -540,8 +532,7 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
 
   return (
     <Painel
-      titulo={editando ? `Editar cadastro · ${produtor.nome}` : 'Novo produtor'}
-      acao="os dados de pagamento definem para onde a ordem será emitida"
+      titulo={editando ? `Editar · ${produtor.nome}` : 'Novo produtor'}
       className="mb-3"
     >
       <form onSubmit={enviar} className="flex flex-col gap-3 px-4 py-4">
@@ -658,16 +649,11 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
 
         {ehDinheiro && (
           <Aviso tom="alerta">
-            Pagamento em espécie, no balcão. A ordem sai sem destino bancário e a
-            baixa é dada à mão, por quem entregou o dinheiro. Nenhum dado de conta
-            ou de Pix é guardado para este produtor.
+            Pagamento em espécie: a ordem sai sem destino bancário.
           </Aviso>
         )}
 
-        <div className="flex items-center gap-2">
-          <p className="flex-1 text-[10.5px] text-cinza-400">
-            O CPF/CNPJ é único no sistema e é validado pelo dígito verificador.
-          </p>
+        <div className="flex items-center justify-end gap-2">
           <Botao type="button" onClick={aoCancelar}>Cancelar</Botao>
           <Botao variante="primario" type="submit" disabled={enviando || Boolean(erroDocumento)}>
             {enviando ? 'Gravando...' : editando ? 'Salvar alterações' : 'Cadastrar produtor'}

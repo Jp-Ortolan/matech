@@ -28,17 +28,25 @@ import {
   Painel, Filtros, SaidaDoPainel, Tabela, Indicador, Situacao, Campo, Selecao, Botao, Abas, Barra,
   Carregando, Erro, Vazio, Etiqueta, Aviso, formatar,
 } from '../componentes/ui'
+import { useAutenticacao } from '../contexto/Autenticacao'
 import { baixarCsv, numeroCsv } from '../lib/exportar'
 import { LIMITE_PALITO_PADRAO } from '../lib/calculo'
 
+// A aba financeira só existe para quem pode ler ordens de pagamento. Não é
+// uma regra desta tela: GET /api/pagamentos exige o perfil, e sem ele a aba
+// abriria vazia com 403 no console.
 const ABAS = [
   { id: 'recebimento', rotulo: 'Recebimento' },
   { id: 'qualidade', rotulo: 'Qualidade' },
-  { id: 'financeiro', rotulo: 'Financeiro' },
+  { id: 'financeiro', rotulo: 'Financeiro', exigeDinheiro: true },
   { id: 'acuracia', rotulo: 'Acurácia da estimativa' },
 ]
 
 export default function Relatorios() {
+  const { podeFazer } = useAutenticacao()
+  const veDinheiro = podeFazer('ADMINISTRATIVO')
+  const abas = ABAS.filter((a) => !a.exigeDinheiro || veDinheiro)
+
   const [filtros, setFiltros] = useState({ de: '', ate: '', produtorId: '' })
   const [aba, setAba] = useState('recebimento')
 
@@ -57,16 +65,16 @@ export default function Relatorios() {
       // esperar a primeira para só depois pedir a segunda dobraria a espera.
       const [c, p] = await Promise.all([
         apiCargas.listar({ ...filtros, porPagina: 500 }),
-        apiPagamentos.listar({ produtorId: filtros.produtorId }),
+        veDinheiro ? apiPagamentos.listar({ produtorId: filtros.produtorId }) : Promise.resolve(null),
       ])
       setLista(c.cargas)
-      setOrdens(recortarPorPeriodo(p.ordens, filtros))
+      setOrdens(p ? recortarPorPeriodo(p.ordens, filtros) : [])
     } catch (e) {
       setErro(e)
     } finally {
       setCarregando(false)
     }
-  }, [filtros])
+  }, [filtros, veDinheiro])
 
   useEffect(() => { buscar() }, [buscar])
 
@@ -104,7 +112,7 @@ export default function Relatorios() {
         <Botao onClick={() => setFiltros({ de: '', ate: '', produtorId: '' })}>Limpar</Botao>
       </Filtros>
 
-      <Abas abas={ABAS} ativa={aba} aoTrocar={setAba} />
+      <Abas abas={abas} ativa={aba} aoTrocar={setAba} />
 
       <Erro erro={erro} />
       {erroProdutores && (
@@ -122,7 +130,7 @@ export default function Relatorios() {
         <>
           {aba === 'recebimento' && <Recebimento lista={lista} />}
           {aba === 'qualidade' && <Qualidade lista={lista} />}
-          {aba === 'financeiro' && <Financeiro ordens={ordens} />}
+          {aba === 'financeiro' && veDinheiro && <Financeiro ordens={ordens} />}
           {aba === 'acuracia' && <Acuracia lista={lista} />}
         </>
       )}

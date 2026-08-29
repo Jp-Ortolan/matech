@@ -13,7 +13,12 @@ const router = Router()
 router.use(autenticar)
 
 // GET /api/qualidade/fila — amostras aguardando análise
-router.get('/fila', async (req, res) => {
+//
+// LEITURA TAMBÉM É RESTRITA, e não só o lançamento. A fila é a bancada do
+// laboratório: quem não analisa não tem o que fazer com ela, e deixá-la aberta
+// obrigava o menu a esconder uma tela que o servidor entregava a qualquer um —
+// isto é, a inventar uma permissão que não existia.
+router.get('/fila', permitir('ANALISTA_QUALIDADE'), async (req, res) => {
   res.json(await servico.filaDeAmostras())
 })
 

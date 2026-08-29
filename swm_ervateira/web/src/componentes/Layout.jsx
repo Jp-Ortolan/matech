@@ -11,42 +11,8 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAutenticacao, NOME_PERFIL } from '../contexto/Autenticacao'
-
-const MENU = [
-  {
-    secao: 'OPERAÇÃO',
-    itens: [
-      { rotulo: 'Dashboard', para: '/' },
-      { rotulo: 'Pesagem', para: '/pesagem' },
-      { rotulo: 'Avaliações', para: '/avaliacoes' },
-    ],
-  },
-  {
-    // Seção própria, e não um item solto em OPERAÇÃO, porque o que vem do
-    // aplicativo tem uma natureza diferente do resto: não foi digitado aqui,
-    // chegou de fora, e pode estar a caminho. Agrupar as duas telas deixa
-    // isso legível no próprio menu.
-    secao: 'CAMPO',
-    itens: [
-      { rotulo: 'Avaliações de campo', para: '/campo' },
-      { rotulo: 'Sincronização', para: '/sincronizacao' },
-    ],
-  },
-  {
-    secao: 'CADASTROS',
-    itens: [
-      { rotulo: 'Produtores', para: '/produtores' },
-      { rotulo: 'Matéria-prima', para: '/materia-prima' },
-    ],
-  },
-  {
-    secao: 'FINANCEIRO',
-    itens: [
-      { rotulo: 'Pagamentos', para: '/pagamentos' },
-      { rotulo: 'Relatórios', para: '/relatorios' },
-    ],
-  },
-]
+import { secoesVisiveis } from '../lib/acesso'
+import Marca from './Marca'
 
 function ItemMenu({ rotulo, para, recolhido }) {
   // NavLink sabe sozinho se a rota atual é esta, e entrega isActive.
@@ -84,10 +50,10 @@ function ItemMenu({ rotulo, para, recolhido }) {
 /**
  * Largura abaixo da qual o menu nasce recolhido.
  *
- * 1180 e não 1024: com o menu aberto sobram 950px de conteúdo, que é o mínimo
- * para a tabela de recebimento caber sem rolagem lateral. Abaixo disso o
- * conteúdo passa a valer mais que a legibilidade do menu — e recolher devolve
- * 180 pixels, que é a diferença entre ler a coluna de valor e não ler.
+ * 1180 e não 1024: num notebook de 1366 o menu fica aberto e ainda sobram
+ * mais de 1.100px de conteúdo, que é o que a tabela de pesagem precisa. Abaixo
+ * de 1180 o conteúdo passa a valer mais que a legibilidade do menu — e recolher
+ * devolve 160 pixels, que é a diferença entre ler a coluna de valor e não ler.
  */
 const LARGURA_DE_RECOLHER = 1180
 
@@ -118,11 +84,20 @@ function usarMenuRecolhido() {
 }
 
 export default function Layout() {
-  const { usuario, sair } = useAutenticacao()
+  const { usuario, sair, podeFazer, ehAdministrador } = useAutenticacao()
   const navegar = useNavigate()
   const { recolhido, alternar } = usarMenuRecolhido()
 
-  const larguraDoMenu = recolhido ? 'w-[52px]' : 'w-[232px]'
+  // O menu mostra o que o servidor entrega para este perfil. A lista das telas
+  // e o perfil que cada rota exige estão em lib/acesso.js; a decisão continua
+  // sendo do middleware de autorização, no servidor.
+  //
+  // Esconder o item é conveniência de navegação: digitar /pagamentos na barra
+  // de endereços leva a uma tela que não carrega nada, porque a API responde
+  // 403. É o 403 que protege, não o menu.
+  const secoes = secoesVisiveis({ podeFazer, ehAdministrador })
+
+  const larguraDoMenu = recolhido ? 'w-[52px]' : 'w-[212px]'
 
   const iniciais = (usuario?.nome || '')
     .split(' ')
@@ -150,9 +125,7 @@ export default function Layout() {
             recolhido ? 'justify-center px-0' : 'px-5'
           }`}
         >
-          <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[3px] bg-mate-500 text-sm font-bold text-white">
-            M
-          </span>
+          <Marca className="h-[24px] w-[24px] shrink-0 text-mate-500" />
           {!recolhido && (
             <span className="leading-tight">
               <span className="block text-[15px] font-bold tracking-wider text-white">MATECH</span>
@@ -213,7 +186,7 @@ export default function Layout() {
           data-fora-da-impressao
           className={`flex shrink-0 flex-col overflow-y-auto bg-mate-900 pb-4 pt-2 ${larguraDoMenu}`}
         >
-          {MENU.map((grupo) => (
+          {secoes.map((grupo) => (
             <div key={grupo.secao}>
               {/* Recolhido, o título da seção vira um traço: some o texto, mas
                   fica a divisão — sem ela os itens viram uma coluna de pontos
@@ -221,7 +194,7 @@ export default function Layout() {
               {recolhido ? (
                 <div className="mx-auto my-2 h-px w-5 bg-white/15" />
               ) : (
-                <p className="px-5 pb-1.5 pt-4 text-[9px] font-semibold tracking-wider text-white/35">
+                <p className="px-4 pb-1.5 pt-4 text-[9px] font-semibold tracking-wider text-white/35">
                   {grupo.secao}
                 </p>
               )}
@@ -232,16 +205,13 @@ export default function Layout() {
           ))}
           <div className="flex-1" />
           <ItemMenu rotulo="Configurações" para="/configuracoes" recolhido={recolhido} />
-          {!recolhido && (
-            <p className="px-5 pt-3 text-[9px] text-white/25">MATECH v0.4 · base local</p>
-          )}
         </nav>
 
         {/* ------------------------ área de conteúdo ------------------------ */}
         {/* O respiro encolhe junto com a tela: 24px numa estação de trabalho,
             12px num notebook apertado. Em software de operação, margem é a
             primeira coisa que cede — a tabela é que precisa caber. */}
-        <main className="min-w-0 flex-1 overflow-y-auto bg-fundo p-3 md:p-4 xl:p-6">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-fundo p-3 md:p-4 xl:p-5">
           <Outlet />
         </main>
       </div>
@@ -249,14 +219,21 @@ export default function Layout() {
   )
 }
 
-/** Cabeçalho padrão de página: título, subtítulo e botões à direita. */
+/**
+ * Cabeçalho padrão de página: título, contexto curto e botões à direita.
+ *
+ * O `subtitulo` é EXCEÇÃO, não regra. Ele serve para dizer sobre que recorte a
+ * tela está falando agora — o período de um relatório, quantas ordens estão em
+ * aberto — e não para explicar o que a tela faz. Quem trabalha aqui todo dia
+ * já sabe; ler de novo, toda vez, só custa uma linha de tela.
+ */
 export function CabecalhoPagina({ titulo, subtitulo, children }) {
   return (
     // flex-wrap e não grid: com um botão só, ele fica ao lado do título;
     // com três, eles descem para uma segunda linha sozinhos, sem breakpoint.
-    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 xl:mb-4">
+    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
       <div className="min-w-[200px] flex-1">
-        <h1 className="text-lg font-bold text-tinta xl:text-xl">{titulo}</h1>
+        <h1 className="text-[17px] font-bold leading-tight text-tinta xl:text-lg">{titulo}</h1>
         {subtitulo && <p className="mt-0.5 text-[11px] text-cinza-600">{subtitulo}</p>}
       </div>
       {children}

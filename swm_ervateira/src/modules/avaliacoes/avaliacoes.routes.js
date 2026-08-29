@@ -15,13 +15,15 @@
 const { Router } = require('express')
 const { prisma } = require('../../lib/prisma')
 const { autenticar } = require('../../middlewares/autenticacao')
+const { permitir } = require('../../middlewares/autorizacao')
 
 const router = Router()
 router.use(autenticar)
 
-// Consultar é aberto a qualquer perfil autenticado: o comprador confere o que
-// coletou, o administrativo confere o que vai virar pagamento, e o operador de
-// balança consulta a estimativa de campo antes de digitar o peso.
+// Consultar é do perfil que vai a campo (e do administrativo, que permitir()
+// acrescenta sozinho). O operador de balança não precisa desta tela: a
+// estimativa de campo que interessa a ele já vem embutida na carga, em
+// GET /api/cargas/:id, e o analista vê a avaliação dentro da própria amostra.
 
 // O produtor NÃO é relação direta da avaliação: o caminho é
 // avaliacao → erval → produtor. E está certo assim — quem avalia está numa
@@ -66,7 +68,8 @@ async function comSituacao(avaliacoes) {
 }
 
 // GET /api/avaliacoes?produtorId=&de=&ate=&dispositivoId=&pagina=&porPagina=
-router.get('/', async (req, res) => {
+// O que o aplicativo coletou no erval pertence a quem foi a campo.
+router.get('/', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   const { produtorId, de, ate, comFoto } = req.query
   const pagina = Number(req.query.pagina) || 1
   const porPagina = Math.min(Number(req.query.porPagina) || 20, 200)
@@ -108,7 +111,7 @@ router.get('/', async (req, res) => {
 })
 
 // GET /api/avaliacoes/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   const avaliacao = await prisma.avaliacao.findUnique({
     where: { id: req.params.id },
     include: {

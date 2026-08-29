@@ -8,7 +8,9 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ROTA_INICIAL } from '../lib/acesso'
 import { useAutenticacao } from '../contexto/Autenticacao'
+import Marca from '../componentes/Marca'
 import { Campo, Botao, Erro } from '../componentes/ui'
 
 export default function Login() {
@@ -25,8 +27,9 @@ export default function Login() {
     setErro(null)
     setEnviando(true)
     try {
-      await entrar(usuario, senha)
-      navegar('/')
+      const u = await entrar(usuario, senha)
+      // Cada perfil começa onde trabalha, e não num painel de indicadores.
+      navegar(ROTA_INICIAL[u.perfil] || '/')
     } catch (e) {
       setErro(e)
     } finally {
@@ -39,9 +42,7 @@ export default function Login() {
       {/* lado esquerdo · identidade */}
       <aside className="hidden w-[46%] max-w-[620px] shrink-0 flex-col justify-center gap-5 bg-mate-900 px-10 lg:flex xl:px-16">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[4px] bg-mate-500 text-xl font-bold text-white">
-            M
-          </span>
+          <Marca className="h-11 w-11 shrink-0 text-mate-500" />
           <span>
             <span className="block text-3xl font-bold tracking-widest text-white">MATECH</span>
             <span className="block text-[11px] font-medium tracking-wide text-white/50">
@@ -99,11 +100,6 @@ export default function Login() {
           <Botao variante="primario" type="submit" disabled={enviando} className="justify-center py-3">
             {enviando ? 'Entrando...' : 'Entrar'}
           </Botao>
-
-          <p className="text-[10.5px] text-cinza-400">
-            Usuários de teste: rogerio.anselmo (balança), cristiane.modesto (qualidade),
-            marcos.ferrari (campo), solange.petry (administrativo). Senha: matech123
-          </p>
         </form>
       </div>
     </div>

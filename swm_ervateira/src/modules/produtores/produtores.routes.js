@@ -9,7 +9,7 @@
 const { Router } = require('express')
 const { prisma } = require('../../lib/prisma')
 const { autenticar } = require('../../middlewares/autenticacao')
-const { permitir } = require('../../middlewares/autorizacao')
+const { permitir, podeNegocio } = require('../../middlewares/autorizacao')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { apenasDigitos, erroNoDocumento } = require('../../lib/documentos')
 
@@ -123,10 +123,25 @@ router.get('/', async (req, res) => {
 })
 
 // GET /api/produtores/:id
+//
+// A ficha é aberta a todos os perfis — a balança precisa dela para registrar a
+// pesagem. O que NÃO é aberto são as ordens de pagamento que vêm junto: elas
+// são dinheiro, e seguem a mesma regra de GET /api/pagamentos.
+//
+// Elas são retiradas AQUI, e não escondidas na tela. Dado que a tela não deve
+// mostrar não deve sair do servidor: escondido no front, ele continua viajando
+// pela rede e aparece inteiro em qualquer inspetor do navegador.
 router.get('/:id', async (req, res) => {
+  const podeVerDinheiro = podeNegocio(req.usuario.perfil, 'ADMINISTRATIVO')
+
   const produtor = await prisma.produtor.findUnique({
     where: { id: req.params.id },
-    include: { ervais: true, ordensPagamento: { orderBy: { emitidaEm: 'desc' }, take: 5 } },
+    include: {
+      ervais: true,
+      ordensPagamento: podeVerDinheiro
+        ? { orderBy: { emitidaEm: 'desc' }, take: 5 }
+        : false,
+    },
   })
   if (!produtor) return res.status(404).json({ erro: 'Produtor não encontrado' })
   res.json(produtor)

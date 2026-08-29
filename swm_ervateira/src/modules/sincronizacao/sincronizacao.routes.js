@@ -31,12 +31,13 @@ router.post('/', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
 })
 
 // GET /api/sincronizacao/resumo?dispositivoId= — a taxa do Quadro 7
-router.get('/resumo', async (req, res) => {
+// Restrita ao mesmo perfil que sincroniza: é o diagnóstico do aparelho dele.
+router.get('/resumo', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   res.json(await servico.resumo({ dispositivoId: req.query.dispositivoId }))
 })
 
 // GET /api/sincronizacao/registros?dispositivoId=&situacao=&limite=
-router.get('/registros', async (req, res) => {
+router.get('/registros', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   res.json(await servico.listarRegistros(req.query))
 })
 
