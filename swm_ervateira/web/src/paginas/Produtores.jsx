@@ -27,10 +27,11 @@ import {
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, Filtros, Tabela, Situacao, Campo, Selecao, Botao, Sigiloso,
+  Painel, Filtros, Tabela, Janela, Situacao, Campo, Selecao, Botao,
   Carregando, Erro, Sucesso, Vazio, Etiqueta, LinhaDado, Aviso
 } from '../componentes/ui'
 import { formatar } from '../lib/formatar'
+import { ICONE_DA_ACAO } from '../lib/icones'
 
 export default function Produtores() {
   const { podeFazer } = useAutenticacao()
@@ -84,22 +85,26 @@ export default function Produtores() {
           <Botao
             variante="primario"
             onClick={() => { setAviso(''); setFormulario((f) => (f === 'novo' ? null : 'novo')) }}
+            icone={formulario === 'novo' ? ICONE_DA_ACAO.limpar : ICONE_DA_ACAO.registrar}
           >
             {formulario === 'novo' ? 'Fechar' : 'Novo produtor'}
           </Botao>
         )}
       </CabecalhoPagina>
 
-      <Filtros>
-        <Campo
-          rotulo="Buscar por nome ou CPF/CNPJ"
-          className="min-w-[240px] flex-[2]"
-          placeholder="digite para filtrar"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
-        <span className="flex-1" />
-      </Filtros>
+      {/* Só busca, e por isso sem botão de painel: um botão "Filtros" que
+          abre um painel vazio é pior do que não ter botão nenhum. */}
+      <Filtros
+        busca={(
+          <Campo
+            rotulo="Buscar por nome ou CPF/CNPJ"
+            className="min-w-[240px] flex-1 max-w-[360px]"
+            placeholder="digite para filtrar"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        )}
+      />
 
       {formulario && (
         <FormularioProdutor
@@ -113,8 +118,12 @@ export default function Produtores() {
       {aviso && <div className="mb-3"><Sucesso texto={aviso} /></div>}
       <Erro erro={erro} />
 
-      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_400px]">
-        <Painel
+      {/* A lista ocupa a largura toda: a ficha saiu da coluna ao lado e passou
+          a abrir numa janela. Na coluna, a ficha — cadastro, pagamento, ervais
+          e últimas cargas — ficava muito mais alta que uma lista de quatro
+          linhas, e ler até o fim exigia rolar até um ponto em que a metade
+          esquerda estava vazia. */}
+      <Painel
           titulo="Produtores"
           acao={carregando ? 'buscando...' : `${lista.length} de ${total}`}
         >
@@ -137,7 +146,11 @@ export default function Produtores() {
                   // formatar.documento porque o valor não é mais um documento:
                   // é a máscara dele, e reformatar embaralharia os asteriscos.
                   chave: 'cpfCnpj', titulo: 'CPF / CNPJ',
-                  render: (p) => <span className="tabular">{p.cpfCnpj || '—'}</span>,
+                  // Formatado, como no detalhe ao lado. Sem pontuação, a
+                  // coluna virava um bloco de catorze dígitos que ninguém
+                  // confere de relance — e os dois lugares mostravam o mesmo
+                  // documento escrito de duas formas diferentes.
+                  render: (p) => <span className="tabular">{formatar.documento(p.cpfCnpj)}</span>,
                 },
                 { chave: 'municipio', titulo: 'Município', truncar: 150, oculta: 'lg', render: (p) => (p.municipio ? `${p.municipio}${p.uf ? `/${p.uf}` : ''}` : '—') },
                 { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', forte: true, render: (p) => p._count?.cargas ?? 0 },
@@ -148,21 +161,25 @@ export default function Produtores() {
               vazio={busca ? `Nenhum produtor encontrado para "${busca}".` : 'Nenhum produtor cadastrado ainda.'}
             />
           )}
-        </Painel>
+      </Painel>
 
-        {selecionadoId ? (
+      {selecionadoId && (
+        <Janela
+          titulo={lista.find((p) => p.id === selecionadoId)?.nome || 'Ficha do produtor'}
+          subtitulo="Cadastro, dados de pagamento, ervais e últimas cargas"
+          aoFechar={() => setSelecionadoId(null)}
+        >
           <FichaDoProdutor
             key={selecionadoId}
             produtorId={selecionadoId}
             podeEditar={podeCadastrar}
-            aoEditar={(p) => { setAviso(''); setFormulario(p) }}
+            // Editar FECHA a janela. O formulário fica na tela de trás, e
+            // deixá-lo abrir escondido atrás da ficha faria a pessoa clicar em
+            // "editar" e não ver nada acontecer.
+            aoEditar={(p) => { setAviso(''); setSelecionadoId(null); setFormulario(p) }}
           />
-        ) : (
-          <Painel titulo="Ficha do produtor">
-            <Vazio texto="Selecione um produtor na lista para ver a ficha completa." />
-          </Painel>
-        )}
-      </div>
+        </Janela>
+      )}
     </>
   )
 }
@@ -230,15 +247,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
         )}
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          <LinhaDado
-            rotulo="CPF / CNPJ"
-            valor={
-              <Sigiloso
-                valor={produtor.cpfCnpj}
-                aoRevelar={async () => formatar.documento((await apiProdutores.sigilosos(produtor.id)).cpfCnpj)}
-              />
-            }
-          />
+          <LinhaDado rotulo="CPF / CNPJ" valor={formatar.documento(produtor.cpfCnpj)} />
           <LinhaDado rotulo="Telefone" valor={produtor.telefone} />
           <LinhaDado rotulo="Município" valor={produtor.municipio ? `${produtor.municipio}${produtor.uf ? `/${produtor.uf}` : ''}` : null} />
           <LinhaDado rotulo="Cadastrado em" valor={formatar.data(produtor.criadoEm)} />
@@ -247,7 +256,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
 
         {/* ------------------------- pagamento ------------------------- */}
         <div className="rounded-[3px] border border-borda">
-          <p className="border-b border-borda bg-cabecalho px-3 py-2 text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
+          <p className="border-b border-borda bg-cabecalho px-3 py-2 text-[11px] font-semibold text-cinza-600">
             Dados de pagamento
           </p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-3 py-3">
@@ -256,15 +265,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
             {pix && (
               <>
                 <LinhaDado rotulo="Tipo da chave" valor={formatar.chavePix(produtor.tipoChavePix)} />
-                <LinhaDado
-                  rotulo="Chave Pix"
-                  valor={
-                    <Sigiloso
-                      valor={produtor.chavePix}
-                      aoRevelar={async () => (await apiProdutores.sigilosos(produtor.id)).chavePix}
-                    />
-                  }
-                />
+                <LinhaDado rotulo="Chave Pix" valor={produtor.chavePix} />
               </>
             )}
             {conta && (
@@ -284,7 +285,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
 
         {/* --------------------------- ervais --------------------------- */}
         <div>
-          <p className="mb-2 text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
+          <p className="mb-2 text-[11px] font-semibold text-cinza-600">
             Ervais · {produtor.ervais?.length ?? 0}
           </p>
           {produtor.ervais?.length ? (
@@ -314,7 +315,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
 
         {/* ----------------------- últimas cargas ----------------------- */}
         <div>
-          <p className="mb-2 text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
+          <p className="mb-2 text-[11px] font-semibold text-cinza-600">
             Últimas cargas
           </p>
           {cargas.length ? (
@@ -347,7 +348,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
             ordem nenhuma. */}
         {produtor.ordensPagamento && (
         <div>
-          <p className="mb-2 text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
+          <p className="mb-2 text-[11px] font-semibold text-cinza-600">
             Últimas ordens de pagamento
           </p>
           {produtor.ordensPagamento.length ? (
@@ -420,36 +421,10 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   const [buscando, setBuscando] = useState(null)   // 'cep' | 'cnpj' | null
   const [achado, setAchado] = useState(null)       // aviso do que foi preenchido
 
-  // -------------------------------------------------------------------------
-  // O FORMULÁRIO PRECISA DO DADO EM CLARO, e a ficha não tem
-  // -------------------------------------------------------------------------
-  // A ficha traz CPF e chave Pix mascarados, o que é certo para ler e errado
-  // para editar: salvar "123.***.***-01" gravaria a máscara por cima do
-  // documento. Então, ao abrir a edição, o formulário pede os valores reais na
-  // mesma rota que o botão "mostrar" usa — e quem edita produtor é justamente
-  // o perfil que pode vê-los.
-  //
-  // Se a rota recusar, os campos ficam vazios em vez de mascarados: campo
-  // vazio o usuário percebe, máscara salva ele não percebe.
-  useEffect(() => {
-    if (!produtor?.id) return
-    let vivo = true
-    apiProdutores
-      .sigilosos(produtor.id)
-      .then((r) => {
-        if (!vivo) return
-        setForm((f) => ({
-          ...f,
-          cpfCnpj: r.cpfCnpj ?? '',
-          chavePix: r.chavePix ?? (f.chavePix === produtor.chavePix ? '' : f.chavePix),
-          conta: r.conta ?? (f.conta === produtor.conta ? '' : f.conta),
-        }))
-      })
-      .catch(() => {
-        if (vivo) setForm((f) => ({ ...f, cpfCnpj: '', chavePix: '', conta: '' }))
-      })
-    return () => { vivo = false }
-  }, [produtor?.id, produtor?.chavePix, produtor?.conta])
+  // A ficha já traz CPF, chave Pix e conta em claro, então o formulário nasce
+  // preenchido a partir dela. Antes era preciso uma segunda requisição para
+  // buscar os valores reais, porque salvar a máscara gravaria "123.***.***-01"
+  // por cima do documento.
 
   function alterar(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor }))
@@ -576,7 +551,7 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   return (
     <Painel
       titulo={editando ? `Editar · ${produtor.nome}` : 'Novo produtor'}
-      className="mb-3"
+      className="mb-6"
     >
       <form onSubmit={enviar} className="flex flex-col gap-3 px-4 py-4">
         <Erro erro={erro} />
@@ -594,7 +569,7 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
             onBlur={ehCnpj ? buscarCnpj : undefined}
           />
           {ehCnpj && (
-            <Botao type="button" onClick={buscarCnpj} disabled={buscando === 'cnpj'}>
+            <Botao type="button" onClick={buscarCnpj} disabled={buscando === 'cnpj'} icone={ICONE_DA_ACAO.buscar}>
               {buscando === 'cnpj' ? 'Buscando...' : 'Buscar na Receita'}
             </Botao>
           )}
@@ -623,7 +598,7 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
             onChange={(e) => alterar('cep', e.target.value)}
             onBlur={buscarCep}
           />
-          <Botao type="button" onClick={buscarCep} disabled={buscando === 'cep' || apenasDigitos(form.cep).length !== 8}>
+          <Botao type="button" onClick={buscarCep} disabled={buscando === 'cep' || apenasDigitos(form.cep).length !== 8} icone={ICONE_DA_ACAO.buscar}>
             {buscando === 'cep' ? 'Buscando...' : 'Buscar CEP'}
           </Botao>
           <Campo rotulo="Endereço" className="flex-[2]" value={form.endereco} onChange={(e) => alterar('endereco', e.target.value)} />
@@ -718,7 +693,7 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
 function Secao({ titulo }) {
   return (
     <div className="mt-1 flex items-center gap-2">
-      <span className="text-[9px] font-semibold uppercase tracking-wider text-cinza-400">
+      <span className="text-[11px] font-semiboldr text-cinza-400">
         {titulo}
       </span>
       <span className="h-px flex-1 bg-borda" />

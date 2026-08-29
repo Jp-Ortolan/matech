@@ -7,7 +7,7 @@
 //
 // As classes vêm do Tailwind, usando as cores declaradas no index.css.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TAMANHO, SITUACAO, ICONE_DA_ACAO } from '../lib/icones'
 import { faixaDePaginas } from '../lib/paginacao'
 import Marca from './Marca'
@@ -834,5 +834,104 @@ function BotaoDePagina({ children, ativo = false, disabled = false, aoClicar, ro
     >
       {children}
     </button>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Janela
+// ---------------------------------------------------------------------------
+// O detalhe de um registro, aberto por cima da tela.
+//
+// O QUE ISSO SUBSTITUIU, e por quê:
+//
+// Antes o detalhe era uma coluna ao lado da lista, com altura própria. A lista
+// tem duas ou quatro linhas; o detalhe de uma avaliação de campo tem cinco
+// blocos empilhados. As duas colunas ficavam com alturas muito diferentes, e
+// para ler o detalhe inteiro era preciso rolar até um ponto em que a metade
+// esquerda estava vazia — o conteúdo sozinho no canto de baixo à direita.
+//
+// Numa janela o problema não existe: ela tem a tela inteira para si, e o que
+// não couber rola dentro dela.
+//
+// O QUE ISSO CUSTA: a lista some enquanto a janela está aberta. É aceitável
+// aqui porque nestas telas o detalhe é um registro que se LÊ, e não uma coisa
+// que se confere contra a lista. Onde o detalhe é um formulário que a pessoa
+// preenche olhando a fila — a análise de qualidade — a coluna ao lado
+// continua sendo o certo, e continua lá.
+//
+// TRÊS COISAS QUE UMA JANELA PRECISA TER, e que costumam faltar:
+//
+//   · Esc fecha. É o primeiro reflexo de quem usa teclado.
+//   · Clicar fora fecha, mas só no fundo — arrastar o texto de dentro e
+//     soltar o botão sobre o fundo NÃO pode fechar, e é isso que o
+//     `alvoDoAperto` resolve.
+//   · O fundo não rola atrás. Sem isso, a roda do mouse move a página de trás
+//     enquanto a pessoa acha que está rolando a janela.
+export function Janela({ titulo, subtitulo, acao, largura = 820, aoFechar, children }) {
+  const fundo = useRef(null)
+  const alvoDoAperto = useRef(null)
+  const painel = useRef(null)
+
+  useEffect(() => {
+    function aoTeclar(e) {
+      if (e.key === 'Escape') aoFechar()
+    }
+    document.addEventListener('keydown', aoTeclar)
+
+    // Trava a rolagem do conteúdo atrás. O que rola nesta interface é o
+    // <main>, e não a janela do navegador — por isso o atributo vai no body e
+    // a regra que o usa está no index.css.
+    document.body.setAttribute('data-janela-aberta', '')
+
+    // O foco entra na janela para que Tab ande dentro dela, e não na tela de
+    // trás, que a pessoa nem está vendo.
+    painel.current?.focus()
+
+    return () => {
+      document.removeEventListener('keydown', aoTeclar)
+      document.body.removeAttribute('data-janela-aberta')
+    }
+  }, [aoFechar])
+
+  return (
+    <div
+      ref={fundo}
+      data-fora-da-impressao
+      onMouseDown={(e) => { alvoDoAperto.current = e.target }}
+      onMouseUp={(e) => {
+        if (e.target === fundo.current && alvoDoAperto.current === fundo.current) aoFechar()
+      }}
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-tinta/45 p-3 md:p-6 lg:p-10"
+    >
+      <div
+        ref={painel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={titulo}
+        tabIndex={-1}
+        style={{ maxWidth: largura }}
+        className="flex max-h-full w-full flex-col rounded-[3px] border border-borda bg-white shadow-[0_10px_40px_rgba(31,36,34,.25)] outline-none"
+      >
+        <div className="flex shrink-0 items-center gap-3 border-b border-borda px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-[15px] font-bold text-tinta">{titulo}</h2>
+            {subtitulo && <p className="mt-0.5 truncate text-[11px] text-cinza-600">{subtitulo}</p>}
+          </div>
+          {acao}
+          <button
+            type="button"
+            onClick={aoFechar}
+            aria-label="Fechar"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[3px] text-cinza-400 hover:bg-cabecalho hover:text-tinta"
+          >
+            <span aria-hidden="true" className="text-lg leading-none">×</span>
+          </button>
+        </div>
+
+        {/* O corpo é quem rola. O cabeçalho fica: com o registro comprido, a
+            pessoa perde de vista de quem é a ficha que está lendo. */}
+        <div className="min-h-0 flex-1 overflow-y-auto bg-fundo p-3 md:p-4">{children}</div>
+      </div>
+    </div>
   )
 }

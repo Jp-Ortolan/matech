@@ -13,13 +13,22 @@
 // viu, e uma miniatura de 40 pixels não prova nada sobre folha, talo ou queima.
 
 import { useCallback, useEffect, useState } from 'react'
-import { avaliacoesCampo, produtores as apiProdutores } from '../api/recursos'
+import { avaliacoesCampo, produtores as apiProdutores, sincronizacao } from '../api/recursos'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, Filtros, Tabela, Indicador, Campo, Selecao, Botao, Etiqueta, LinhaDado,
-  Carregando, Erro, Vazio
+  FaixaDeIndicadores, Painel, Filtros, Tabela, Janela, Indicador, Campo, Selecao, Botao, Etiqueta, LinhaDado,
+  Barra, Carregando, Erro, Vazio
 } from '../componentes/ui'
 import { formatar } from '../lib/formatar'
+import { ICONE_DA_ACAO, ICONE_DA_GRANDEZA } from '../lib/icones'
+import { resumirFiltros, nomeNaLista } from '../lib/filtros'
+
+const ROTULO_ENTIDADE = {
+  Produtor: 'Produtor',
+  Erval: 'Área de colheita',
+  Avaliacao: 'Avaliação',
+  FotoErval: 'Foto',
+}
 
 const ROTULO_ERVA = { NATIVA: 'Nativa', PLANTADA: 'Plantada' }
 const ROTULO_QUEIMA = { NAO: 'Sem queima', EM_PARTE: 'Queimada em parte', SIM: 'Queimada' }
@@ -29,6 +38,7 @@ export default function CampoPagina() {
   const [dados, setDados] = useState(null)
   const [listaProdutores, setListaProdutores] = useState([])
   const [selecionada, setSelecionada] = useState(null)
+  const [sincronia, setSincronia] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
 
@@ -50,6 +60,13 @@ export default function CampoPagina() {
     apiProdutores.listar().then((r) => setListaProdutores(r.produtores)).catch(() => {})
   }, [])
 
+  // O resumo da sincronização vive aqui desde que a tela própria saiu do menu.
+  // Faz sentido: a pergunta "chegou tudo o que foi coletado?" só existe por
+  // causa desta tela, e antes obrigava a trocar de página para ser respondida.
+  useEffect(() => {
+    sincronizacao.resumo().then(setSincronia).catch(() => setSincronia(null))
+  }, [])
+
   async function abrir(linha) {
     // Busca o detalhe em vez de reaproveitar a linha da lista: o detalhe traz
     // as cargas que nasceram desta avaliação, que a listagem não carrega.
@@ -61,10 +78,19 @@ export default function CampoPagina() {
   return (
     <>
       <CabecalhoPagina titulo="Avaliações de campo">
-        <Botao onClick={buscar}>Atualizar</Botao>
+        <Botao onClick={buscar} icone={ICONE_DA_ACAO.atualizar}>Atualizar</Botao>
       </CabecalhoPagina>
 
-      <Filtros>
+      <Filtros
+        ativos={resumirFiltros(filtros, {
+          produtorId: (v) => nomeNaLista(listaProdutores, v),
+          de: (v) => `De ${formatar.data(v)}`,
+          ate: (v) => `Até ${formatar.data(v)}`,
+          comFoto: () => 'Com foto',
+        })}
+        aoRemover={(chave) => setFiltros({ ...filtros, [chave]: '' })}
+        aoLimpar={() => setFiltros({ produtorId: '', de: '', ate: '', comFoto: '' })}
+      >
         <Selecao
           rotulo="Produtor"
           className="flex-[2]"
@@ -101,19 +127,29 @@ export default function CampoPagina() {
         </Selecao>
       </Filtros>
 
-      <div className="mb-3 flex flex-wrap gap-2">
-        <Indicador rotulo="Avaliações" valor={dados?.total ?? '—'} apoio="no período" />
+      <FaixaDeIndicadores>
+        <Indicador rotulo="Avaliações" icone={ICONE_DA_GRANDEZA.qualidade} valor={dados?.total ?? '—'} apoio="no período" />
         <Indicador
-          rotulo="Coletadas offline"
+          rotulo="Coletadas offline" icone={ICONE_DA_GRANDEZA.offline}
           valor={dados?.coletadasEmCampo ?? '—'}
           apoio="sem conexão no erval"
-          cor="text-mate-700"
         />
-        <Indicador rotulo="Com foto" valor={dados?.comFotos ?? '—'} apoio="prova visual" />
-      </div>
+        <Indicador rotulo="Com foto" icone={ICONE_DA_GRANDEZA.foto} valor={dados?.comFotos ?? '—'} apoio="prova visual" />
+        <Indicador
+          rotulo="Sincronização" icone={ICONE_DA_GRANDEZA.sincronia}
+          valor={sincronia?.taxaSincronizacao != null ? `${formatar.numero(sincronia.taxaSincronizacao, 1)}%` : '—'}
+          apoio="confirmados ÷ total coletado"
+        />
+      </FaixaDeIndicadores>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_1fr]">
-        <Painel titulo="Coletadas" acao={`${dados?.avaliacoes.length ?? 0} na lista`}>
+      <ResumoDaSincronizacao sincronia={sincronia} />
+
+      {/* A lista ocupa a largura toda: o detalhe saiu da coluna ao lado e
+          passou a abrir numa janela. Com a coluna, o detalhe de uma avaliação
+          — cinco blocos empilhados — ficava muito mais alto que uma lista de
+          duas linhas, e ler até o fim exigia rolar até um ponto em que a
+          metade esquerda estava vazia. */}
+      <Painel titulo="Coletadas" acao={`${dados?.avaliacoes.length ?? 0} na lista`}>
           {carregando ? (
             <Carregando />
           ) : (
@@ -134,37 +170,24 @@ export default function CampoPagina() {
                     </span>
                   ),
                 },
-                {
-                  chave: 'abrir',
-                  titulo: '',
-                  largura: '60px',
-                  alinhar: 'direita',
-                  render: (a) => (
-                    <button
-                      onClick={() => abrir(a)}
-                      className={`text-[10px] font-semibold uppercase tracking-wide ${
-                        selecionada?.id === a.id ? 'text-mate-700' : 'text-cinza-400 hover:text-mate-700'
-                      }`}
-                    >
-                      {selecionada?.id === a.id ? 'aberta' : 'abrir'}
-                    </button>
-                  ),
-                },
               ]}
               dados={dados?.avaliacoes ?? []}
+              aoClicarLinha={abrir}
+              linhaAtiva={selecionada?.id}
               vazio="Nenhuma avaliação de campo neste período."
             />
           )}
-        </Painel>
+      </Painel>
 
-        {selecionada ? (
+      {selecionada && (
+        <Janela
+          titulo={selecionada.erval?.produtor?.nome || 'Avaliação de campo'}
+          subtitulo={`${selecionada.erval?.identificacao ?? 'sem área'} · ${formatar.dataHora(selecionada.dataAvaliacao)}`}
+          aoFechar={() => setSelecionada(null)}
+        >
           <Detalhe avaliacao={selecionada} />
-        ) : (
-          <Painel titulo="Detalhe">
-            <Vazio texto="Escolha uma avaliação na lista para ver as fotos e a coordenada." />
-          </Painel>
-        )}
-      </div>
+        </Janela>
+      )}
     </>
   )
 }
@@ -197,7 +220,7 @@ function Detalhe({ avaliacao: a }) {
 
         {a.observacoes && (
           <div className="border-t border-borda px-4 py-3">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">Observações</p>
+            <p className="text-[11px] font-semibold text-cinza-600">Observações</p>
             <p className="mt-1 text-[11.5px] leading-relaxed text-tinta">{a.observacoes}</p>
           </div>
         )}
@@ -291,6 +314,76 @@ function Fotos({ fotos }) {
             />
           </a>
         ))}
+      </div>
+    </Painel>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Resumo da sincronização
+// ---------------------------------------------------------------------------
+// Era uma tela inteira, com filtro por aparelho e o log de todas as operações
+// recebidas. Virou este bloco por uma razão simples: aquilo respondia a uma
+// pergunta só — "chegou tudo o que foi coletado?" — e obrigava a trocar de
+// página para respondê-la, justamente na tela onde a pergunta nasce.
+//
+// O que ficou é o que se olha: a proporção do que chegou, e o que está preso.
+// O que saiu foi o log operação a operação, que interessa a quem depura a
+// sincronização, não a quem confere a coleta do dia.
+function ResumoDaSincronizacao({ sincronia }) {
+  if (!sincronia || !sincronia.total) return null
+
+  const porEntidade = (sincronia.porEntidade ?? []).reduce((acc, l) => {
+    const chave = ROTULO_ENTIDADE[l.entidade] ?? l.entidade
+    acc[chave] = acc[chave] || { enviados: 0, total: 0 }
+    acc[chave].total += l.total
+    if (l.situacao === 'ENVIADO') acc[chave].enviados += l.total
+    return acc
+  }, {})
+
+  const presos = sincronia.pendentes + sincronia.comErro
+
+  return (
+    <Painel
+      className="mb-6"
+      titulo="Sincronização do aparelho"
+      acao={`${sincronia.enviados} de ${sincronia.total} confirmados`}
+    >
+      <div className="flex flex-col gap-3 px-4 py-4">
+        {Object.entries(porEntidade).map(([rotulo, v]) => (
+          <Barra
+            key={rotulo}
+            rotulo={`${rotulo} · ${v.enviados} de ${v.total}`}
+            valor={`${Math.round((v.enviados / v.total) * 100)}%`}
+            proporcao={(v.enviados / v.total) * 100}
+            cor="bg-mate-500"
+          />
+        ))}
+
+        {presos > 0 && (
+          <p className="rounded-[3px] border border-[#e2c894] bg-alerta-bg px-3 py-2 text-[10.5px] leading-relaxed text-alerta">
+            {sincronia.pendentes > 0 && (
+              <>
+                {sincronia.pendentes} {sincronia.pendentes === 1 ? 'operação aguarda' : 'operações aguardam'} uma
+                dependência que ainda não chegou ao servidor — resolvem-se sozinhas no próximo envio do aparelho.
+              </>
+            )}
+            {sincronia.pendentes > 0 && sincronia.comErro > 0 && ' '}
+            {sincronia.comErro > 0 && (
+              <>
+                {sincronia.comErro} {sincronia.comErro === 1 ? 'foi recusada' : 'foram recusadas'} pelo servidor e
+                {sincronia.comErro === 1 ? ' precisa' : ' precisam'} de uma pessoa: insistir não resolve.
+              </>
+            )}
+          </p>
+        )}
+
+        {sincronia.conflitos > 0 && (
+          <p className="text-[10px] text-cinza-400">
+            {sincronia.conflitos} {sincronia.conflitos === 1 ? 'conflito resolvido' : 'conflitos resolvidos'} pela
+            última edição feita no aparelho — o relógio que vale é o de quem estava no erval.
+          </p>
+        )}
       </div>
     </Painel>
   )

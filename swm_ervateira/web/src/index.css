@@ -128,6 +128,17 @@ body {
 .tabular { font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------------------
+   JANELA ABERTA
+   ---------------------------------------------------------------------------
+   Trava a rolagem do que está atrás. O que rola nesta interface é o <main>, e
+   não a janela do navegador — então `overflow: hidden` no body não resolveria
+   nada, e é por isso que a regra mira o main. Sem ela, a roda do mouse move a
+   tela de trás enquanto a pessoa acha que está rolando a janela. */
+body[data-janela-aberta] main {
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
    A ENGRENAGEM GIRANDO
    ---------------------------------------------------------------------------
    Vinte segundos por volta. É devagar de propósito: rápido demais vira um
