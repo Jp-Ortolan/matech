@@ -7,6 +7,8 @@
 //
 // As classes vêm do Tailwind, usando as cores declaradas no index.css.
 
+import { paraData, chaveDoDia } from '../lib/datas'
+
 export function Botao({ children, variante = 'secundario', className = '', ...props }) {
   const base = 'inline-flex items-center gap-2 rounded-[3px] px-3.5 py-2 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
   const estilos = {
@@ -43,7 +45,7 @@ export function Campo({ rotulo, className = '', ...props }) {
         </span>
       )}
       <input
-        className="rounded-[3px] border border-borda bg-white px-2.5 py-2 text-xs text-tinta outline-none focus:border-mate-500"
+        className="rounded-[3px] border border-borda bg-white px-2.5 py-2 text-xs text-tinta outline-none focus:border-mate-500 disabled:bg-cabecalho disabled:text-cinza-400"
         {...props}
       />
     </label>
@@ -60,7 +62,7 @@ export function Selecao({ rotulo, children, className = '', ...props }) {
         </span>
       )}
       <select
-        className="rounded-[3px] border border-borda bg-white px-2.5 py-2 text-xs text-tinta outline-none focus:border-mate-500"
+        className="rounded-[3px] border border-borda bg-white px-2.5 py-2 text-xs text-tinta outline-none focus:border-mate-500 disabled:bg-cabecalho disabled:text-cinza-400"
         {...props}
       >
         {children}
@@ -74,9 +76,9 @@ export function Painel({ titulo, acao, children, className = '' }) {
   return (
     <section className={`rounded-[3px] border border-borda bg-white ${className}`}>
       {titulo && (
-        <header className="flex items-center justify-between border-b border-borda px-4 py-2.5">
-          <h2 className="text-xs font-semibold text-tinta">{titulo}</h2>
-          {acao && <span className="text-[11px] font-medium text-mate-700">{acao}</span>}
+        <header className="flex items-center justify-between gap-3 border-b border-borda px-3 py-2">
+          <h2 className="truncate text-xs font-semibold text-tinta">{titulo}</h2>
+          {acao && <span className="shrink-0 text-[11px] font-medium text-mate-700">{acao}</span>}
         </header>
       )}
       {children}
@@ -87,13 +89,13 @@ export function Painel({ titulo, acao, children, className = '' }) {
 /** Indicador numérico da faixa superior do painel. */
 export function Indicador({ rotulo, valor, unidade, apoio, cor = 'text-tinta' }) {
   return (
-    <div className="min-w-[148px] flex-1 rounded-[3px] border border-borda bg-white px-3 py-2.5 xl:px-4 xl:py-3">
-      <p className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">{rotulo}</p>
-      <p className={`mt-1 flex items-baseline gap-1 ${cor}`}>
-        <span className="text-2xl font-bold tabular">{valor}</span>
-        {unidade && <span className="text-[10px] font-medium text-cinza-400">{unidade}</span>}
+    <div className="min-w-[132px] flex-1 rounded-[3px] border border-borda bg-white px-3 py-2">
+      <p className="truncate text-[9px] font-semibold uppercase tracking-wide text-cinza-400">{rotulo}</p>
+      <p className={`mt-0.5 flex items-baseline gap-1 ${cor}`}>
+        <span className="text-xl font-bold tabular">{valor}</span>
+        {unidade && <span className="truncate text-[10px] font-medium text-cinza-400">{unidade}</span>}
       </p>
-      {apoio && <p className="mt-0.5 text-[10px] text-cinza-600">{apoio}</p>}
+      {apoio && <p className="mt-0.5 truncate text-[10px] text-cinza-600" title={apoio}>{apoio}</p>}
     </div>
   )
 }
@@ -125,29 +127,41 @@ export function Situacao({ valor }) {
 /**
  * Tabela do sistema.
  *
- * COMO ELA SE COMPORTA EM TELA ESTREITA, e por que assim:
+ * LARGURA — a regra que vale para todas as telas:
  *
- * As células não quebram linha — a tabela mantém a largura que o conteúdo
- * pede e o contêiner ROLA na horizontal. É o oposto do que um site faria, e é
- * de propósito: uma tabela de recebimento com a coluna de peso quebrada em
- * duas linhas fica ilegível justamente para quem precisa comparar valores
- * verticalmente. Numa balança, rolar é melhor que decifrar.
+ * A tabela ocupa o espaço que tem e distribui as colunas dentro dele. Rolagem
+ * lateral é o último recurso, não o primeiro: quando aparece, é porque a tela
+ * ficou estreita de verdade, e não porque a tabela pediu mais largura do que
+ * precisava. O que resolve o enquadramento é escolher menos colunas — o dado
+ * secundário fica no detalhe do registro, onde ele é procurado, e não na
+ * linha, onde ele só atrapalha a comparação.
  *
- * Uma coluna que precise de texto corrido — uma observação, por exemplo — pede
- * `quebrar: true` e volta a se comportar como parágrafo.
+ * Opções de coluna:
+ *   · `truncar` — corta o texto com reticências em vez de esticar a coluna.
+ *     Nome de produtor é o caso típico: um nome comprido não pode empurrar a
+ *     coluna de peso para fora da tela.
+ *   · `oculta`  — 'md' | 'lg' | 'xl'. Some abaixo daquela largura. É para o
+ *     dado que ajuda quando há espaço e não faz falta quando não há.
+ *   · `quebrar` — volta a se comportar como parágrafo (observações).
  */
+const OCULTAR_ABAIXO_DE = {
+  md: 'hidden md:table-cell',
+  lg: 'hidden lg:table-cell',
+  xl: 'hidden xl:table-cell',
+}
+
 export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', rodape }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-max border-collapse text-left">
+      <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b border-borda bg-cabecalho">
             {colunas.map((c) => (
               <th
                 key={c.chave}
-                className={`whitespace-nowrap px-3 py-2.5 text-[9px] font-semibold uppercase tracking-wide text-cinza-400 xl:px-4 ${
+                className={`whitespace-nowrap px-2.5 py-2 text-[9px] font-semibold uppercase tracking-wide text-cinza-400 xl:px-3 ${
                   c.alinhar === 'direita' ? 'text-right' : ''
-                }`}
+                } ${c.oculta ? OCULTAR_ABAIXO_DE[c.oculta] : ''}`}
                 style={c.largura ? { width: c.largura } : undefined}
               >
                 {c.titulo}
@@ -158,34 +172,65 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
         <tbody>
           {dados.length === 0 && (
             <tr>
-              <td colSpan={colunas.length} className="px-4 py-8 text-center text-xs text-cinza-400">
+              <td colSpan={colunas.length} className="px-3 py-8 text-center text-xs text-cinza-400">
                 {vazio}
               </td>
             </tr>
           )}
-          {dados.map((linha, i) => (
-            <tr key={linha.id ?? i} className={`border-b border-borda ${i % 2 ? 'bg-zebra' : 'bg-white'}`}>
-              {colunas.map((c) => (
-                <td
-                  key={c.chave}
-                  className={`px-3 py-2.5 text-[11.5px] xl:px-4 ${
-                    c.quebrar ? 'min-w-[220px]' : 'whitespace-nowrap'
-                  } ${c.alinhar === 'direita' ? 'text-right tabular' : ''} ${
-                    c.forte ? 'font-semibold text-tinta' : 'text-cinza-600'
-                  }`}
-                >
-                  {c.render ? c.render(linha) : linha[c.chave]}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {dados.map((linha, i) => {
+            const conteudo = (c) => (c.render ? c.render(linha) : linha[c.chave])
+            return (
+              <tr key={linha.id ?? i} className={`border-b border-borda ${i % 2 ? 'bg-zebra' : 'bg-white'}`}>
+                {colunas.map((c) => (
+                  <td
+                    key={c.chave}
+                    className={`px-2.5 py-2 text-[11.5px] xl:px-3 ${
+                      c.quebrar ? 'min-w-[200px]' : 'whitespace-nowrap'
+                    } ${c.alinhar === 'direita' ? 'text-right tabular' : ''} ${
+                      c.forte ? 'font-semibold text-tinta' : 'text-cinza-600'
+                    } ${c.oculta ? OCULTAR_ABAIXO_DE[c.oculta] : ''}`}
+                  >
+                    {c.truncar ? (
+                      <span
+                        className="block truncate"
+                        style={{ maxWidth: typeof c.truncar === 'number' ? c.truncar : 170 }}
+                        title={typeof conteudo(c) === 'string' ? conteudo(c) : undefined}
+                      >
+                        {conteudo(c)}
+                      </span>
+                    ) : (
+                      conteudo(c)
+                    )}
+                  </td>
+                ))}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
       {rodape && (
-        <div className="flex items-center justify-between px-4 py-2.5 text-[10px] text-cinza-400">
+        <div className="flex items-center justify-between gap-3 px-3 py-2 text-[10px] text-cinza-400">
           {rodape}
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Barra de filtros padrão do sistema.
+ *
+ * Existe porque cinco telas montavam a mesma faixa branca à mão, com medidas
+ * ligeiramente diferentes em cada uma — e faixa de filtro que muda de altura
+ * de tela para tela é o tipo de detalhe que faz o conjunto parecer remendado.
+ */
+export function Filtros({ children }) {
+  return (
+    <div
+      data-fora-da-impressao
+      className="mb-3 flex flex-wrap items-end gap-2 rounded-[3px] border border-borda bg-white px-3 py-2.5 xl:gap-2.5"
+    >
+      {children}
     </div>
   )
 }
@@ -369,7 +414,10 @@ export const formatar = {
     v == null ? '—' : new Date(v).toLocaleString('pt-BR', {
       day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     }),
-  data: (v) => (v == null ? '—' : new Date(v).toLocaleDateString('pt-BR')),
+  /** data → "11/08/2026" — lida no fuso local; a armadilha está em lib/datas.js */
+  data: (v) => (v == null ? '—' : paraData(v).toLocaleDateString('pt-BR')),
+  /** data → "2026-08-11" — chave de agrupamento por dia, no fuso local */
+  chaveDoDia,
   /** ERVA_MATE_NATIVA → "Erva-mate nativa" */
   materiaPrima: (v) =>
     ({

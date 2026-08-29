@@ -25,7 +25,7 @@ import {
 } from '../api/recursos'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, SaidaDoPainel, Tabela, Indicador, Situacao, Campo, Selecao, Botao, Abas, Barra,
+  Painel, Filtros, SaidaDoPainel, Tabela, Indicador, Situacao, Campo, Selecao, Botao, Abas, Barra,
   Carregando, Erro, Vazio, Etiqueta, Aviso, formatar,
 } from '../componentes/ui'
 import { baixarCsv, numeroCsv } from '../lib/exportar'
@@ -88,10 +88,10 @@ export default function Relatorios() {
     <>
       <CabecalhoPagina
         titulo="Relatórios"
-        subtitulo={`Quatro recortes dos mesmos dados, para baixar ou imprimir · ${periodo}${nomeProdutor ? ` · ${nomeProdutor}` : ''}`}
+        subtitulo={`${periodo}${nomeProdutor ? ` · ${nomeProdutor}` : ''}`}
       />
 
-      <div className="mb-3 flex items-end gap-2.5 rounded-[3px] border border-borda bg-white px-4 py-3">
+      <Filtros>
         <Campo rotulo="De" type="date" className="flex-1" value={filtros.de}
                onChange={(e) => setFiltros((f) => ({ ...f, de: e.target.value }))} />
         <Campo rotulo="Até" type="date" className="flex-1" value={filtros.ate}
@@ -102,7 +102,7 @@ export default function Relatorios() {
           {listaProdutores.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </Selecao>
         <Botao onClick={() => setFiltros({ de: '', ate: '', produtorId: '' })}>Limpar</Botao>
-      </div>
+      </Filtros>
 
       <Abas abas={ABAS} ativa={aba} aoTrocar={setAba} />
 
@@ -111,7 +111,7 @@ export default function Relatorios() {
         <div className="mb-3">
           <Aviso tom="alerta">
             Não foi possível carregar a lista de produtores ({erroProdutores.message}).
-            O filtro por produtor está sem opções — isto é falha de carregamento, não ausência de cadastro.
+            O filtro por produtor está sem opções.
           </Aviso>
         </div>
       )}
@@ -120,10 +120,10 @@ export default function Relatorios() {
         <Painel titulo="Apurando"><Carregando texto="Apurando os números do período..." /></Painel>
       ) : (
         <>
-          {aba === 'recebimento' && <Recebimento lista={lista} periodo={periodo} />}
-          {aba === 'qualidade' && <Qualidade lista={lista} periodo={periodo} />}
-          {aba === 'financeiro' && <Financeiro ordens={ordens} periodo={periodo} />}
-          {aba === 'acuracia' && <Acuracia lista={lista} periodo={periodo} />}
+          {aba === 'recebimento' && <Recebimento lista={lista} />}
+          {aba === 'qualidade' && <Qualidade lista={lista} />}
+          {aba === 'financeiro' && <Financeiro ordens={ordens} />}
+          {aba === 'acuracia' && <Acuracia lista={lista} />}
         </>
       )}
     </>
@@ -134,13 +134,13 @@ export default function Relatorios() {
 // ABA 1 · recebimento
 // ---------------------------------------------------------------------------
 
-function Recebimento({ lista, periodo }) {
+function Recebimento({ lista }) {
   const peso = somar(lista, (c) => c.pesoLiquidoKg)
   const bruto = somar(lista, (c) => c.pesoBrutoKg)
   const tara = somar(lista, (c) => c.taraKg)
   const porProdutor = agrupar(lista, (c) => c.produtor?.nome || 'sem produtor')
   const porTipo = agrupar(lista, (c) => formatar.materiaPrima(c.tipoMateriaPrima))
-  const porDia = agrupar(lista, (c) => new Date(c.dataHora).toISOString().slice(0, 10))
+  const porDia = agrupar(lista, (c) => formatar.chaveDoDia(c.dataHora))
   const maiorProdutor = Math.max(1, ...porProdutor.map((g) => g.peso))
   const maiorDia = Math.max(1, ...porDia.map((g) => g.peso))
 
@@ -174,9 +174,9 @@ function Recebimento({ lista, periodo }) {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-2 xl:gap-3">
+      <div className="mb-3 flex flex-wrap gap-2">
         <Indicador rotulo="Peso líquido recebido" valor={formatar.numero(peso)} unidade="kg"
-                   apoio={`${lista.length} cargas · ${periodo}`} cor="text-mate-700" />
+                   apoio={`${lista.length} cargas`} cor="text-mate-700" />
         <Indicador rotulo="Média por carga" valor={formatar.numero(peso / lista.length)} unidade="kg"
                    apoio="peso líquido médio" />
         <Indicador rotulo="Tara descontada" valor={formatar.numero(tara)} unidade="kg"
@@ -185,17 +185,17 @@ function Recebimento({ lista, periodo }) {
                    apoio="com entrega no período" />
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1fr_420px]">
+      <div className="mb-3 grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_360px]">
         <Painel titulo="Recebimento por produtor" acao={`${porProdutor.length} produtores`}>
           <Tabela
             colunas={[
-              { chave: 'chave', titulo: 'Produtor', forte: true },
+              { chave: 'chave', titulo: 'Produtor', forte: true, truncar: 240 },
               { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita' },
               { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', forte: true, render: (g) => formatar.kg(g.peso) },
-              { chave: 'part', titulo: 'Participação', alinhar: 'direita', render: (g) => formatar.porcento((g.peso / peso) * 100) },
+              { chave: 'part', titulo: 'Part.', alinhar: 'direita', render: (g) => formatar.porcento((g.peso / peso) * 100) },
               { chave: 'valor', titulo: 'Valor analisado', alinhar: 'direita', forte: true, render: (g) => (g.valor ? formatar.reais(g.valor) : '—') },
               {
-                chave: 'barra', titulo: '', largura: '160px',
+                chave: 'barra', titulo: '', largura: '120px', oculta: 'xl',
                 render: (g) => (
                   <div className="h-[7px] w-full bg-cabecalho">
                     <div className="h-full bg-mate-500" style={{ width: `${(g.peso / maiorProdutor) * 100}%` }} />
@@ -242,7 +242,7 @@ function Recebimento({ lista, periodo }) {
 // ABA 2 · qualidade
 // ---------------------------------------------------------------------------
 
-function Qualidade({ lista, periodo }) {
+function Qualidade({ lista }) {
   const analisadas = lista.filter((c) => c.analise)
   const pendentes = lista.filter((c) => !c.analise)
 
@@ -261,15 +261,27 @@ function Qualidade({ lista, periodo }) {
   const palitoMedio = media(analisadas, (c) => c.analise.palitoPercentual)
   const umidadeMedia = media(analisadas.filter((c) => c.analise.umidadePercentual != null), (c) => c.analise.umidadePercentual)
   const acimaDoLimite = analisadas.filter((c) => Number(c.analise.palitoPercentual) > Number(c.analise.limitePalito))
-  const descontoMedio = media(analisadas, (c) => c.analise.descontoPercentual)
   const reprovadas = analisadas.filter((c) => c.analise.aprovada === false)
 
-  // Quanto o desconto por palito representou em dinheiro: é a diferença entre
-  // o que a carga valeria pelo preço combinado e o que valeu depois da análise.
-  const descontoEmReais = analisadas.reduce(
-    (s, c) => s + Number(c.pesoLiquidoKg) * (Number(c.precoBaseKg) - Number(c.analise.precoAjustadoKg)),
-    0
+  // ---------------------------------------------------------------------
+  // O CARD DE DESCONTO FALA DE UM CONJUNTO SÓ
+  // ---------------------------------------------------------------------
+  // Desconto em dinheiro só existe para carga que já tem preço — e preço só
+  // existe depois da emissão da ordem, porque é lá que ele é acordado. Antes
+  // disso o desconto existe apenas em pontos percentuais.
+  //
+  // Antes, o número grande somava reais dessas cargas e o texto de apoio
+  // mostrava a média percentual de TODAS as analisadas. Duas populações
+  // diferentes no mesmo card: o leitor dividia um pelo outro e não fechava.
+  // Agora as duas medidas saem da mesma lista.
+  const comPreco = analisadas.filter(
+    (c) => c.precoBaseKg != null && c.analise.precoAjustadoKg != null
   )
+  const descontoEmReais = somar(
+    comPreco,
+    (c) => Number(c.pesoLiquidoKg) * (Number(c.precoBaseKg) - Number(c.analise.precoAjustadoKg))
+  )
+  const descontoMedio = media(comPreco, (c) => c.analise.descontoPercentual)
   const valorAnalisado = somar(analisadas, (c) => c.analise.valorTotal)
 
   function exportar() {
@@ -299,9 +311,9 @@ function Qualidade({ lista, periodo }) {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-2 xl:gap-3">
+      <div className="mb-3 flex flex-wrap gap-2">
         <Indicador rotulo="Cargas analisadas" valor={analisadas.length} unidade={`de ${lista.length}`}
-                   apoio={`${pendentes.length} aguardando · ${periodo}`} cor="text-mate-700" />
+                   apoio={`${pendentes.length} aguardando`} cor="text-mate-700" />
         <Indicador rotulo="Palito médio" valor={formatar.porcento(palitoMedio)}
                    apoio={`limite acordado: ${LIMITE_PALITO_PADRAO}%`}
                    cor={palitoMedio > LIMITE_PALITO_PADRAO ? 'text-alerta' : 'text-tinta'} />
@@ -309,15 +321,18 @@ function Qualidade({ lista, periodo }) {
                    apoio={`${formatar.porcento((acimaDoLimite.length / analisadas.length) * 100)} das analisadas`}
                    cor="text-alerta" />
         <Indicador rotulo="Desconto concedido" valor={formatar.reais(descontoEmReais)}
-                   apoio={`média de ${formatar.porcento(descontoMedio, 2)} no preço`} cor="text-perigo" />
+                   apoio={comPreco.length
+                     ? `${comPreco.length} ${comPreco.length === 1 ? 'carga já precificada' : 'cargas já precificadas'} · média de ${formatar.porcento(descontoMedio, 2)}`
+                     : 'nenhuma carga precificada ainda'}
+                   cor="text-perigo" />
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1fr_420px]">
+      <div className="mb-3 grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_360px]">
         <Painel titulo="Análises lançadas" acao={<SaidaDoPainel aoExportar={exportar} />}>
           <Tabela
             colunas={[
               { chave: 'numeroTicket', titulo: 'Ticket', forte: true },
-              { chave: 'produtor', titulo: 'Produtor', forte: true, render: (c) => c.produtor?.nome },
+              { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 190, render: (c) => c.produtor?.nome },
               { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', render: (c) => formatar.kg(c.pesoLiquidoKg) },
               {
                 chave: 'palito', titulo: 'Palito', alinhar: 'direita', forte: true,
@@ -327,14 +342,13 @@ function Qualidade({ lista, periodo }) {
                   </span>
                 ),
               },
-              { chave: 'umidade', titulo: 'Umidade', alinhar: 'direita', render: (c) => formatar.porcento(c.analise.umidadePercentual) },
+              { chave: 'umidade', titulo: 'Umidade', alinhar: 'direita', oculta: 'xl', render: (c) => formatar.porcento(c.analise.umidadePercentual) },
               {
                 chave: 'desconto', titulo: 'Desconto', alinhar: 'direita',
                 render: (c) => Number(c.analise.descontoPercentual) > 0
                   ? <span className="font-semibold text-perigo">−{formatar.porcento(c.analise.descontoPercentual, 2)}</span>
-                  : <span className="text-cinza-400">sem desconto</span>,
+                  : <span className="text-cinza-400">—</span>,
               },
-              { chave: 'ajustado', titulo: 'Preço final', alinhar: 'direita', render: (c) => formatar.precoKg(c.analise.precoAjustadoKg) },
               { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise.valorTotal) },
               {
                 chave: 'aprovada', titulo: 'Resultado',
@@ -383,13 +397,6 @@ function Qualidade({ lista, periodo }) {
         </div>
       </div>
 
-      <Aviso tom="alerta">
-        O limite de {LIMITE_PALITO_PADRAO}% e o desconto de 1% por ponto percentual excedente
-        são provisórios, definidos com a ervateira em caráter preliminar. Quando a
-        fórmula oficial for confirmada, muda-se apenas o serviço de cargas no
-        servidor — os números deste relatório passam a refletir a regra nova sem
-        que esta tela precise ser alterada.
-      </Aviso>
     </>
   )
 }
@@ -398,7 +405,7 @@ function Qualidade({ lista, periodo }) {
 // ABA 3 · financeiro
 // ---------------------------------------------------------------------------
 
-function Financeiro({ ordens, periodo }) {
+function Financeiro({ ordens }) {
   if (!ordens.length) {
     return <Painel titulo="Financeiro"><Vazio texto="Nenhuma ordem de pagamento emitida no período selecionado." /></Painel>
   }
@@ -444,9 +451,9 @@ function Financeiro({ ordens, periodo }) {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-2 xl:gap-3">
+      <div className="mb-3 flex flex-wrap gap-2">
         <Indicador rotulo="Emitido no período" valor={formatar.reais(total)}
-                   apoio={`${ordens.length} ordens · ${periodo}`} cor="text-mate-700" />
+                   apoio={`${ordens.length} ordens`} cor="text-mate-700" />
         <Indicador rotulo="Pago" valor={formatar.reais(valorPago)}
                    apoio={`${pagas.length} ordens quitadas`} cor="text-mate-700" />
         <Indicador rotulo="Em aberto" valor={formatar.reais(valorAberto)}
@@ -455,17 +462,16 @@ function Financeiro({ ordens, periodo }) {
                    apoio="valor médio por ordem emitida" />
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1fr_420px]">
+      <div className="mb-3 grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_360px]">
         <Painel titulo="Ordens emitidas" acao={<SaidaDoPainel aoExportar={exportar} />}>
           <Tabela
             colunas={[
               { chave: 'numero', titulo: 'Ordem', forte: true },
-              { chave: 'produtor', titulo: 'Produtor', forte: true, render: (o) => o.produtor?.nome },
-              { chave: 'periodo', titulo: 'Período', render: (o) => `${formatar.data(o.periodoInicio)} a ${formatar.data(o.periodoFim)}` },
+              { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 200, render: (o) => o.produtor?.nome },
+              { chave: 'periodo', titulo: 'Período', oculta: 'xl', render: (o) => `${formatar.data(o.periodoInicio)} a ${formatar.data(o.periodoFim)}` },
               { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', render: (o) => o._count?.itens ?? '—' },
-              { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (o) => formatar.reais(o.valorTotal) },
               { chave: 'emitida', titulo: 'Emitida', render: (o) => formatar.data(o.emitidaEm) },
-              { chave: 'paga', titulo: 'Paga', render: (o) => (o.pagaEm ? formatar.data(o.pagaEm) : '—') },
+              { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (o) => formatar.reais(o.valorTotal) },
               { chave: 'situacao', titulo: 'Situação', render: (o) => <Situacao valor={o.situacao} /> },
             ]}
             dados={ordens}
@@ -476,7 +482,7 @@ function Financeiro({ ordens, periodo }) {
         <Painel titulo="Por produtor">
           <Tabela
             colunas={[
-              { chave: 'chave', titulo: 'Produtor', forte: true },
+              { chave: 'chave', titulo: 'Produtor', forte: true, truncar: 150 },
               { chave: 'ordens', titulo: 'Ordens', alinhar: 'direita' },
               { chave: 'pago', titulo: 'Pago', alinhar: 'direita', render: (g) => (g.pago ? formatar.reais(g.pago) : '—') },
               { chave: 'aberto', titulo: 'Em aberto', alinhar: 'direita', forte: true, render: (g) => (g.aberto ? formatar.reais(g.aberto) : '—') },
@@ -486,12 +492,6 @@ function Financeiro({ ordens, periodo }) {
         </Painel>
       </div>
 
-      <Aviso>
-        A transferência é feita no banco, fora do sistema. O MATECH guarda a chave
-        Pix copiada no momento da emissão e registra a confirmação — assumir a
-        transferência exigiria integração bancária e responsabilidade sobre o
-        dinheiro, o que ficou fora do escopo por decisão conjunta com a ervateira.
-      </Aviso>
     </>
   )
 }
@@ -507,7 +507,7 @@ function Financeiro({ ordens, periodo }) {
 // Só entram cargas que tenham pesoEstimadoCampoKg preenchido: sem estimativa
 // não há o que comparar, e incluí-las como "desvio zero" inflaria o resultado.
 
-function Acuracia({ lista, periodo }) {
+function Acuracia({ lista }) {
   const comEstimativa = lista.filter(
     (c) => c.pesoEstimadoCampoKg != null && Number(c.pesoEstimadoCampoKg) > 0
   )
@@ -518,10 +518,7 @@ function Acuracia({ lista, periodo }) {
         <div className="px-4 py-4">
           <Aviso>
             Nenhuma das {lista.length} cargas do período tem peso estimado em campo.
-            Esse dado nasce na avaliação feita no erval pelo aplicativo e é copiado
-            para a carga no momento da pesagem. Sem ele, não há comparação entre o
-            estimado e o pesado — e é justamente essa comparação que sustenta o
-            indicador de acurácia da avaliação em campo.
+            Sem estimativa não há o que comparar com a balança.
           </Aviso>
         </div>
       </Painel>
@@ -564,11 +561,11 @@ function Acuracia({ lista, periodo }) {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-2 xl:gap-3">
+      <div className="mb-3 flex flex-wrap gap-2">
         <Indicador rotulo="Cargas comparáveis" valor={comDesvio.length} unidade={`de ${lista.length}`}
-                   apoio={`com estimativa de campo · ${periodo}`} cor="text-mate-700" />
+                   apoio="com estimativa de campo" cor="text-mate-700" />
         <Indicador rotulo="Desvio médio absoluto" valor={formatar.porcento(desvioMedioAbsoluto)}
-                   apoio="quanto a estimativa erra, para mais ou para menos"
+                   apoio="erro da estimativa, em módulo"
                    cor={desvioMedioAbsoluto <= 10 ? 'text-mate-700' : 'text-alerta'} />
         <Indicador rotulo="Viés" valor={`${vies > 0 ? '+' : ''}${formatar.porcento(vies)}`}
                    apoio={vies > 0 ? 'a balança pesa mais que o estimado' : 'a balança pesa menos que o estimado'} />
@@ -584,8 +581,8 @@ function Acuracia({ lista, periodo }) {
           colunas={[
             { chave: 'numeroTicket', titulo: 'Ticket', forte: true },
             { chave: 'data', titulo: 'Data', render: (c) => formatar.data(c.dataHora) },
-            { chave: 'produtor', titulo: 'Produtor', forte: true, render: (c) => c.produtor?.nome },
-            { chave: 'erval', titulo: 'Erval', render: (c) => c.erval?.identificacao || '—' },
+            { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 220, render: (c) => c.produtor?.nome },
+            { chave: 'erval', titulo: 'Erval', truncar: 150, oculta: 'lg', render: (c) => c.erval?.identificacao || '—' },
             { chave: 'estimado', titulo: 'Estimado', alinhar: 'direita', render: (c) => formatar.kg(c.estimado) },
             { chave: 'real', titulo: 'Pesado', alinhar: 'direita', forte: true, render: (c) => formatar.kg(c.real) },
             {
@@ -605,7 +602,7 @@ function Acuracia({ lista, periodo }) {
               ),
             },
             {
-              chave: 'barra', titulo: 'Erro relativo', largura: '140px',
+              chave: 'barra', titulo: 'Erro relativo', largura: '120px', oculta: 'xl',
               render: (c) => (
                 <div className="h-[7px] w-full bg-cabecalho">
                   <div className={`h-full ${Math.abs(c.desvio) > 10 ? 'bg-alerta' : 'bg-mate-500'}`}
@@ -628,14 +625,6 @@ function Acuracia({ lista, periodo }) {
         />
       </Painel>
 
-      <div className="mt-3">
-        <Aviso tom="verde">
-          Este é o indicador de acurácia da avaliação em campo. Ele só existe porque
-          a carga guarda, lado a lado, o peso que o avaliador estimou no erval pelo
-          aplicativo e o peso que a balança mediu na chegada. Nenhum dos dois é
-          recalculado: são duas medições independentes da mesma carga.
-        </Aviso>
-      </div>
     </>
   )
 }

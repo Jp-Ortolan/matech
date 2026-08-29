@@ -1,8 +1,18 @@
 // ---------------------------------------------------------------------------
 // SERVIÇO · análise de qualidade
 // ---------------------------------------------------------------------------
-// Regras do laboratório. É aqui que o percentual de palito vira desconto no
-// preço e a carga fica liberada para pagamento.
+// Regras do laboratório. É aqui que o percentual de palito vira DESCONTO e a
+// carga fica liberada para pagamento.
+//
+// O que este serviço NÃO faz mais: definir valor. A análise mede qualidade, e
+// qualidade não depende de preço. O laboratório registra quanto de palito a
+// amostra tinha e quanto de desconto isso gera — em pontos percentuais. Quanto
+// vale a carga é decisão do administrativo, na emissão da ordem, e é lá que o
+// preço entra.
+//
+// Quando a carga já tem preço — de uma pesagem antiga, ou de um valor
+// combinado no campo — o valor é calculado aqui também, como antes. Sem preço,
+// preço ajustado e valor total ficam nulos até a ordem informar.
 //
 // Repare que este serviço REAPROVEITA o calcularPagamento do módulo de cargas
 // em vez de repetir a conta. Se a fórmula mudar, muda em um lugar só — e o
@@ -16,6 +26,24 @@ const { calcularPagamento } = require('../cargas/cargas.service')
 // Quando a ervateira informar a fórmula oficial, é só trocar aqui.
 const LIMITE_PALITO_PADRAO = 30
 const DESCONTO_POR_PONTO = 1
+
+// ---------------------------------------------------------------------------
+// REGRA · carga reprovada não tem valor
+// ---------------------------------------------------------------------------
+// O desconto continua gravado: ele é medida de laboratório e existe
+// independentemente do destino da carga. O que não existe é preço ajustado e
+// valor — carga reprovada não entra em ordem de pagamento (cargasElegiveis
+// exige situação ANALISADA) e portanto nunca vira dinheiro.
+//
+// Zerar aqui, e não filtrar nas telas, é deliberado. Filtro em tela é uma regra
+// que cada relatório novo precisa lembrar de repetir, e um dia alguém esquece.
+// O dado que não pode ser somado simplesmente não é gravado.
+//
+// Está separada da gravação para poder ser testada sem banco.
+function valorDaAnalise(calculo, aprovada) {
+  if (!aprovada) return { precoAjustadoKg: null, valorTotal: null }
+  return { precoAjustadoKg: calculo.precoAjustadoKg, valorTotal: calculo.valorTotal }
+}
 
 /**
  * Registra a análise de uma carga e recalcula o valor a pagar.
@@ -44,6 +72,7 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
   if (carga.situacao === 'PAGA') throw new ErroDeNegocio('Esta carga já foi paga', 409)
 
   // A conta acontece aqui — a mesma função usada na consulta de cálculo.
+  // Com precoBaseKg nulo, ela devolve o desconto e deixa preço e valor nulos.
   const calculo = calcularPagamento({
     pesoLiquidoKg: carga.pesoLiquidoKg,
     precoBaseKg: carga.precoBaseKg,
@@ -51,6 +80,8 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
     limitePalito: LIMITE_PALITO_PADRAO,
     descontoPorPonto: DESCONTO_POR_PONTO,
   })
+
+  const { precoAjustadoKg, valorTotal } = valorDaAnalise(calculo, aprovada)
 
   const [analise] = await prisma.$transaction([
     prisma.analiseQualidade.create({
@@ -63,8 +94,8 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
         observacoes,
         limitePalito: LIMITE_PALITO_PADRAO,
         descontoPercentual: calculo.descontoPercentual,
-        precoAjustadoKg: calculo.precoAjustadoKg,
-        valorTotal: calculo.valorTotal,
+        precoAjustadoKg,
+        valorTotal,
         aprovada,
       },
     }),
@@ -74,7 +105,10 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
     }),
   ])
 
-  return { analise, calculo }
+  // Devolve o cálculo COMO FOI GRAVADO, e não como foi computado: a tela mostra
+  // este retorno, e mostrar um valor que o banco não guardou seria mentir para
+  // o analista no exato momento em que ele reprova a carga.
+  return { analise, calculo: { ...calculo, precoAjustadoKg, valorTotal } }
 }
 
 /** Cargas que chegaram e ainda não foram analisadas — a fila do laboratório. */
@@ -91,4 +125,4 @@ async function filaDeAmostras() {
   return { total: cargas.length, cargas }
 }
 
-module.exports = { registrarAnalise, filaDeAmostras, LIMITE_PALITO_PADRAO, DESCONTO_POR_PONTO }
+module.exports = { registrarAnalise, filaDeAmostras, valorDaAnalise, LIMITE_PALITO_PADRAO, DESCONTO_POR_PONTO }
