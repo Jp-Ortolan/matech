@@ -25,6 +25,7 @@
 //    expectativa que o pagamento talvez não cumpra — e a discussão sobraria
 //    para quem está na balança, com o produtor na frente.
 
+import Marca from './Marca'
 import { formatar } from '../lib/formatar'
 import { motivosDaAnalise } from '../lib/reprovacao'
 
@@ -60,11 +61,17 @@ export default function TicketPesagem({ carga, aoFechar }) {
 
         <div className="px-6 py-5 text-tinta">
           <div className="flex items-start justify-between border-b border-tinta pb-3">
-            <div>
-              <p className="text-[15px] font-bold tracking-[0.18em]">MATECH</p>
-              <p className="mt-0.5 text-[9px] uppercase tracking-wide text-cinza-600">
-                Recebimento de matéria-prima
-              </p>
+            {/* No papel a marca vai nua, sem placa: o fundo é branco e o
+                desenho foi feito para ele. E vem do arquivo de 1024, porque
+                impressora resolve muito mais que tela. */}
+            <div className="flex items-center gap-2.5">
+              <Marca paraImpressao className="h-10 w-10 shrink-0" />
+              <div>
+                <p className="text-[15px] font-bold tracking-[0.18em]">MATECH</p>
+                <p className="mt-0.5 text-[9px] uppercase tracking-wide text-cinza-600">
+                  Recebimento de matéria-prima
+                </p>
+              </div>
             </div>
             <div className="text-right">
               <p className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">

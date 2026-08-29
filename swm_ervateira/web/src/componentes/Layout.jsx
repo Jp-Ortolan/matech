@@ -9,32 +9,55 @@
 // converte em economia real de tempo.
 
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import LimiteDeErro from './LimiteDeErro'
 import { useAutenticacao, NOME_PERFIL } from '../contexto/Autenticacao'
 import { secoesVisiveis } from '../lib/acesso'
+import { ICONE_DA_TELA, TAMANHO } from '../lib/icones'
+import { ContextoDoCabecalho, useNoDoCabecalho } from '../lib/cabecalho'
+import { Icone } from './ui'
 import Marca from './Marca'
 
+/**
+ * Item do menu.
+ *
+ * O marcador aqui era um quadradinho de 7 pixels, igual em todos os itens. Ele
+ * não dizia nada aberto — e recolhido era pior que nada: onze quadradinhos
+ * idênticos empilhados, um por tela, sem uma única pista de qual era qual. A
+ * barra recolhida existe para devolver 160 pixels ao conteúdo, e o preço era
+ * ficar sem saber onde clicar.
+ *
+ * Com o ícone, recolher deixa de custar informação: o desenho é a mesma pista
+ * que estava ao lado do texto quando havia texto. É o único lugar do sistema
+ * onde o ícone aparece sozinho — e por isso é o único que carrega `aria-label`
+ * e dica ao passar o mouse.
+ */
 function ItemMenu({ rotulo, para, recolhido }) {
+  const icone = ICONE_DA_TELA[para]
   // NavLink sabe sozinho se a rota atual é esta, e entrega isActive.
   return (
     <NavLink
       to={para}
       end={para === '/'}
       className="block"
-      // Recolhido, o rótulo some e só sobra o marcador — então o título do
-      // navegador passa a ser a única pista do que é cada item.
       title={recolhido ? rotulo : undefined}
+      aria-label={recolhido ? rotulo : undefined}
     >
       {({ isActive }) => (
         <div className="flex">
           {/* barra de acento à esquerda, visível só no item ativo */}
           <span className={`w-[3px] shrink-0 ${isActive ? 'bg-mate-500' : 'bg-transparent'}`} />
           <div
-            className={`flex flex-1 items-center gap-3 py-2.5 ${recolhido ? 'justify-center px-0' : 'px-4'} ${
-              isActive ? 'bg-mate-800' : ''
+            className={`flex flex-1 items-center gap-2.5 py-2.5 ${recolhido ? 'justify-center px-0' : 'px-4'} ${
+              isActive ? 'bg-barra-800' : ''
             }`}
           >
-            <span className={`h-[7px] w-[7px] shrink-0 rounded-[1px] ${isActive ? 'bg-mate-500' : 'bg-white/20'}`} />
+            <Icone
+              de={icone}
+              tamanho={TAMANHO.menu}
+              className={isActive ? 'text-mate-500' : 'text-white/45'}
+            />
             {!recolhido && (
               <span className={`truncate text-[13px] ${isActive ? 'font-semibold text-white' : 'text-white/60'}`}>
                 {rotulo}
@@ -57,7 +80,7 @@ function ItemMenu({ rotulo, para, recolhido }) {
  */
 const LARGURA_DE_RECOLHER = 1180
 
-function usarMenuRecolhido() {
+function useMenuRecolhido() {
   const [recolhido, setRecolhido] = useState(
     () => typeof window !== 'undefined' && window.innerWidth < LARGURA_DE_RECOLHER
   )
@@ -86,7 +109,17 @@ function usarMenuRecolhido() {
 export default function Layout() {
   const { usuario, sair, podeFazer, ehAdministrador } = useAutenticacao()
   const navegar = useNavigate()
-  const { recolhido, alternar } = usarMenuRecolhido()
+  const local = useLocation()
+  const { recolhido, alternar } = useMenuRecolhido()
+
+  // O nó onde o título da página vai ser desenhado. Criado uma vez, na
+  // primeira montagem, e entregue às páginas por contexto — ver lib/cabecalho.js.
+  const [noDoCabecalho] = useState(() => {
+    if (typeof document === 'undefined') return null
+    const no = document.createElement('div')
+    no.className = 'flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1'
+    return no
+  })
 
   // O menu mostra o que o servidor entrega para este perfil. A lista das telas
   // e o perfil que cada rota exige estão em lib/acesso.js; a decisão continua
@@ -117,15 +150,27 @@ export default function Layout() {
   }
 
   return (
+    <ContextoDoCabecalho.Provider value={noDoCabecalho}>
     <div className="flex h-screen flex-col">
-      {/* ------------------------- barra superior ------------------------- */}
-      <header data-fora-da-impressao className="flex h-[58px] shrink-0 items-center border-b border-borda bg-white pr-3 md:pr-5">
+      {/* ------------------------- barra superior -------------------------
+          O `data-fora-da-impressao` saiu DAQUI e foi para cada controle. A
+          diferença importa: com ele no <header>, imprimir um relatório saía
+          sem título nenhum, porque o título agora mora aqui. Marcando peça por
+          peça, o papel recebe o nome da tela e o período — que é justamente o
+          cabeçalho que um relatório impresso precisa ter — e não recebe o
+          botão do menu nem o nome de quem estava logado. */}
+      <header className="flex h-[58px] shrink-0 items-center border-b border-borda bg-white pr-3 md:pr-5 print:h-auto print:border-b-2 print:pl-0">
         <div
-          className={`flex h-full shrink-0 items-center gap-2.5 bg-mate-900 ${larguraDoMenu} ${
+          data-fora-da-impressao
+          className={`flex h-full shrink-0 items-center gap-2.5 bg-barra-900 ${larguraDoMenu} ${
             recolhido ? 'justify-center px-0' : 'px-5'
           }`}
         >
-          <Marca className="h-[24px] w-[24px] shrink-0 text-mate-500" />
+          {/* 34 e não 24: a coroa tem dezesseis folhas e o miolo tem uma
+              letra, e abaixo de uns 30 pixels isso vira mancha. A placa clara
+              existe porque o corpo da engrenagem é quase a cor deste fundo —
+              sem ela, some a engrenagem e some o M. */}
+          <Marca sobreEscuro className="h-[34px] w-[34px]" />
           {!recolhido && (
             <span className="leading-tight">
               <span className="block text-[15px] font-bold tracking-wider text-white">MATECH</span>
@@ -134,8 +179,9 @@ export default function Layout() {
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center gap-3 pl-3 md:gap-4 md:pl-5">
+        <div className="flex min-w-0 flex-1 items-center gap-3 pl-3 md:gap-4 md:pl-5 print:pl-0">
           <button
+            data-fora-da-impressao
             onClick={alternar}
             title={recolhido ? 'Expandir o menu' : 'Recolher o menu'}
             aria-label={recolhido ? 'Expandir o menu' : 'Recolher o menu'}
@@ -150,15 +196,25 @@ export default function Layout() {
             </span>
           </button>
 
-          {/* O período some primeiro quando aperta: é contexto, não comando. */}
-          <div className="hidden items-center gap-2 rounded-[3px] border border-borda bg-cabecalho px-2.5 py-1.5 lg:flex">
+          {/* O TÍTULO DA PÁGINA ENTRA AQUI.
+              O nó é preenchido por <CabecalhoPagina>, de dentro de cada
+              página, através de um portal. Vazio quando a tela não declara
+              título — e vazio ele não ocupa nada. */}
+          <div
+            className="flex min-w-0 flex-1 items-center"
+            ref={(el) => { if (el && noDoCabecalho && !el.contains(noDoCabecalho)) el.appendChild(noDoCabecalho) }}
+          />
+
+          {/* O período some primeiro quando aperta: é contexto, não comando.
+              Agora some antes de xl, e não de lg: o título e os botões da
+              página passaram a dividir esta faixa com ele. */}
+          <div className="hidden shrink-0 items-center gap-2 rounded-[3px] border border-borda bg-cabecalho px-2.5 py-1.5 xl:flex print:flex print:border-0 print:bg-transparent print:px-0">
             <span className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">Período</span>
             <span className="whitespace-nowrap text-xs font-semibold text-tinta">{hoje}</span>
           </div>
 
-          <div className="min-w-0 flex-1" />
-
           <button
+            data-fora-da-impressao
             onClick={encerrar}
             className="flex shrink-0 items-center gap-2.5 border-l border-borda pl-3 md:pl-4"
             title="Sair do sistema"
@@ -184,7 +240,7 @@ export default function Layout() {
         {/* -------------------------- menu lateral -------------------------- */}
         <nav
           data-fora-da-impressao
-          className={`flex shrink-0 flex-col overflow-y-auto bg-mate-900 pb-4 pt-2 ${larguraDoMenu}`}
+          className={`flex shrink-0 flex-col overflow-y-auto bg-barra-900 pb-4 pt-2 ${larguraDoMenu}`}
         >
           {secoes.map((grupo) => (
             <div key={grupo.secao}>
@@ -212,10 +268,16 @@ export default function Layout() {
             12px num notebook apertado. Em software de operação, margem é a
             primeira coisa que cede — a tabela é que precisa caber. */}
         <main className="min-w-0 flex-1 overflow-y-auto bg-fundo p-3 md:p-4 xl:p-5">
-          <Outlet />
+          {/* A chave é o endereço: trocar de tela recria o limite e limpa um
+              erro que ficou para trás. Sem isso, uma tela que quebrou deixaria
+              a mensagem de erro presa mesmo depois de navegar para outra. */}
+          <LimiteDeErro key={local.pathname}>
+            <Outlet />
+          </LimiteDeErro>
         </main>
       </div>
     </div>
+    </ContextoDoCabecalho.Provider>
   )
 }
 
@@ -228,15 +290,27 @@ export default function Layout() {
  * já sabe; ler de novo, toda vez, só custa uma linha de tela.
  */
 export function CabecalhoPagina({ titulo, subtitulo, children }) {
-  return (
-    // flex-wrap e não grid: com um botão só, ele fica ao lado do título;
-    // com três, eles descem para uma segunda linha sozinhos, sem breakpoint.
-    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-      <div className="min-w-[200px] flex-1">
-        <h1 className="text-[17px] font-bold leading-tight text-tinta xl:text-lg">{titulo}</h1>
-        {subtitulo && <p className="mt-0.5 text-[11px] text-cinza-600">{subtitulo}</p>}
+  const no = useNoDoCabecalho()
+
+  const conteudo = (
+    <>
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-[15px] font-bold leading-tight text-tinta xl:text-base">{titulo}</h1>
+        {subtitulo && <p className="truncate text-[11px] leading-tight text-cinza-600">{subtitulo}</p>}
       </div>
-      {children}
-    </div>
+      {children && (
+        <div data-fora-da-impressao className="flex shrink-0 flex-wrap items-center gap-2">{children}</div>
+      )}
+    </>
   )
+
+  // Sem nó, desenha no lugar antigo. Não é caso hipotético: o Login fica fora
+  // da moldura, e uma tela que quebrasse o portal deve continuar mostrando o
+  // próprio título em vez de sumir com ele.
+  if (!no) {
+    return (
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">{conteudo}</div>
+    )
+  }
+  return createPortal(conteudo, no)
 }

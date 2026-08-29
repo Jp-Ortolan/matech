@@ -40,9 +40,9 @@ export default function Login() {
   return (
     <div className="flex h-screen">
       {/* lado esquerdo · identidade */}
-      <aside className="hidden w-[46%] max-w-[620px] shrink-0 flex-col justify-center gap-5 bg-mate-900 px-10 lg:flex xl:px-16">
+      <aside className="hidden w-[46%] max-w-[620px] shrink-0 flex-col justify-center gap-5 bg-barra-900 px-10 lg:flex xl:px-16">
         <div className="flex items-center gap-3">
-          <Marca className="h-11 w-11 shrink-0 text-mate-500" />
+          <Marca sobreEscuro className="h-14 w-14" />
           <span>
             <span className="block text-3xl font-bold tracking-widest text-white">MATECH</span>
             <span className="block text-[11px] font-medium tracking-wide text-white/50">
