@@ -13,7 +13,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../config.dart';
 import '../servicos/api.dart';
+import '../servicos/endereco_servidor.dart';
 import '../servicos/sessao.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/tema.dart';
@@ -30,15 +32,49 @@ class _TelaLoginState extends State<TelaLogin> {
   final _usuario = TextEditingController();
   final _senha = TextEditingController();
 
+  /// Começa preenchido com o endereço que vale agora — e não vazio. Vazio
+  /// obrigaria a pessoa a saber de cor o que já está funcionando só para
+  /// conferir, e é assim que um endereço certo vira um endereço errado.
+  late final _endereco = TextEditingController(text: Config.enderecoApi);
+
   bool _entrando = false;
   bool _mostrarSenha = false;
+  bool _mostrarServidor = false;
   String? _erro;
+  String? _avisoServidor;
 
   @override
   void dispose() {
     _usuario.dispose();
     _senha.dispose();
+    _endereco.dispose();
     super.dispose();
+  }
+
+  /// Grava o endereço digitado neste aparelho.
+  ///
+  /// NÃO passa pelo _formulario.validate(): aquele valida a tela inteira, e
+  /// pediria usuário e senha para quem só quer corrigir o endereço antes de
+  /// tentar entrar. A conferência é a mesma função, chamada direto.
+  Future<void> _salvarEndereco() async {
+    final problema = erroNoEndereco(_endereco.text);
+    if (problema != null) {
+      setState(() => _avisoServidor = problema);
+      return;
+    }
+
+    await EnderecoServidor.salvar(_endereco.text);
+    if (!mounted) return;
+    setState(() {
+      _endereco.text = Config.enderecoApi;
+      _avisoServidor = null;
+      // O erro que estava na tela era de um endereço que não vale mais.
+      // Deixá-lo faria a pessoa achar que a correção não pegou.
+      _erro = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Servidor: ${Config.enderecoApi}')),
+    );
   }
 
   Future<void> _entrar() async {
@@ -66,16 +102,34 @@ class _TelaLoginState extends State<TelaLogin> {
       // que mostra o andamento.
       unawaited(sincronizador.sincronizar());
     } on ErroDeRede catch (e) {
+      // A mensagem DIZ O ENDEREÇO que foi tentado. Sem isso, "sem conexão" faz
+      // todo mundo olhar para o sinal do celular — e na esmagadora maioria das
+      // vezes o sinal está bom e o endereço é que está errado, ou é um IP de
+      // rede local sendo procurado de fora dela.
       setState(
         () =>
             _erro =
-                '${e.mensagem}. O login precisa de internet — verifique o endereço da API e o sinal.',
+                '${e.mensagem}.\n\nTentei falar com ${Config.enderecoApi}. '
+                'Confira o sinal e, se o endereço estiver errado, toque em '
+                '"Configurar servidor" abaixo.',
       );
     } on ErroDaApi catch (e) {
       setState(() => _erro = e.mensagem);
     } finally {
       if (mounted) setState(() => _entrando = false);
     }
+  }
+
+  /// A frase embaixo do campo. Muda conforme o endereço, porque a dúvida de
+  /// quem está olhando também muda: um endereço http:// numa rede local tem um
+  /// problema (só funciona nessa rede) que um https:// não tem.
+  String get _mensagemDoServidor {
+    final atual = Config.enderecoApi.toLowerCase();
+    if (atual.startsWith('https://')) {
+      return 'O aplicativo procura a API neste endereço.';
+    }
+    return 'Endereço sem https: só funciona quando o celular está na mesma '
+        'rede que o servidor.';
   }
 
   @override
@@ -190,6 +244,85 @@ class _TelaLoginState extends State<TelaLogin> {
                       height: 1.5,
                     ),
                   ),
+
+                  // ------------------------------------------------------
+                  // ENDEREÇO DO SERVIDOR
+                  // ------------------------------------------------------
+                  // RECOLHIDO de propósito. O avaliador abre esta tela todo
+                  // dia e nunca precisa mexer aqui; quem mexe é quem instala o
+                  // aplicativo, uma vez. Um campo de URL visível no login
+                  // convida a mexer em algo que, alterado por engano, faz o
+                  // aplicativo parar de funcionar sem dizer por quê.
+                  //
+                  // Fica no login, e em nenhuma outra tela, porque trocar de
+                  // servidor no meio de uma sessão seria trocar de banco de
+                  // dados por baixo de um token que veio do servidor antigo.
+                  // Aqui ninguém está logado ainda: o problema não existe.
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed:
+                        () => setState(() {
+                          _mostrarServidor = !_mostrarServidor;
+                          _avisoServidor = null;
+                        }),
+                    icon: Icon(
+                      _mostrarServidor
+                          ? Icons.expand_less
+                          : Icons.dns_outlined,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _mostrarServidor ? 'Ocultar' : 'Configurar servidor',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+
+                  if (_mostrarServidor) ...[
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      controller: _endereco,
+                      keyboardType: TextInputType.url,
+                      autocorrect: false,
+                      // Teclado de URL no Android ainda oferece maiúscula na
+                      // primeira letra, e "Http://" não conecta em lugar nenhum.
+                      textCapitalization: TextCapitalization.none,
+                      decoration: InputDecoration(
+                        labelText: 'Endereço do servidor',
+                        prefixIcon: const Icon(Icons.dns_outlined),
+                        helperText: _mensagemDoServidor,
+                        helperMaxLines: 3,
+                        errorText: _avisoServidor,
+                        errorMaxLines: 3,
+                      ),
+                      onFieldSubmitted: (_) => _salvarEndereco(),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              await EnderecoServidor.voltarAoPadrao();
+                              if (!mounted) return;
+                              setState(() {
+                                _endereco.text = Config.enderecoApi;
+                                _avisoServidor = null;
+                              });
+                            },
+                            child: const Text('Padrão'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton.tonal(
+                            onPressed: _salvarEndereco,
+                            child: const Text('Salvar servidor'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

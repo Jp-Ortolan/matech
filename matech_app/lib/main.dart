@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 
 import 'dados/foto_dao.dart';
 import 'servicos/arquivos.dart';
+import 'servicos/endereco_servidor.dart';
 import 'servicos/sessao.dart';
 import 'servicos/sincronizador.dart';
 import 'telas/inicio.dart';
@@ -25,6 +26,14 @@ import 'widgets/tema.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // PRIMEIRO DE TUDO: para onde este aparelho aponta.
+  //
+  // Vem antes de sessao.iniciar() porque tudo que fala com a rede depende
+  // disso. Se carregasse depois, a primeira sincronização automática sairia
+  // para o endereço de fábrica — e falharia por um motivo que não aparece em
+  // tela nenhuma.
+  await EnderecoServidor.carregar();
 
   await sessao.iniciar();
   await sincronizador.atualizarContagens();

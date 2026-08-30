@@ -258,6 +258,26 @@ class BancoLocal {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  /// Lê um ajuste sem criar nada. Devolve null quando a chave nunca foi
+  /// gravada — que é DIFERENTE de gravada vazia.
+  ///
+  /// Existe separado de obterAjuste porque aquele grava o padrão que recebe, e
+  /// há ajustes em que "nunca foi escolhido" precisa continuar sendo "nunca
+  /// foi escolhido": o endereço do servidor é um deles. Se o padrão fosse
+  /// gravado na primeira leitura, trocar o padrão do aplicativo numa versão
+  /// futura não teria efeito nenhum em quem já abriu o aplicativo uma vez.
+  static Future<String?> lerAjuste(String chave) async {
+    final db = await instancia;
+    final linhas = await db.query(
+      'ajustes',
+      where: 'chave = ?',
+      whereArgs: [chave],
+      limit: 1,
+    );
+    if (linhas.isEmpty) return null;
+    return linhas.first['valor'] as String;
+  }
+
   static Future<String> obterAjuste(
     String chave,
     String Function() seNaoExistir,
