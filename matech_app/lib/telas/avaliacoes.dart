@@ -13,9 +13,9 @@ import '../dados/avaliacao_dao.dart';
 import '../modelos/avaliacao.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
+import '../widgets/tema.dart';
 import 'avaliacao_detalhe.dart';
 import 'avaliacao_form.dart';
-import '../widgets/tema.dart';
 
 class TelaAvaliacoes extends StatefulWidget {
   const TelaAvaliacoes({super.key});
@@ -136,7 +136,7 @@ class _CartaoAvaliacao extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: aoTocar,
-        borderRadius: BorderRadius.circular(raio),
+        borderRadius: raioPadrao,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

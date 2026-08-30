@@ -211,7 +211,7 @@ ThemeData temaMatech() {
       backgroundColor: Cores.mate700,
       foregroundColor: Colors.white,
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: raioPadrao),
+      shape: const RoundedRectangleBorder(borderRadius: raioPadrao),
     ),
 
     chipTheme: ChipThemeData(
@@ -269,6 +269,5 @@ class MarcaMatech extends StatelessWidget {
     height: tamanho,
     // Sem placa atrás: as telas em que ela aparece têm fundo claro, que é
     // exatamente para isso que o fundo do sistema clareou.
-    filterQuality: FilterQuality.medium,
   );
 }

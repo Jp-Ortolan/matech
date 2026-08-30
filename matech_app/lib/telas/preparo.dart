@@ -255,7 +255,7 @@ class _CartaoDePasso extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: aoTocar,
-        borderRadius: BorderRadius.circular(raio),
+        borderRadius: raioPadrao,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

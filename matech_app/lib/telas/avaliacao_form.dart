@@ -697,7 +697,7 @@ class _GradeDeFotos extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           border: Border.all(color: Cores.borda),
-          borderRadius: BorderRadius.circular(raio),
+          borderRadius: raioPadrao,
         ),
         child: const Text(
           'Nenhuma foto ainda',
@@ -715,7 +715,7 @@ class _GradeDeFotos extends StatelessWidget {
                 (f) => Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(raio),
+                      borderRadius: raioPadrao,
                       child: _MiniaturaDaCaptura(
                         caminho: f.caminho,
                         // cacheWidth de 192 para uma miniatura de 96: sem ele o
@@ -734,14 +734,14 @@ class _GradeDeFotos extends StatelessWidget {
                               height: 96,
                               width: 96,
                               color: Cores.perigoFundo,
-                              child: Column(
+                              child: const Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.broken_image_outlined,
                                     color: Cores.perigo,
                                   ),
-                                  const SizedBox(height: 4),
+                                  SizedBox(height: 4),
                                   Text(
                                     'Sumiu',
                                     style: TextStyle(
@@ -826,7 +826,7 @@ class _SeletorDeProdutorState extends State<_SeletorDeProdutor> {
               width: 40,
               decoration: BoxDecoration(
                 color: Cores.cinza400,
-                borderRadius: BorderRadius.circular(raio),
+                borderRadius: raioPadrao,
               ),
             ),
             Padding(
@@ -935,7 +935,7 @@ class _MiniaturaDaCaptura extends StatelessWidget {
           return SizedBox(
             height: height,
             width: width,
-            child: ColoredBox(color: Cores.cabecalho),
+            child: const ColoredBox(color: Cores.cabecalho),
           );
         }
 

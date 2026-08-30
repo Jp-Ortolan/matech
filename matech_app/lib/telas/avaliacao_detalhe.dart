@@ -24,8 +24,8 @@ import '../modelos/foto.dart';
 import '../servicos/arquivos.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
-import 'avaliacao_editar.dart';
 import '../widgets/tema.dart';
+import 'avaliacao_editar.dart';
 
 class TelaDetalheAvaliacao extends StatefulWidget {
   final String clientId;
@@ -222,14 +222,24 @@ class _FaixaDeEstado extends StatelessWidget {
             : 'Esta avaliação existe SÓ neste aparelho. Ela sobe sozinha quando '
                 'houver sinal.';
 
-    final cor = sincronizada ? Cores.mate700 : Cores.cinza600;
+    // TRÊS TONS EXPLÍCITOS, e não uma família do Material.
+    //
+    // Antes isto era `Colors.green` e `Colors.blueGrey`, de onde saíam
+    // shade50 para o fundo, shade200 para a borda e shade900 para o texto. É
+    // cômodo e é do Material — os tons não são os deste sistema, e a diferença
+    // aparece na hora de comparar com a web. Agora cada papel tem o seu, do
+    // mesmo jeito que o index.css declara alerta e alerta-bg em separado.
+    final ({Color fundo, Color borda, Color texto}) tom =
+        sincronizada
+            ? (fundo: Cores.mate100, borda: Cores.mate300, texto: Cores.mate800)
+            : (fundo: Cores.cabecalho, borda: Cores.borda, texto: Cores.cinza600);
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: cor.shade50,
-        borderRadius: BorderRadius.circular(raio),
-        border: Border.all(color: cor.shade200),
+        color: tom.fundo,
+        borderRadius: raioPadrao,
+        border: Border.all(color: tom.borda),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,7 +261,7 @@ class _FaixaDeEstado extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             texto,
-            style: TextStyle(fontSize: 13, color: cor.shade900, height: 1.4),
+            style: TextStyle(fontSize: 13, color: tom.texto, height: 1.4),
           ),
         ],
       ),
@@ -329,7 +339,7 @@ class _Miniatura extends StatelessWidget {
             width: 100,
             decoration: BoxDecoration(
               color: Cores.cabecalho,
-              borderRadius: BorderRadius.circular(raio),
+              borderRadius: raioPadrao,
             ),
           );
         }
@@ -354,15 +364,15 @@ class _Miniatura extends StatelessWidget {
     return Container(
       height: 100,
       width: 100,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Cores.perigoFundo,
-        borderRadius: BorderRadius.circular(raio),
+        borderRadius: raioPadrao,
       ),
-      child: Column(
+      child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.broken_image_outlined, color: Cores.perigo),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             'Arquivo\nsumiu',
             textAlign: TextAlign.center,
@@ -383,7 +393,7 @@ class _Miniatura extends StatelessWidget {
       child: Stack(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(raio),
+            borderRadius: raioPadrao,
             child: Image.memory(
               bytes,
               height: 100,

@@ -19,11 +19,11 @@ import '../dados/banco_local.dart';
 import '../modelos/usuario.dart';
 import '../servicos/sessao.dart';
 import '../servicos/sincronizador.dart';
+import '../widgets/tema.dart';
 import 'avaliacoes.dart';
 import 'preparo.dart';
 import 'produtores.dart';
 import 'sincronizacao.dart';
-import '../widgets/tema.dart';
 
 class TelaInicio extends StatefulWidget {
   const TelaInicio({super.key});

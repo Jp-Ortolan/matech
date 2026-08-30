@@ -17,8 +17,8 @@ import '../modelos/produtor.dart';
 import '../servicos/api.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
-import 'produtor_form.dart';
 import '../widgets/tema.dart';
+import 'produtor_form.dart';
 
 class TelaProdutores extends StatefulWidget {
   const TelaProdutores({super.key});

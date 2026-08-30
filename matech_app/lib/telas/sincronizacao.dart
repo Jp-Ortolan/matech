@@ -115,7 +115,7 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.04),
-                      borderRadius: BorderRadius.circular(raio),
+                      borderRadius: raioPadrao,
                     ),
                     child: Row(
                       children: [
@@ -279,7 +279,7 @@ class _Placar extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(raio),
+                borderRadius: raioPadrao,
                 child: LinearProgressIndicator(
                   value: taxa / 100,
                   minHeight: 8,
@@ -363,8 +363,9 @@ class _LinhaDaFila extends StatelessWidget {
                 operacao.ultimoErro!,
                 style: TextStyle(
                   fontSize: 12,
-                  color:
-                      recusada ? Cores.perigo : Cores.alerta.shade900,
+                  // Sem .shade900: o âmbar do sistema (#b4740e) já é o tom
+                  // escuro, pensado para texto sobre branco.
+                  color: recusada ? Cores.perigo : Cores.alerta,
                 ),
               ),
             ],

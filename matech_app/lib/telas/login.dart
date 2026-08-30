@@ -124,12 +124,12 @@ class _TelaLoginState extends State<TelaLogin> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Cores.perigoFundo,
-                        borderRadius: BorderRadius.circular(raio),
+                        borderRadius: raioPadrao,
                         border: Border.all(color: Cores.perigo),
                       ),
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.error_outline,
                             color: Cores.perigo,
                             size: 20,
@@ -138,7 +138,7 @@ class _TelaLoginState extends State<TelaLogin> {
                           Expanded(
                             child: Text(
                               _erro!,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Cores.perigo,
                                 fontSize: 13,
                               ),
@@ -195,16 +195,15 @@ class _Marca extends StatelessWidget {
   // genérico do Material, que não é a marca de nada e não aparecia em lugar
   // nenhum do sistema web. Agora é o símbolo de verdade, e escrever "MATECH"
   // ao lado dele repetiria a letra duas vezes: o símbolo já tem um M dentro.
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) => const Column(
     mainAxisSize: MainAxisSize.min,
     children: [
       Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const MarcaMatech(tamanho: 76),
-          const SizedBox(width: 7),
-          const Text(
+          MarcaMatech(tamanho: 76),
+          SizedBox(width: 7),
+          Text(
             'atech',
             style: TextStyle(
               fontSize: 42,
@@ -216,8 +215,8 @@ class _Marca extends StatelessWidget {
           ),
         ],
       ),
-      const SizedBox(height: 12),
-      const Text(
+      SizedBox(height: 12),
+      Text(
         'Avaliação de matéria-prima em campo',
         style: TextStyle(color: Cores.cinza600, fontSize: 13.5),
       ),

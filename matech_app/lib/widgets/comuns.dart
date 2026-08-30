@@ -55,7 +55,7 @@ class EtiquetaSincronizacao extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: cor.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(raio),
+        borderRadius: raioPadrao,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
