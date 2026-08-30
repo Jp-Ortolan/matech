@@ -20,6 +20,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { produtores as apiProdutores, cargas as apiCargas } from '../api/recursos'
 import { consultarCep, consultarCnpj } from '../lib/consultas'
+import { LIMITES } from '../lib/textos'
 import {
   apenasDigitos, erroNoDocumento,
   mascararDocumento, mascararCep, mascararTelefone,
@@ -573,11 +574,12 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
               {buscando === 'cnpj' ? 'Buscando...' : 'Buscar na Receita'}
             </Botao>
           )}
-          <Campo rotulo="Nome *" className="flex-[2]" required value={form.nome} onChange={(e) => alterar('nome', e.target.value)} />
+          <Campo rotulo="Nome *" className="flex-[2]" required maxLength={LIMITES.nome} value={form.nome} onChange={(e) => alterar('nome', e.target.value)} />
           <Campo
             rotulo="Telefone"
             className="flex-1"
             inputMode="numeric"
+            maxLength={LIMITES.telefone}
             value={mascararTelefone(form.telefone)}
             onChange={(e) => alterar('telefone', e.target.value)}
           />
@@ -601,9 +603,9 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
           <Botao type="button" onClick={buscarCep} disabled={buscando === 'cep' || apenasDigitos(form.cep).length !== 8} icone={ICONE_DA_ACAO.buscar}>
             {buscando === 'cep' ? 'Buscando...' : 'Buscar CEP'}
           </Botao>
-          <Campo rotulo="Endereço" className="flex-[2]" value={form.endereco} onChange={(e) => alterar('endereco', e.target.value)} />
-          <Campo rotulo="Bairro" className="flex-1" value={form.bairro} onChange={(e) => alterar('bairro', e.target.value)} />
-          <Campo rotulo="Município" className="flex-1" value={form.municipio} onChange={(e) => alterar('municipio', e.target.value)} />
+          <Campo rotulo="Endereço" className="flex-[2]" maxLength={LIMITES.endereco} value={form.endereco} onChange={(e) => alterar('endereco', e.target.value)} />
+          <Campo rotulo="Bairro" className="flex-1" maxLength={LIMITES.bairro} value={form.bairro} onChange={(e) => alterar('bairro', e.target.value)} />
+          <Campo rotulo="Município" className="flex-1" maxLength={LIMITES.municipio} value={form.municipio} onChange={(e) => alterar('municipio', e.target.value)} />
           <Campo rotulo="UF" className="min-w-[76px] max-w-[96px] flex-1" maxLength={2} value={form.uf} onChange={(e) => alterar('uf', e.target.value)} />
         </div>
 
@@ -642,26 +644,27 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
             <Campo
               rotulo="Chave Pix *"
               className="flex-[2]"
+              maxLength={LIMITES.chavePix}
               value={form.chavePix}
               onChange={(e) => alterar('chavePix', e.target.value)}
               placeholder={
                 { CPF: 'Só os números do CPF', TELEFONE: 'Com DDD', EMAIL: 'nome@dominio.com', ALEATORIA: 'A chave gerada pelo banco' }[form.tipoChavePix]
               }
             />
-            <Campo rotulo="Titular da chave" className="flex-[2]" value={form.titularConta} onChange={(e) => alterar('titularConta', e.target.value)} />
+            <Campo rotulo="Titular da chave" className="flex-[2]" maxLength={LIMITES.titularConta} value={form.titularConta} onChange={(e) => alterar('titularConta', e.target.value)} />
           </div>
         )}
 
         {ehConta && (
           <div className="flex flex-wrap gap-2 xl:gap-3">
-            <Campo rotulo="Banco *" className="flex-1" value={form.banco} onChange={(e) => alterar('banco', e.target.value)} />
-            <Campo rotulo="Agência *" className="flex-1" inputMode="numeric" value={form.agencia} onChange={(e) => alterar('agencia', e.target.value)} />
-            <Campo rotulo="Conta *" className="flex-1" inputMode="numeric" value={form.conta} onChange={(e) => alterar('conta', e.target.value)} />
+            <Campo rotulo="Banco *" className="flex-1" maxLength={LIMITES.banco} value={form.banco} onChange={(e) => alterar('banco', e.target.value)} />
+            <Campo rotulo="Agência *" className="flex-1" inputMode="numeric" maxLength={LIMITES.agencia} value={form.agencia} onChange={(e) => alterar('agencia', e.target.value)} />
+            <Campo rotulo="Conta *" className="flex-1" inputMode="numeric" maxLength={LIMITES.conta} value={form.conta} onChange={(e) => alterar('conta', e.target.value)} />
             <Selecao rotulo="Tipo de conta *" className="flex-1" value={form.tipoConta} onChange={(e) => alterar('tipoConta', e.target.value)}>
               <option value="CORRENTE">Corrente</option>
               <option value="POUPANCA">Poupança</option>
             </Selecao>
-            <Campo rotulo="Titular da conta" className="flex-[2]" value={form.titularConta} onChange={(e) => alterar('titularConta', e.target.value)} />
+            <Campo rotulo="Titular da conta" className="flex-[2]" maxLength={LIMITES.titularConta} value={form.titularConta} onChange={(e) => alterar('titularConta', e.target.value)} />
           </div>
         )}
 

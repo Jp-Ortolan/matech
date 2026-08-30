@@ -62,7 +62,22 @@ app.use('/api/auditoria', auditoriaRoutes)
 // As fotos enviadas pelo aplicativo ficam acessíveis por URL, para que a web
 // consiga exibi-las. express.static é do próprio Express — nenhuma biblioteca
 // nova entrou no projeto por causa de upload.
-app.use('/uploads', express.static(PASTA_UPLOADS))
+//
+// Esta pasta é a ÚNICA na aplicação cujo conteúdo vem de fora. A rota de
+// upload já confere os bytes e só grava JPEG, PNG ou WebP — mas servir é a
+// segunda metade do problema, e as duas linhas abaixo tratam dela:
+//
+//   nosniff  — o navegador respeita o Content-Type que o Express deduz da
+//              extensão e não tenta "adivinhar" que aquilo é HTML.
+//   index    — desliga a listagem de diretório; ninguém precisa enumerar as
+//              fotos de todos os produtores para ver a de uma avaliação.
+app.use(
+  '/uploads',
+  express.static(PASTA_UPLOADS, {
+    index: false,
+    setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+  }),
+)
 
 app.use(naoEncontrado)
 app.use(tratarErros)

@@ -137,6 +137,69 @@ class FilaDao {
     );
   }
 
+  /// Reescreve o payload das operações que ainda esperam na fila para que
+  /// apontem o pai pelo id DEFINITIVO, e não apenas pelo clientId do aparelho.
+  ///
+  /// Sem isto o Outbox tem um buraco. O payload é CONGELADO no jsonEncode do
+  /// enfileiramento, e naquele instante o pai ainda não tinha id do servidor —
+  /// ele acabara de nascer no celular. Enquanto o servidor devolve o mesmo
+  /// clientId que subiu, ninguém percebe: o pai é encontrado pelo clientId.
+  ///
+  /// O buraco aparece quando dois avaliadores cadastram O MESMO produtor em
+  /// aparelhos diferentes. O servidor responde DUPLICADO apontando o cadastro
+  /// que já existia lá, que tem OUTRO clientId. O erval parado na fila continua
+  /// procurando um clientId que o servidor nunca viu, e volta
+  /// DEPENDENCIA_PENDENTE em toda rodada até desistir — levando junto a
+  /// avaliação que dependia dele.
+  ///
+  /// A tabela local já era corrigida: ProdutorDao.confirmarSincronizacao
+  /// escreve o produtor_id no erval. O que faltava era corrigir a CÓPIA do
+  /// dado que já estava dentro da fila.
+  ///
+  /// Devolve quantas operações foram corrigidas.
+  static Future<int> apontarPaiPeloId({
+    required String campoClientId,
+    required String campoId,
+    required String clientIdDoPai,
+    required String idDoPai,
+  }) async {
+    final db = await BancoLocal.instancia;
+    var corrigidas = 0;
+
+    await db.transaction((txn) async {
+      // Tudo que ainda não foi enviado — inclusive o que está em ERRO. Uma
+      // operação que desistiu de esperar o pai continua na tela, e o botão de
+      // reativar só tem sentido se o payload dela estiver certo quando voltar.
+      final linhas = await txn.query(
+        'fila_sincronizacao',
+        columns: ['client_id', 'payload'],
+        where: 'situacao <> ?',
+        whereArgs: [OperacaoPendente.enviada],
+      );
+
+      for (final l in linhas) {
+        final novoPayload = payloadApontandoPai(
+          l['payload'] as String,
+          campoClientId: campoClientId,
+          campoId: campoId,
+          clientIdDoPai: clientIdDoPai,
+          idDoPai: idDoPai,
+        );
+        if (novoPayload == null) continue;
+
+        await txn.update(
+          'fila_sincronizacao',
+          {'payload': novoPayload},
+          where: 'client_id = ?',
+          whereArgs: [l['client_id']],
+        );
+        corrigidas++;
+      }
+    });
+
+    return corrigidas;
+  }
+
   /// DEPENDENCIA_PENDENTE não é falha: o dado está bom, só chegou fora de
   /// ordem, e na esmagadora maioria das vezes a rodada seguinte resolve.
   ///
@@ -365,4 +428,40 @@ class FilaDao {
     );
     return linhas.map(OperacaoPendente.deLinha).toList();
   }
+}
+
+/// A parte de apontarPaiPeloId que pode ser conferida sem banco: dado o JSON
+/// congelado de uma operação, devolve o JSON corrigido — ou null quando não há
+/// nada a corrigir.
+///
+/// Está fora da classe, e é pública, porque é o pedaço onde mora o erro
+/// possível. O SQL em volta é o mesmo update de sempre; o que precisa de teste
+/// é a decisão de mexer ou não mexer, e o cuidado de não perder nenhum outro
+/// campo do payload no caminho.
+///
+/// Devolver null em vez do JSON igual é proposital: quem chama usa isso para
+/// não gastar um UPDATE por linha que não mudou.
+String? payloadApontandoPai(
+  String payloadJson, {
+  required String campoClientId,
+  required String campoId,
+  required String clientIdDoPai,
+  required String idDoPai,
+}) {
+  final Map<String, dynamic> payload;
+  try {
+    payload = jsonDecode(payloadJson) as Map<String, dynamic>;
+  } catch (_) {
+    // Payload ilegível não é problema deste método. Ele vai falhar sozinho no
+    // envio, com a mensagem certa; reescrevê-lo aqui só esconderia a causa.
+    return null;
+  }
+
+  // Só toca em quem aponta ESTE pai por clientId. Uma operação de outro
+  // produtor, ou uma que já traz o id certo, fica exatamente como está.
+  if (payload[campoClientId] != clientIdDoPai) return null;
+  if (payload[campoId] == idDoPai) return null;
+
+  payload[campoId] = idDoPai;
+  return jsonEncode(payload);
 }

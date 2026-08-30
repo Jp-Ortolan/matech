@@ -19,6 +19,41 @@
 //
 // Por isso as mensagens perguntam em vez de afirmar: "confira" e não "errado".
 
+// ---------------------------------------------------------------------------
+// TAMANHO DOS CAMPOS DE TEXTO
+// ---------------------------------------------------------------------------
+// Os mesmos números de src/lib/textos.js, no servidor. Repetidos aqui porque
+// Dart e Node não compartilham arquivo — e repetidos COM O ENDEREÇO DO OUTRO
+// LADO escrito, para que quem mexer num saiba onde está o par.
+//
+// O maxLength da tela não é a garantia; a garantia é o servidor, que recusa o
+// que passar do limite. O maxLength é o que impede a pessoa de digitar cento e
+// cinquenta caracteres para descobrir na sincronização, à noite, longe do
+// produtor, que o cadastro não entrou.
+
+/// Nome completo. Cabe qualquer nome brasileiro com folga larga.
+const int kMaxNome = 120;
+
+/// Telefone com DDD e pontuação: "(42) 99999-9999" tem 15.
+const int kMaxTelefone = 20;
+
+/// Município. O nome mais longo do Brasil tem 32 caracteres.
+const int kMaxMunicipio = 60;
+
+/// Chave Pix. 77 é o teto da especificação do Banco Central — o caso do
+/// e-mail. A chave aleatória tem 36 e o telefone, 14.
+const int kMaxChavePix = 77;
+
+/// CPF tem 11 dígitos, CNPJ tem 14. O campo só aceita dígitos, então o
+/// maxLength é o próprio comprimento do CNPJ.
+const int kMaxDocumento = 14;
+
+/// Identificação do erval: "Talhão 3 — fundo do potreiro" e coisas assim.
+const int kMaxIdentificacao = 80;
+
+/// Observações da avaliação. Um parágrafo, não um relatório.
+const int kMaxObservacoes = 1000;
+
 /// O maior peso que um caminhão de erva-mate entrega. Um bitrem carregado
 /// passa longe disto; o número existe para pegar o zero a mais.
 const double kPesoMaximoKg = 100000;

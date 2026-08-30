@@ -18,6 +18,7 @@ const servico = require('./sincronizacao.service')
 const { PASTA_UPLOADS } = require('../../config/env')
 const { autenticar } = require('../../middlewares/autenticacao')
 const { permitir } = require('../../middlewares/autorizacao')
+const { tipoDaImagem, EXTENSOES } = require('../../lib/imagens')
 
 const router = Router()
 router.use(autenticar)
@@ -70,11 +71,27 @@ router.post(
       })
     }
 
+    // O TIPO VEM DOS BYTES. Antes vinha do Content-Type, e o Content-Type é
+    // escolhido por quem envia: bastava anunciar image/jpeg para gravar
+    // qualquer coisa dentro de uploads/fotos/, que é uma pasta servida
+    // estaticamente na mesma origem da API.
+    //
+    // O express.raw() acima também filtra por Content-Type, e continua útil —
+    // ele evita ler 8 MB de um corpo que nem se diz imagem. Mas ele confia no
+    // mesmo cabeçalho, então não é ele quem garante nada. A garantia é esta.
+    const tipoReal = tipoDaImagem(req.body)
+    if (!tipoReal) {
+      return res.status(415).json({
+        erro: 'O arquivo enviado não é uma imagem',
+        detalhe: 'São aceitos JPEG, PNG e WebP. O conteúdo do arquivo é conferido, não apenas o Content-Type.',
+      })
+    }
+
     // O clientId é UUID gerado no aparelho e é único — serve de nome de
-    // arquivo sem risco de um envio sobrescrever outro. Só as extensões
-    // conhecidas entram no nome, para que ninguém escolha o sufixo do arquivo
-    // gravado no servidor a partir de um cabeçalho.
-    const extensao = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[req.get('content-type')] || 'jpg'
+    // arquivo sem risco de um envio sobrescrever outro. A extensão sai do
+    // tipo real, para que ninguém escolha o sufixo do arquivo gravado no
+    // servidor a partir de um cabeçalho.
+    const extensao = EXTENSOES[tipoReal]
     const seguro = String(clientId).replace(/[^a-zA-Z0-9-]/g, '')
     if (seguro.length < 8) return res.status(400).json({ erro: 'clientId inválido' })
 

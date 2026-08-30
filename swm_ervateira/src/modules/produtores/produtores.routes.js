@@ -13,6 +13,7 @@ const { permitir, podeNegocio } = require('../../middlewares/autorizacao')
 const { ocultarDoProdutor } = require('../../lib/sigilo')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { apenasDigitos, erroNoDocumento } = require('../../lib/documentos')
+const { erroDeTamanho } = require('../../lib/textos')
 
 const router = Router()
 router.use(autenticar)
@@ -203,11 +204,34 @@ router.post('/', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   const dados = extrairCampos(req.body)
   if (!dados.nome) throw new ErroDeNegocio('Informe o nome do produtor', 400)
 
+  const erroLongo = erroDeTamanho(dados)
+  if (erroLongo) throw new ErroDeNegocio(erroLongo, 400)
+
   // A validação do documento acontece AQUI e não só na tela. A tela avisa
   // cedo; o servidor é quem garante — porque o aplicativo móvel também grava
   // produtor, e um dia haverá um terceiro cliente.
   const erroDoc = erroNoDocumento(dados.cpfCnpj)
   if (erroDoc) throw new ErroDeNegocio(erroDoc, 400)
+
+  // UM PRODUTOR, UM CADASTRO. O índice único do banco já impedia o segundo,
+  // mas a mensagem que sobrava era a do Prisma: "Já existe um registro com
+  // este valor em: cpfCnpj". Quem está na tela de cadastro não sabe o que
+  // fazer com isso — não sabe QUEM já tem esse documento, nem que basta
+  // procurar na lista em vez de cadastrar.
+  //
+  // Esta consulta não substitui o índice único, que continua sendo a garantia
+  // de verdade contra duas requisições simultâneas. Ela só troca a mensagem
+  // por uma que diz o nome e o caminho.
+  const jaExiste = await prisma.produtor.findUnique({
+    where: { cpfCnpj: dados.cpfCnpj },
+    select: { nome: true },
+  })
+  if (jaExiste) {
+    throw new ErroDeNegocio(
+      `Este CPF/CNPJ já está cadastrado para ${jaExiste.nome}. Procure o produtor na lista para editar o cadastro.`,
+      409,
+    )
+  }
 
   ajustarPagamento(dados)
 
@@ -223,9 +247,26 @@ router.put('/:id', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   const dados = extrairCampos(req.body)
   if (Object.keys(dados).length === 0) throw new ErroDeNegocio('Nada a atualizar', 400)
 
+  const erroLongo = erroDeTamanho(dados)
+  if (erroLongo) throw new ErroDeNegocio(erroLongo, 400)
+
   if (dados.cpfCnpj) {
     const erroDoc = erroNoDocumento(dados.cpfCnpj)
     if (erroDoc) throw new ErroDeNegocio(erroDoc, 400)
+
+    // Mesma conversa do POST, com uma diferença: aqui o próprio produtor
+    // pode estar mantendo o documento que já era dele, e isso não é
+    // duplicidade — é o cadastro sendo salvo sem trocar o CPF.
+    const deOutro = await prisma.produtor.findUnique({
+      where: { cpfCnpj: dados.cpfCnpj },
+      select: { id: true, nome: true },
+    })
+    if (deOutro && deOutro.id !== req.params.id) {
+      throw new ErroDeNegocio(
+        `Este CPF/CNPJ já está cadastrado para ${deOutro.nome}.`,
+        409,
+      )
+    }
   }
   ajustarPagamento(dados)
 

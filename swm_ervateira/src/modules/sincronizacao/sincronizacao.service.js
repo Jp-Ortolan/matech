@@ -37,6 +37,8 @@
 
 const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
+const { erroDeTamanho } = require('../../lib/textos')
+const { erroNoDocumento } = require('../../lib/documentos')
 
 const ENTIDADES = ['Produtor', 'Erval', 'Avaliacao']
 
@@ -112,13 +114,54 @@ const APLICADORES = {
     if (!p.nome) throw new ErroDeNegocio('Informe o nome do produtor', 400)
     if (!p.cpfCnpj) throw new ErroDeNegocio('Informe o CPF ou CNPJ', 400)
 
-    const existente = await prisma.produtor.findUnique({ where: { clientId } })
-    if (existente) return { situacao: 'DUPLICADO', id: existente.id }
+    // O aplicativo já confere as duas coisas na tela, e ainda assim elas são
+    // conferidas aqui. Não é desconfiança do aplicativo: é que a tela protege
+    // quem está usando a tela, e este endpoint aceita JSON de qualquer cliente
+    // com token. A validação da tela é conforto; a daqui é garantia.
+    const erroLongo = erroDeTamanho(p)
+    if (erroLongo) throw new ErroDeNegocio(erroLongo, 400)
+
+    const erroDoc = erroNoDocumento(p.cpfCnpj)
+    if (erroDoc) throw new ErroDeNegocio(erroDoc, 400)
+
+    // DUAS PERGUNTAS DIFERENTES, e antes só a primeira era feita.
+    //
+    // 1. MESMO ENVIO? O clientId responde isso. É idempotência: o aparelho
+    //    perdeu a resposta e reenviou o mesmo pacote. Nada a fazer.
+    const mesmoEnvio = await prisma.produtor.findUnique({ where: { clientId } })
+    if (mesmoEnvio) return { situacao: 'DUPLICADO', id: mesmoEnvio.id }
+
+    // 2. MESMA PESSOA? O documento responde isso, e era a pergunta que
+    //    faltava. Dois avaliadores cadastram o mesmo produtor em aparelhos
+    //    diferentes — dois clientId, um CPF só. O create batia no @unique do
+    //    banco, virava P2002, e a operação ficava PRESA NA FILA PARA SEMPRE,
+    //    arrastando junto a avaliação que dependia dela: o avaliador via "1
+    //    recusada" e não havia nada que ele pudesse fazer no erval.
+    //
+    //    Agora o documento é tratado como o que ele é: a identidade da pessoa.
+    //    Uma pessoa, um cadastro, não importa de qual celular veio.
+    //
+    //    NADA DO QUE VEIO DO CELULAR SOBRESCREVE O QUE JÁ ESTAVA AQUI. Se o
+    //    nome ou o telefone diferem, fica o do servidor — o cadastro antigo
+    //    passou por conferência do escritório, e o de campo foi digitado com
+    //    luva. Sobrescrever seria deixar o último a sincronizar ganhar, que é
+    //    o critério errado.
+    const documento = String(p.cpfCnpj).replace(/\D/g, '')
+    if (documento) {
+      const mesmaPessoa = await prisma.produtor.findUnique({
+        where: { cpfCnpj: documento },
+      })
+      if (mesmaPessoa) return { situacao: 'DUPLICADO', id: mesmaPessoa.id }
+    }
 
     const dados = {
       clientId,
       nome: String(p.nome).trim(),
-      cpfCnpj: String(p.cpfCnpj).trim(),
+      // SÓ DÍGITOS, igual ao cadastro pela web (produtores.routes.js). Se um
+      // cliente mandasse "529.982.247-25" e outro "52998224725", o índice
+      // único veria dois produtores diferentes — e o duplicado que este
+      // aplicador acabou de evitar entraria pela porta dos fundos.
+      cpfCnpj: documento,
       telefone: vazioVirauNulo(p.telefone),
       endereco: vazioVirauNulo(p.endereco),
       municipio: vazioVirauNulo(p.municipio),

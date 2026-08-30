@@ -9,10 +9,13 @@
 // Daí a orientação de uso que a própria tela dá: entre no aplicativo antes de
 // sair a campo. O token vale 8 horas, e a partir dele nada mais precisa de rede.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../servicos/api.dart';
 import '../servicos/sessao.dart';
+import '../servicos/sincronizador.dart';
 import '../widgets/tema.dart';
 
 class TelaLogin extends StatefulWidget {
@@ -50,6 +53,18 @@ class _TelaLoginState extends State<TelaLogin> {
       await sessao.entrar(_usuario.text, _senha.text);
       // Não navega: o ListenableBuilder do main() percebe a mudança e troca
       // a tela sozinho. Uma fonte de verdade em vez de duas.
+
+      // Este é o instante em que HÁ SINAL COM CERTEZA — é o único momento do
+      // dia em que o aplicativo exige rede. Aproveitá-lo para trazer os
+      // cadastros do servidor é o que evita o avaliador chegar na propriedade,
+      // não encontrar o produtor na lista e cadastrar de novo alguém que já
+      // existe. O duplicado não nasce de má digitação: nasce de o dado não
+      // estar no aparelho na hora em que era preciso.
+      //
+      // Sem await de propósito: a lista pode continuar chegando enquanto a
+      // tela de início já aparece. Quem quiser esperar tem a tela de preparo,
+      // que mostra o andamento.
+      unawaited(sincronizador.sincronizar());
     } on ErroDeRede catch (e) {
       setState(
         () =>

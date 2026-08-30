@@ -25,6 +25,7 @@ import 'package:flutter/services.dart';
 import '../dados/produtor_dao.dart';
 import '../modelos/produtor.dart';
 import '../servicos/documentos.dart';
+import '../servicos/faixas.dart';
 import '../servicos/identificadores.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
@@ -155,7 +156,14 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
               TextFormField(
                 controller: _nome,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Nome completo *'),
+                maxLength: kMaxNome,
+                decoration: const InputDecoration(
+                  labelText: 'Nome completo *',
+                  // O contador embaixo do campo só aparece quando incomoda:
+                  // um nome normal não chega perto de 120, e mostrar "18/120"
+                  // o tempo todo transforma um teto de sanidade em cobrança.
+                  counterText: '',
+                ),
                 validator:
                     (v) =>
                         (v == null || v.trim().length < 3)
@@ -166,10 +174,12 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
               TextFormField(
                 controller: _documento,
                 keyboardType: TextInputType.number,
+                maxLength: kMaxDocumento,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   labelText: 'CPF ou CNPJ *',
                   helperText: 'Só os números',
+                  counterText: '',
                 ),
                 // O DÍGITO VERIFICADOR, e não só o comprimento.
                 //
@@ -186,7 +196,11 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
               TextFormField(
                 controller: _telefone,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Telefone'),
+                maxLength: kMaxTelefone,
+                decoration: const InputDecoration(
+                  labelText: 'Telefone',
+                  counterText: '',
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -199,7 +213,11 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
                     child: TextFormField(
                       controller: _municipio,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Município'),
+                      maxLength: kMaxMunicipio,
+                      decoration: const InputDecoration(
+                        labelText: 'Município',
+                        counterText: '',
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -208,6 +226,11 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
                       controller: _uf,
                       textCapitalization: TextCapitalization.characters,
                       maxLength: 2,
+                      // UF é sigla: dois dígitos aqui não são um estado, são
+                      // o dedo que escorregou do campo de cima.
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp('[A-Za-z]')),
+                      ],
                       decoration: const InputDecoration(
                         labelText: 'UF',
                         counterText: '',
@@ -237,7 +260,11 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _chavePix,
-                decoration: const InputDecoration(labelText: 'Chave Pix'),
+                maxLength: kMaxChavePix,
+                decoration: const InputDecoration(
+                  labelText: 'Chave Pix',
+                  counterText: '',
+                ),
               ),
 
               const SizedBox(height: 32),

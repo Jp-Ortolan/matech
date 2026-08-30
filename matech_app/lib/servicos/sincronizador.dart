@@ -309,6 +309,27 @@ class Sincronizador extends ChangeNotifier {
 
       _ultimaTentativa = DateTime.now();
       _ultimaMensagem = _resumoDaPassada(enviadasAgora, fotosAgora);
+
+      // Sincronizar é uma via de MÃO DUPLA. Subir o que foi feito em campo é
+      // metade; a outra metade é trazer os cadastros que o escritório criou —
+      // ou que outro avaliador subiu — para que ninguém precise recadastrar
+      // um produtor que já existe. Recadastrar é exatamente como nascem os
+      // duplicados.
+      //
+      // Fica DEPOIS da subida, e não antes, por dois motivos: o que está no
+      // aparelho é o que corre risco de se perder, então tem prioridade; e
+      // baixar logo em seguida traz de volta, já com id do servidor, o que
+      // acabou de subir.
+      //
+      // O try é próprio de propósito: falhar a descida não pode apagar a
+      // mensagem de que a subida deu certo. O avaliador precisa saber que os
+      // dados dele chegaram, mesmo que a lista não tenha atualizado.
+      try {
+        await baixarProdutores();
+      } catch (_) {
+        // Silêncio proposital: a próxima passada tenta de novo, e a tela de
+        // preparo tem o botão de baixar para quem quiser forçar agora.
+      }
     } on ErroDeRede catch (e) {
       // A rede está fora AGORA. O que nem chegou a ser tentado é empurrado
       // meio minuto para frente — senão o despertador acordaria em cinco
@@ -480,6 +501,18 @@ class Sincronizador extends ChangeNotifier {
   /// o erval passa a conhecer o id do produtor, a avaliação o id do erval.
   /// A partir daí, um envio futuro encontra o pai pelo id do servidor, sem
   /// depender de o clientId ainda estar lá.
+  ///
+  /// A propagação acontece em DOIS lugares, e os dois são necessários:
+  ///
+  ///   1. na TABELA local, para tudo que ainda vai ser enfileirado;
+  ///   2. no PAYLOAD já congelado dentro da fila, para o que está lá esperando.
+  ///
+  /// Fazer só (1) parece bastar e não basta: o erval de um cadastro feito
+  /// offline entra na fila no mesmo instante que o produtor, com o payload
+  /// fechado quando o produtor ainda não tinha id. Se o servidor responder
+  /// DUPLICADO apontando um cadastro de OUTRO clientId — o mesmo produtor
+  /// cadastrado de outro celular — esse payload procura para sempre um
+  /// clientId que o servidor nunca viu.
   Future<void> _gravarIdDoServidor(
     OperacaoPendente operacao,
     String? id,
@@ -487,8 +520,24 @@ class Sincronizador extends ChangeNotifier {
     switch (operacao.entidade) {
       case 'Produtor':
         await ProdutorDao.confirmarSincronizacao(operacao.clientId, id);
+        if (id != null) {
+          await FilaDao.apontarPaiPeloId(
+            campoClientId: 'produtorClientId',
+            campoId: 'produtorId',
+            clientIdDoPai: operacao.clientId,
+            idDoPai: id,
+          );
+        }
       case 'Erval':
         await ErvalDao.confirmarSincronizacao(operacao.clientId, id);
+        if (id != null) {
+          await FilaDao.apontarPaiPeloId(
+            campoClientId: 'ervalClientId',
+            campoId: 'ervalId',
+            clientIdDoPai: operacao.clientId,
+            idDoPai: id,
+          );
+        }
       case 'Avaliacao':
         await AvaliacaoDao.confirmarSincronizacao(operacao.clientId, id);
       case 'FotoErval':
