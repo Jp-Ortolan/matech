@@ -70,8 +70,14 @@ class _AplicativoMatechState extends State<AplicativoMatech> {
     //
     // AppLifecycleListener é do próprio Flutter. Nenhuma dependência de
     // detecção de rede entrou no projeto por causa disto.
+    // E o desligamento, que é a outra metade do mesmo gatilho. Sem ele a
+    // batida de quarenta e cinco segundos continuaria rodando com o aplicativo
+    // no bolso, gastando bateria de um aparelho que passa o dia fora de
+    // tomada. Em segundo plano quem cuida da fila é o despertador, que acorda
+    // uma vez só, na hora marcada.
     _cicloDeVida = AppLifecycleListener(
       onResume: () => sincronizador.aoVoltarParaOPrimeiroPlano(),
+      onPause: sincronizador.aoIrParaSegundoPlano,
     );
   }
 

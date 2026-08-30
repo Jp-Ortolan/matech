@@ -66,6 +66,26 @@ class Sincronizador extends ChangeNotifier {
   Timer? _despertador;
   DateTime? _proximoDespertar;
 
+  /// A BATIDA. O quarto gatilho, e o que resolve o caso mais comum do erval.
+  ///
+  /// O despertador acorda na hora que a política de tentativas marcou — e essa
+  /// hora cresce a cada falha, de propósito: depois de algumas tentativas sem
+  /// sinal ele está marcado para daqui a meia hora. Está certo para o celular
+  /// no bolso, e errado para o celular NA MÃO.
+  ///
+  /// O caso real: o avaliador termina no erval, começa a descer a estrada com
+  /// o aplicativo aberto olhando o que coletou, e passa por uma faixa de
+  /// sinal. Sem a batida, ele vê "3 na fila" por vinte minutos com o celular
+  /// pegando internet o tempo todo, e conclui que o aplicativo não funciona.
+  ///
+  /// Por isso ela só existe sob três condições, todas verificadas em
+  /// _reavaliarBatida: aplicativo em primeiro plano, sessão válida e fila com
+  /// algo esperando. Fora disso o timer é cancelado — um aplicativo que bate a
+  /// cada quarenta e cinco segundos com a fila vazia é um aplicativo que chega
+  /// ao fim da tarde sem bateria.
+  Timer? _batida;
+  bool _emPrimeiroPlano = true;
+
   /// Trava o despertador quando o servidor devolve 401.
   ///
   /// Sem ela haveria um laço apertado: o token vencido faz o lote falhar sem
@@ -100,6 +120,9 @@ class Sincronizador extends ChangeNotifier {
 
   Future<void> atualizarContagens() async {
     _contagens = await FilaDao.contagens();
+    // A batida acompanha a fila: liga quando aparece algo, desliga quando
+    // esvazia. Aqui é o único lugar que sabe as duas coisas ao mesmo tempo.
+    await _reavaliarBatida();
     notifyListeners();
   }
 
@@ -130,13 +153,63 @@ class Sincronizador extends ChangeNotifier {
   /// Não sincroniza sempre: só quando há algo pronto para subir. Voltar ao
   /// aplicativo com a fila vazia não deve custar uma requisição.
   Future<void> aoVoltarParaOPrimeiroPlano() async {
+    _emPrimeiroPlano = true;
     if (!sessao.autenticado) return;
     if (await FilaDao.temAlgoPronto()) {
       await sincronizar();
     } else {
       await _remarcarDespertador();
+      await _reavaliarBatida();
     }
   }
+
+  /// Chamado quando o aplicativo sai de vista — ver main.dart.
+  ///
+  /// A batida para aqui. Em segundo plano quem cuida da fila é o despertador,
+  /// que acorda uma vez na hora marcada; insistir de quarenta e cinco em
+  /// quarenta e cinco segundos com o celular no bolso é gastar bateria de um
+  /// aparelho que vai passar o dia inteiro fora de tomada.
+  void aoIrParaSegundoPlano() {
+    _emPrimeiroPlano = false;
+    _batida?.cancel();
+    _batida = null;
+  }
+
+  /// Liga ou desliga a batida conforme as três condições.
+  ///
+  /// É chamada depois de toda mudança de contagem, e por isso ela se desliga
+  /// sozinha no instante em que a fila esvazia — sem ninguém precisar lembrar
+  /// de cancelar.
+  Future<void> _reavaliarBatida() async {
+    final deveBater =
+        _emPrimeiroPlano &&
+        sessao.autenticado &&
+        !_pausadoPorSessao &&
+        (await FilaDao.temAlgoPronto());
+
+    if (!deveBater) {
+      _batida?.cancel();
+      _batida = null;
+      return;
+    }
+
+    // Já batendo: não reinicia. Reiniciar a cada atualização de contagem faria
+    // o intervalo nunca vencer, e a batida nunca aconteceria.
+    if (_batida != null) return;
+
+    _batida = Timer.periodic(_intervaloDaBatida, (_) {
+      // Sem await: o Timer não espera ninguém. sincronizar() já se protege
+      // contra duas passadas ao mesmo tempo.
+      if (!_rodando) unawaited(sincronizar());
+    });
+  }
+
+  /// Quarenta e cinco segundos.
+  ///
+  /// Curto o bastante para o avaliador não achar que travou, e longo o
+  /// bastante para não pesar: sem sinal, a tentativa falha em poucos
+  /// milissegundos, porque nem chega a abrir conexão.
+  static const Duration _intervaloDaBatida = Duration(seconds: 45);
 
   /// Marca o despertador para a próxima operação que vence.
   ///
@@ -202,6 +275,7 @@ class Sincronizador extends ChangeNotifier {
   @override
   void dispose() {
     _despertador?.cancel();
+    _batida?.cancel();
     super.dispose();
   }
 

@@ -30,6 +30,7 @@ import '../modelos/foto.dart';
 import '../modelos/produtor.dart';
 import '../servicos/arquivos.dart';
 import '../servicos/captura_de_fotos.dart';
+import '../servicos/faixas.dart';
 import '../servicos/identificadores.dart';
 import '../servicos/localizacao.dart';
 import '../servicos/sincronizador.dart';
@@ -301,8 +302,8 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
         produtorId: produtor.id,
         identificacao: _identificacaoArea.text.trim(),
         tipoErva: _tipoErva,
-        quantidadeEstimadaKg: _numero(_quantidade.text),
-        idadeAnos: _inteiro(_idadeErval.text),
+        quantidadeEstimadaKg: numeroDigitado(_quantidade.text),
+        idadeAnos: inteiroDigitado(_idadeErval.text),
         latitude: _localizacao?.latitude,
         longitude: _localizacao?.longitude,
         // criadoOffline fica no padrão do modelo, que já é true: todo erval
@@ -325,9 +326,9 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
       dataAvaliacao: agora,
       tipoErva: _tipoErva,
       ervaQueimada: _queima,
-      idadeErvalAnos: _inteiro(_idadeErval.text),
-      quantidadeEstimadaKg: _numero(_quantidade.text),
-      valorCombinadoKg: _numero(_valorCombinado.text),
+      idadeErvalAnos: inteiroDigitado(_idadeErval.text),
+      quantidadeEstimadaKg: numeroDigitado(_quantidade.text),
+      valorCombinadoKg: numeroDigitado(_valorCombinado.text),
       latitude: _localizacao?.latitude,
       longitude: _localizacao?.longitude,
       observacoes:
@@ -547,11 +548,7 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
                           labelText: 'Quantidade estimada *',
                           suffixText: 'kg',
                         ),
-                        validator: (v) {
-                          final n = _numero(v ?? '');
-                          if (n == null || n <= 0) return 'Informe a estimativa';
-                          return null;
-                        },
+                        validator: erroNaQuantidade,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -563,6 +560,7 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
                           labelText: 'Idade',
                           suffixText: 'anos',
                         ),
+                        validator: erroNaIdade,
                       ),
                     ),
                   ],
@@ -580,6 +578,7 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
                     prefixText: 'R\$ ',
                     helperText: 'Só se já foi acertado no erval',
                   ),
+                  validator: erroNoValorPorQuilo,
                 ),
 
                 const SizedBox(height: 24),
@@ -892,13 +891,6 @@ class _Secao extends StatelessWidget {
   );
 }
 
-double? _numero(String v) {
-  final limpo = v.trim().replaceAll('.', '').replaceAll(',', '.');
-  if (limpo.isEmpty) return null;
-  return double.tryParse(limpo);
-}
-
-int? _inteiro(String v) => v.trim().isEmpty ? null : int.tryParse(v.trim());
 
 // ---------------------------------------------------------------------------
 // Miniatura de uma foto recém-capturada

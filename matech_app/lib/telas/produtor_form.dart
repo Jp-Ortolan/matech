@@ -24,6 +24,7 @@ import 'package:flutter/services.dart';
 
 import '../dados/produtor_dao.dart';
 import '../modelos/produtor.dart';
+import '../servicos/documentos.dart';
 import '../servicos/identificadores.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
@@ -74,7 +75,7 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
   Future<void> _salvar() async {
     if (!_formulario.currentState!.validate()) return;
 
-    final documento = _somenteDigitos(_documento.text);
+    final documento = apenasDigitos(_documento.text);
 
     // Checagem local antes de gravar — ver o comentário no topo do arquivo.
     final jaExiste = await ProdutorDao.porDocumento(documento);
@@ -170,13 +171,16 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
                   labelText: 'CPF ou CNPJ *',
                   helperText: 'Só os números',
                 ),
-                validator: (v) {
-                  final d = _somenteDigitos(v ?? '');
-                  if (d.length != 11 && d.length != 14) {
-                    return 'CPF tem 11 dígitos e CNPJ tem 14';
-                  }
-                  return null;
-                },
+                // O DÍGITO VERIFICADOR, e não só o comprimento.
+                //
+                // Antes bastava ter 11 ou 14 dígitos. Um CPF com um número
+                // trocado passava aqui, o cadastro entrava na fila, o avaliador
+                // ia embora — e a recusa vinha do servidor horas depois, com o
+                // produtor a quarenta quilômetros e ninguém sabendo qual dígito
+                // estava errado.
+                //
+                // A conta é a mesma do servidor e da web, em servicos/documentos.
+                validator: erroNoDocumento,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -275,5 +279,4 @@ class _Secao extends StatelessWidget {
   );
 }
 
-String _somenteDigitos(String v) => v.replaceAll(RegExp(r'[^0-9]'), '');
 String? _vazioVirauNulo(String v) => v.trim().isEmpty ? null : v.trim();

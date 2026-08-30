@@ -40,6 +40,7 @@ import '../modelos/avaliacao.dart';
 import '../modelos/foto.dart';
 import '../servicos/arquivos.dart';
 import '../servicos/captura_de_fotos.dart';
+import '../servicos/faixas.dart';
 import '../servicos/localizacao.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
@@ -160,12 +161,12 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
       dataAvaliacao: a.dataAvaliacao,
       tipoErva: _tipoErva,
       ervaQueimada: _queima,
-      idadeErvalAnos: _inteiro(_idadeErval.text),
-      quantidadeEstimadaKg: _numero(_quantidade.text),
+      idadeErvalAnos: inteiroDigitado(_idadeErval.text),
+      quantidadeEstimadaKg: numeroDigitado(_quantidade.text),
       classificacao: a.classificacao,
       umidadeEstimada: a.umidadeEstimada,
       taloAparente: a.taloAparente,
-      valorCombinadoKg: _numero(_valorCombinado.text),
+      valorCombinadoKg: numeroDigitado(_valorCombinado.text),
       latitude: _localizacaoNova?.latitude ?? a.latitude,
       longitude: _localizacaoNova?.longitude ?? a.longitude,
       observacoes:
@@ -304,7 +305,7 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
                         suffixText: 'kg',
                       ),
                       validator: (v) {
-                        final n = _numero(v ?? '');
+                        final n = numeroDigitado(v ?? '');
                         if (n == null || n <= 0) return 'Informe a estimativa';
                         return null;
                       },
@@ -455,10 +456,3 @@ class _Secao extends StatelessWidget {
   );
 }
 
-double? _numero(String v) {
-  final limpo = v.trim().replaceAll('.', '').replaceAll(',', '.');
-  if (limpo.isEmpty) return null;
-  return double.tryParse(limpo);
-}
-
-int? _inteiro(String v) => v.trim().isEmpty ? null : int.tryParse(v.trim());
