@@ -1,24 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · sincronização
-// ---------------------------------------------------------------------------
-// A tela que torna o diferencial do trabalho VISÍVEL. Sem ela, a fila é uma
-// abstração: o avaliador não teria como saber o que já está a salvo e o que
-// ainda mora só no bolso dele — e "sincroniza sozinho" viraria um ato de fé.
-//
-// Ela mostra o mesmo indicador que o servidor calcula em
-// GET /api/sincronizacao/resumo (a taxa do Quadro 7), só que do lado do
-// aparelho. As duas contas batendo é, aliás, a melhor evidência de que a
-// sincronização está correta — e uma demonstração possível para a banca.
-//
-// O VOCABULÁRIO DAS QUATRO SITUAÇÕES é escolhido para ser lido por quem não
-// programa, porque quem lê esta tela é o avaliador:
-//
-//   No aparelho   ainda não subiu. É o estado normal no meio do erval.
-//   Aguardando    depende de algo que ainda não chegou lá. Resolve sozinho.
-//   No servidor   confirmado, nominalmente, pelo servidor.
-//   Recusado      o servidor disse não. Insistir não conserta — precisa de
-//                 uma pessoa.
-
 import 'package:flutter/material.dart';
 
 import '../dados/fila_dao.dart';
@@ -93,8 +72,6 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                   ),
                 ),
 
-                // Só aparece quando há o que reativar. Um botão de "tentar todas"
-                // permanentemente visível convidaria a apertá-lo sem motivo.
                 if (sincronizador.comErro > 0) ...[
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
@@ -138,8 +115,6 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
 
                 const SizedBox(height: 12),
 
-                // A promessa "sobe sozinho" precisa ser verificável. Sem esta
-                // linha, o avaliador teria que acreditar; com ela, ele vê a hora.
                 if (sincronizador.proximoDespertar != null)
                   Row(
                     children: [
@@ -363,8 +338,6 @@ class _LinhaDaFila extends StatelessWidget {
                 operacao.ultimoErro!,
                 style: TextStyle(
                   fontSize: 12,
-                  // Sem .shade900: o âmbar do sistema (#b4740e) já é o tom
-                  // escuro, pensado para texto sobre branco.
                   color: recusada ? Cores.perigo : Cores.alerta,
                 ),
               ),

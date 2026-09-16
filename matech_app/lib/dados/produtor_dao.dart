@@ -1,15 +1,3 @@
-// ---------------------------------------------------------------------------
-// DAO · produtores
-// ---------------------------------------------------------------------------
-// A tabela local guarda DUAS origens de produtor misturadas de propósito:
-//
-//   os que vieram do servidor (espelho, baixados quando havia sinal)
-//   os que nasceram aqui, no erval, sem conexão
-//
-// Para a tela de busca não faz diferença nenhuma — e é esse o ponto. O
-// avaliador procura "Fontana" e encontra, sem precisar saber se aquele
-// produtor já existe no escritório ou se ele mesmo cadastrou há dez minutos.
-
 import 'package:sqflite/sqflite.dart';
 
 import '../modelos/erval.dart';
@@ -43,9 +31,6 @@ class ProdutorDao {
     return linhas.isEmpty ? null : Produtor.deLinha(linhas.first);
   }
 
-  /// Já existe alguém com este documento? Vale a checagem ANTES de gravar:
-  /// o servidor barraria com 409 (cpfCnpj é @unique lá), mas isso só
-  /// aconteceria horas depois, na sincronização, longe de quem digitou.
   static Future<Produtor?> porDocumento(String cpfCnpj) async {
     final db = await BancoLocal.instancia;
     final limpo = cpfCnpj.replaceAll(RegExp(r'[^0-9]'), '');
@@ -59,11 +44,6 @@ class ProdutorDao {
     return linhas.isEmpty ? null : Produtor.deLinha(linhas.first);
   }
 
-  /// Cadastro feito em campo.
-  ///
-  /// Grava o produtor E enfileira o envio na MESMA transação. Se o aplicativo
-  /// morrer entre uma coisa e outra, ou as duas aconteceram ou nenhuma — nunca
-  /// um produtor salvo que ninguém vai enviar.
   static Future<void> criarEmCampo(Produtor produtor) async {
     final db = await BancoLocal.instancia;
     await db.transaction((txn) async {
@@ -81,17 +61,6 @@ class ProdutorDao {
     });
   }
 
-  /// Espelho vindo do servidor. NÃO enfileira nada: estes produtores já
-  /// existem lá.
-  ///
-  /// Recebe cada produtor COM as áreas dele, e grava os dois numa transação
-  /// só — assim nunca fica um produtor espelhado sem as áreas que a tela de
-  /// avaliação vai oferecer logo em seguida.
-  ///
-  /// Em cima de um registro que já existe, atualiza apenas o cadastral.
-  /// client_id e criado_offline ficam como estão: são a história de onde
-  /// aquele registro nasceu, e um cadastro local que ainda não subiu não pode
-  /// ser sobrescrito pelo espelho.
   static Future<int> guardarEspelho(
     List<({Produtor produtor, List<Erval> ervais})> doServidor,
   ) async {
@@ -143,7 +112,6 @@ class ProdutorDao {
     return gravados;
   }
 
-  /// Chamado quando o servidor confirma o envio e devolve o id definitivo.
   static Future<void> confirmarSincronizacao(
     String clientId,
     String? idServidor,
@@ -155,7 +123,6 @@ class ProdutorDao {
       where: 'client_id = ?',
       whereArgs: [clientId],
     );
-    // O erval guarda o id do dono para poder subir sozinho depois.
     if (idServidor != null) {
       await db.update(
         'ervais',

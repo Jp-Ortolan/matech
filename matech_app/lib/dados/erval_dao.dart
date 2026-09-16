@@ -1,14 +1,3 @@
-// ---------------------------------------------------------------------------
-// DAO · ervais
-// ---------------------------------------------------------------------------
-// O erval é a área de onde a erva sai, e toda avaliação pertence a uma.
-// Quem avalia está fisicamente numa área — é a área que tem coordenada,
-// idade e tipo de erva, não o produtor.
-//
-// A criação do erval acontece DENTRO do formulário de avaliação, e por isso
-// este DAO quase não é usado sozinho: quem grava os dois de uma vez, na mesma
-// transação e na ordem certa, é o AvaliacaoDao.
-
 import 'package:sqflite/sqflite.dart';
 
 import '../modelos/erval.dart';
@@ -38,8 +27,6 @@ class ErvalDao {
     return linhas.isEmpty ? null : Erval.deLinha(linhas.first);
   }
 
-  /// Grava e enfileira na transação recebida. Só é chamado de dentro de uma
-  /// transação maior — ver AvaliacaoDao.criarEmCampo.
   static Future<void> criarNaTransacao(Transaction txn, Erval erval) async {
     await txn.insert(
       'ervais',
@@ -54,11 +41,6 @@ class ErvalDao {
     );
   }
 
-  /// Espelho das áreas que vieram junto dos produtores do servidor.
-  ///
-  /// Usa ConflictAlgorithm.ignore de propósito: se já existe uma linha com
-  /// aquele client_id, ela é a versão local — possivelmente ainda não enviada —
-  /// e sobrescrevê-la apagaria o que o avaliador registrou em campo.
   static Future<void> guardarEspelho(
     Transaction txn,
     List<Erval> doServidor,
@@ -83,7 +65,6 @@ class ErvalDao {
       where: 'client_id = ?',
       whereArgs: [clientId],
     );
-    // A avaliação passa a conhecer o id definitivo da área a que pertence.
     if (idServidor != null) {
       await db.update(
         'avaliacoes',

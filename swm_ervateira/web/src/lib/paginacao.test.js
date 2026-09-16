@@ -1,7 +1,3 @@
-// ---------------------------------------------------------------------------
-// TESTES · faixa de páginas
-// ---------------------------------------------------------------------------
-
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -26,8 +22,6 @@ describe('faixaDePaginas', () => {
   })
 
   test('reticência não substitui UM número só', () => {
-    // Esconder a página 2 atrás de "…" gastaria o mesmo espaço e tiraria do
-    // alcance uma página que estava a um clique.
     const r = faixaDePaginas(3, 12)
     assert.deepEqual(r, [1, 2, 3, 4, null, 12])
     assert.equal(r.indexOf(null), 4)

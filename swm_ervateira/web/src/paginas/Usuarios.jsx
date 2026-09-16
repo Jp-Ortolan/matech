@@ -1,35 +1,14 @@
-// ---------------------------------------------------------------------------
-// PÁGINA · usuários do sistema  (somente ADMINISTRADOR)
-// ---------------------------------------------------------------------------
-// Abrir e fechar contas de acesso. É a única tela do sistema que não trata de
-// erva-mate — e por isso vive numa seção própria do menu, separada da
-// operação, e fora de Configurações, que é a conta de quem está logado.
-//
-// TRÊS DECISÕES QUE VALEM EXPLICAR:
-//
-//   · O LOGIN NÃO SE EDITA. Ele aparece na auditoria de quem pesou a carga e
-//     de quem lançou a análise; trocá-lo faria o histórico apontar para um
-//     nome que não existia na época. Conta errada se desativa e se cria outra.
-//
-//   · NINGUÉM SE DESATIVA nem se rebaixa. Um administrador que fizesse isso
-//     perderia acesso justamente à tela que desfaria o erro, e a única saída
-//     seria mexer no banco à mão. O servidor recusa as duas coisas; a tela
-//     apenas não oferece.
-//
-//   · A SENHA NUNCA É EXIBIDA, nem em campo preenchido. O que existe é um
-//     campo vazio de senha NOVA. O banco guarda só o hash — nem o servidor
-//     conseguiria mostrar a senha atual se quisesse.
-
 import { useCallback, useEffect, useState } from 'react'
 import { usuarios as apiUsuarios } from '../api/recursos'
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, Filtros, Tabela, Campo, Selecao, Botao, Etiqueta,
+  Painel, Filtros, Tabela, Campo, Selecao, Botao, Etiqueta, Janela, LinhaDado,
   Carregando, Erro, Sucesso
 } from '../componentes/ui'
 import { PERFIS } from '../lib/permissoes'
 import { formatar } from '../lib/formatar'
+import { ICONE_DA_ACAO } from '../lib/icones'
 
 export default function Usuarios() {
   const { usuario: eu } = useAutenticacao()
@@ -41,6 +20,7 @@ export default function Usuarios() {
   const [erro, setErro] = useState(null)
   const [aviso, setAviso] = useState('')
   const [formulario, setFormulario] = useState(null)  // null | 'novo' | usuário
+  const [fichaId, setFichaId] = useState(null)
   const [trocandoSenha, setTrocandoSenha] = useState(null)
 
   const buscar = useCallback(async () => {
@@ -58,8 +38,6 @@ export default function Usuarios() {
 
   useEffect(() => { buscar() }, [buscar])
 
-  // Filtro do navegador: a lista de contas de uma ervateira cabe inteira numa
-  // requisição, e ir ao servidor a cada tecla seria ida perdida.
   const termo = busca.trim().toLowerCase()
   const visiveis = lista.filter(
     (u) =>
@@ -92,25 +70,34 @@ export default function Usuarios() {
         <Botao
           variante="primario"
           onClick={() => { setAviso(''); setTrocandoSenha(null); setFormulario((f) => (f === 'novo' ? null : 'novo')) }}
+          icone={formulario === 'novo' ? ICONE_DA_ACAO.limpar : ICONE_DA_ACAO.registrar}
         >
-          {formulario === 'novo' ? 'Fechar' : '+ Novo usuário'}
+          {formulario === 'novo' ? 'Fechar' : 'Novo usuário'}
         </Botao>
       </CabecalhoPagina>
 
-      <Filtros>
-        <Campo
-          rotulo="Buscar por nome ou usuário"
-          className="min-w-[220px] flex-[2]"
-          placeholder="digite para filtrar"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
+      <Filtros
+        busca={(
+          <Campo
+            rotulo="Buscar por nome ou usuário"
+            className="min-w-[220px] flex-1 max-w-[340px]"
+            placeholder="digite para filtrar"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        )}
+        ativos={situacao === '' ? [] : [{
+          chave: 'situacao',
+          texto: situacao === 'true' ? 'Ativos' : 'Inativos',
+        }]}
+        aoRemover={() => setSituacao('')}
+        aoLimpar={() => setSituacao('')}
+      >
         <Selecao rotulo="Situação" className="flex-1" value={situacao} onChange={(e) => setSituacao(e.target.value)}>
           <option value="">Todos</option>
           <option value="true">Ativos</option>
           <option value="false">Inativos</option>
         </Selecao>
-        <span className="flex-1" />
       </Filtros>
 
       {formulario && (
@@ -165,56 +152,72 @@ export default function Usuarios() {
                   </span>
                 ),
               },
-              {
-                chave: 'acoes', titulo: '', alinhar: 'direita',
-                render: (u) => (
-                  <span className="flex justify-end gap-3 whitespace-nowrap">
-                    <Acao onClick={() => { setAviso(''); setTrocandoSenha(null); setFormulario(u) }}>editar</Acao>
-                    <Acao onClick={() => { setAviso(''); setFormulario(null); setTrocandoSenha(u) }}>senha</Acao>
-                    {/* Desativar a si mesmo é o único erro deste módulo sem
-                        conserto pela interface. O botão simplesmente não
-                        aparece — e o servidor recusa, se alguém insistir. */}
-                    {u.id !== eu?.id && (
-                      <Acao onClick={() => alternarAtivo(u)}>{u.ativo ? 'desativar' : 'reativar'}</Acao>
-                    )}
-                  </span>
-                ),
-              },
             ]}
             dados={visiveis}
+            aoClicarLinha={(u) => { setAviso(''); setFichaId(u.id) }}
+            linhaAtiva={fichaId}
             vazio={lista.length ? 'Nenhum usuário com esses filtros.' : 'Nenhum usuário cadastrado.'}
           />
         )}
       </Painel>
+      {fichaId && (
+        <Janela
+          titulo={lista.find((u) => u.id === fichaId)?.nome || 'Ficha da conta'}
+          subtitulo="Acesso, perfil e ações da conta"
+          largura={620}
+          aoFechar={() => setFichaId(null)}
+        >
+          <FichaDoUsuario
+            usuario={lista.find((u) => u.id === fichaId)}
+            ehVoceMesmo={fichaId === eu?.id}
+            aoEditar={(u) => { setFichaId(null); setTrocandoSenha(null); setFormulario(u) }}
+            aoTrocarSenha={(u) => { setFichaId(null); setFormulario(null); setTrocandoSenha(u) }}
+            aoAlternarAtivo={(u) => { setFichaId(null); alternarAtivo(u) }}
+          />
+        </Janela>
+      )}
     </>
   )
 }
 
-function Acao({ onClick, children }) {
+function FichaDoUsuario({ usuario, ehVoceMesmo, aoEditar, aoTrocarSenha, aoAlternarAtivo }) {
+  if (!usuario) return null
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="text-[11px] font-semibold text-cinza-400 hover:text-mate-700"
-    >
-      {children}
-    </button>
+    <Painel titulo={usuario.usuario} acao={ehVoceMesmo ? <Etiqueta tom="verde">você</Etiqueta> : null}>
+      <div className="flex flex-col gap-4 px-4 py-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+          <LinhaDado rotulo="Nome" valor={usuario.nome} />
+          <LinhaDado rotulo="Login" valor={usuario.usuario} />
+          <LinhaDado rotulo="Perfil" valor={rotuloDoPerfil(usuario.perfil)} />
+          <LinhaDado rotulo="Situação" valor={usuario.ativo ? 'Ativa' : 'Inativa'} />
+          <LinhaDado
+            rotulo="Último acesso"
+            valor={usuario.ultimoAcesso ? formatar.dataHora(usuario.ultimoAcesso) : 'nunca entrou'}
+          />
+          <LinhaDado rotulo="Criada em" valor={formatar.data(usuario.criadoEm)} />
+        </div>
+
+        <div className="flex flex-wrap gap-2 border-t border-borda pt-3">
+          <Botao onClick={() => aoEditar(usuario)}>Editar cadastro</Botao>
+          <Botao onClick={() => aoTrocarSenha(usuario)}>Redefinir senha</Botao>
+          {!ehVoceMesmo && (
+            <Botao
+              variante={usuario.ativo ? 'perigo' : undefined}
+              onClick={() => aoAlternarAtivo(usuario)}
+            >
+              {usuario.ativo ? 'Desativar acesso' : 'Reativar acesso'}
+            </Botao>
+          )}
+        </div>
+      </div>
+    </Painel>
   )
 }
 
 function rotuloDoPerfil(id) {
   return PERFIS.find((p) => p.id === id)?.rotulo || id
 }
-
-// ---------------------------------------------------------------------------
-// Cadastro e edição
-// ---------------------------------------------------------------------------
-// O mesmo formulário serve para os dois casos, como em Produtores: duplicá-lo
-// é o caminho mais curto para as duas versões divergirem com o tempo.
-//
-// A diferença entre criar e editar é só o que fica disponível: no cadastro há
-// login e senha inicial; na edição os dois somem, porque o login é imutável e
-// a senha tem fluxo próprio, sem exibir a atual.
 
 const VAZIO = { nome: '', usuario: '', senha: '', perfil: 'OPERADOR_BALANCA', ativo: true }
 
@@ -268,7 +271,7 @@ function FormularioUsuario({ usuario, souEu, aoConcluir, aoCancelar }) {
   }
 
   return (
-    <Painel titulo={editando ? `Editar · ${usuario.usuario}` : 'Novo usuário'} className="mb-3">
+    <Painel titulo={editando ? `Editar · ${usuario.usuario}` : 'Novo usuário'} className="mb-6">
       <form onSubmit={enviar} className="flex flex-col gap-3 px-3 py-3">
         <Erro erro={erro} />
 
@@ -351,16 +354,6 @@ function FormularioUsuario({ usuario, souEu, aoConcluir, aoCancelar }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Redefinição de senha pelo administrador
-// ---------------------------------------------------------------------------
-// Não pede a senha atual, e é de propósito: quem usa esta função é o
-// administrador atendendo alguém que ESQUECEU a senha. Exigir a antiga
-// tornaria a função inútil justamente no caso para o qual ela existe.
-//
-// Quem troca a própria senha passa por outro caminho — Configurações — e lá
-// a senha atual é pedida.
-
 function FormularioSenha({ usuario, aoConcluir, aoCancelar }) {
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
@@ -385,7 +378,7 @@ function FormularioSenha({ usuario, aoConcluir, aoCancelar }) {
   }
 
   return (
-    <Painel titulo={`Nova senha · ${usuario.usuario}`} className="mb-3">
+    <Painel titulo={`Nova senha · ${usuario.usuario}`} className="mb-6">
       <form onSubmit={enviar} className="flex flex-col gap-3 px-3 py-3">
         <Erro erro={erro} />
 

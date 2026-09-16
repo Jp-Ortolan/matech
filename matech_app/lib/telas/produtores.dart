@@ -1,15 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · produtores
-// ---------------------------------------------------------------------------
-// A busca lê o SQLITE, sempre — inclusive quando há sinal. É a regra que faz o
-// aplicativo se comportar igual com e sem conexão.
-//
-// Consequência prática: a lista mistura, sem distinção visual na busca, os
-// produtores baixados do servidor e os cadastrados aqui no erval. Para quem
-// procura "Fontana" isso é irrelevante, e é esse o ponto. A etiqueta de
-// sincronização aparece só onde importa: no cartão, dizendo se aquele cadastro
-// já chegou ao escritório.
-
 import 'package:flutter/material.dart';
 
 import '../dados/produtor_dao.dart';
@@ -54,9 +42,6 @@ class _TelaProdutoresState extends State<TelaProdutores> {
     });
   }
 
-  /// Trazer o espelho do servidor. É a única ação desta tela que precisa de
-  /// internet, e por isso é um botão explícito e não algo automático: o
-  /// avaliador decide quando gastar dados.
   Future<void> _baixarDoServidor() async {
     setState(() => _baixando = true);
     try {

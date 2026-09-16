@@ -1,30 +1,3 @@
-// ---------------------------------------------------------------------------
-// TICKET DE PESAGEM · a via que o motorista leva
-// ---------------------------------------------------------------------------
-// Até aqui o número do ticket existia só na tela. Faltava o que ele significa
-// na prática: um papel que sai da balança, é conferido em voz alta e vai junto
-// com o caminhão. Enquanto o sistema não emitia essa via, o operador continuava
-// anotando à mão — que é exatamente o retrabalho que o trabalho quer eliminar.
-//
-// DUAS DECISÕES QUE PARECEM DETALHE E NÃO SÃO:
-//
-// 1. NÃO É PDF. Gerar PDF exigiria uma biblioteca e um endpoint novo, para
-//    produzir algo que o próprio navegador já faz com Ctrl+P — inclusive
-//    "imprimir para PDF", se o operador quiser guardar. Uma dependência a
-//    menos e um formato a menos para manter.
-//
-// 3. O CPF DO PRODUTOR NÃO SAI MAIS AQUI. Este papel vai para a mão do
-//    motorista, que é um terceiro — é o único ponto do sistema em que dado
-//    pessoal deixa a empresa em suporte físico. O ticket serve para
-//    identificar a CARGA; o nome do produtor basta para isso, e o CPF só
-//    estava ali por hábito de formulário.
-//
-// 2. O VALOR VAI MARCADO COMO PREVISTO. É a parte mais importante do papel.
-//    Nesse momento a análise de laboratório ainda não aconteceu, e o palito
-//    pode descontar o preço. Imprimir um número sem essa ressalva criaria uma
-//    expectativa que o pagamento talvez não cumpra — e a discussão sobraria
-//    para quem está na balança, com o produtor na frente.
-
 import Marca from './Marca'
 import { formatar } from '../lib/formatar'
 import { motivosDaAnalise } from '../lib/reprovacao'
@@ -32,13 +5,11 @@ import { motivosDaAnalise } from '../lib/reprovacao'
 export default function TicketPesagem({ carga, aoFechar }) {
   if (!carga) return null
 
-
   const emitidoEm = new Date().toLocaleString('pt-BR')
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-6 print:static print:bg-transparent print:p-0">
       <div className="ticket-impresso w-full max-w-[420px] bg-white print:max-w-none print:shadow-none">
-        {/* Barra de ações — some na impressão */}
         <div className="flex items-center justify-between border-b border-borda px-4 py-2.5 print:hidden">
           <span className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
             Via do motorista
@@ -61,9 +32,6 @@ export default function TicketPesagem({ carga, aoFechar }) {
 
         <div className="px-6 py-5 text-tinta">
           <div className="flex items-start justify-between border-b border-tinta pb-3">
-            {/* No papel a marca vai nua, sem placa: o fundo é branco e o
-                desenho foi feito para ele. E vem do arquivo de 1024, porque
-                impressora resolve muito mais que tela. */}
             <div className="flex items-center gap-2.5">
               <Marca paraImpressao className="h-10 w-10 shrink-0" />
               <div>
@@ -91,13 +59,11 @@ export default function TicketPesagem({ carga, aoFechar }) {
             <Linha rotulo="Peso bruto" valor={formatar.kg(carga.pesoBrutoKg)} />
             <Linha rotulo="Tara" valor={formatar.kg(carga.taraKg)} />
             <Linha rotulo="Peso líquido" valor={formatar.kg(carga.pesoLiquidoKg)} destaque />
+            {carga.metragemM3 != null && (
+              <Linha rotulo="Metragem" valor={`${Number(carga.metragemM3).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} m³`} />
+            )}
           </div>
 
-          {/* A REIMPRESSÃO de uma carga reprovada leva o motivo junto.
-              O ticket sai duas vezes: na balança, quando ainda não há análise,
-              e depois, quando o produtor volta perguntando. É na segunda que
-              este bloco existe — e é a diferença entre entregar um papel que
-              explica e mandar a pessoa procurar alguém que saiba. */}
           {carga.analise?.aprovada === false && (
             <div className="mt-3 border border-tinta px-3 py-2">
               <p className="text-[9px] font-semibold uppercase tracking-wide">

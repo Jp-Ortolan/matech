@@ -1,37 +1,8 @@
-// ---------------------------------------------------------------------------
-// COMPONENTES DE INTERFACE · as peças reutilizáveis do MATECH
-// ---------------------------------------------------------------------------
-// Painel, tabela, botão, campo, indicador e marcador de situação.
-// Toda tela é montada com estas peças — por isso a aparência fica igual em
-// todo lugar e uma mudança de estilo se propaga sozinha.
-//
-// As classes vêm do Tailwind, usando as cores declaradas no index.css.
-
 import { useEffect, useRef, useState } from 'react'
 import { TAMANHO, SITUACAO, ICONE_DA_ACAO } from '../lib/icones'
 import { faixaDePaginas } from '../lib/paginacao'
 import Marca from './Marca'
 
-/**
- * Desenha um ícone do mapa de lib/icones.js.
- *
- * Existe para que as três regras do conjunto sejam obedecidas sem ninguém
- * precisar lembrar delas:
- *
- *   · traço 1.75 — o 2 padrão da lucide fica pesado ao lado da IBM Plex, que
- *     é uma fonte de haste fina; lado a lado, o ícone gritava mais que a
- *     palavra que ele deveria estar ajudando a achar;
- *   · cor herdada — `currentColor`, sempre. Ícone com cor própria vira um
- *     segundo foco dentro da mesma linha. A única exceção é o selo de
- *     situação, e lá a cor é do selo inteiro, texto junto;
- *   · `aria-hidden` — o ícone nunca é a informação, é a repetição visual de
- *     um texto que está ao lado. Lido em voz alta, ele duplicaria o rótulo.
- *     Onde o texto some (a barra recolhida), quem responde é o aria-label do
- *     botão, não o ícone.
- *
- * `de` aceita undefined de propósito: uma tela que ainda não tem ícone
- * declarado continua funcionando, só sem desenho.
- */
 export function Icone({ de: Desenho, tamanho = TAMANHO.menu, className = '' }) {
   if (!Desenho) return null
   return <Desenho size={tamanho} strokeWidth={1.75} className={`shrink-0 ${className}`} aria-hidden="true" />
@@ -52,18 +23,6 @@ export function Botao({ children, variante = 'secundario', icone, className = ''
   )
 }
 
-/**
- * Campo de texto.
- *
- * A largura mínima padrão é o que faz uma linha de formulário QUEBRAR em vez
- * de espremer: com três campos numa faixa de 600px, sem mínimo, cada um viraria
- * uma caixa de 180px onde não cabe um nome completo.
- *
- * Quem precisa de outro mínimo — o campo de UF, que tem duas letras — passa o
- * seu no className, e o padrão sai de cena. A verificação é explícita porque
- * duas classes utilitárias do mesmo tipo empatam em especificidade: quem vence
- * é a que sai depois na folha gerada, não a que vem depois no atributo.
- */
 export function Campo({ rotulo, className = '', ...props }) {
   const minimo = className.includes('min-w') ? '' : 'min-w-[132px]'
   return (
@@ -96,7 +55,6 @@ export function Selecao({ rotulo, children, className = '', ...props }) {
   )
 }
 
-/** Caixa branca com contorno e cabeçalho — a base de quase tudo. */
 export function Painel({ titulo, acao, children, className = '' }) {
   return (
     <section className={`rounded-[3px] border border-borda bg-white ${className}`}>
@@ -111,32 +69,6 @@ export function Painel({ titulo, acao, children, className = '' }) {
   )
 }
 
-/**
- * Faixa de indicadores · o primeiro dos três níveis da página.
- *
- * A tela tinha um nível só. Filtros, indicadores e tabelas eram todos a mesma
- * caixa branca, com a mesma borda, o mesmo canto e o mesmo fundo — e quando
- * tudo tem o mesmo peso, o olho não sabe por onde começar. Nada dizia que os
- * indicadores são o resumo e a tabela é o detalhe; eram só caixas, em ordem
- * de cima para baixo.
- *
- * Os três níveis, agora:
- *
- *   1. INDICADOR — sem caixa. Número grande direto sobre o fundo da página.
- *      Ele não precisa de contorno porque não é uma coisa que se abre nem se
- *      percorre: é um número que se lê de longe, e caixa em volta de número
- *      só rouba contraste dele.
- *   2. PAINEL — caixa branca com borda. Aqui a borda trabalha: ela delimita
- *      uma região que se percorre, e diz onde a tabela começa e termina.
- *   3. FILTRO — faixa discreta, sem caixa nenhuma. É controle, não conteúdo.
- *
- * O espaço faz a outra metade do trabalho: 24px ENTRE os blocos contra 8 a
- * 12px DENTRO deles. Essa razão é o que agrupa — o olho lê como uma coisa só
- * aquilo que está junto, e como coisas separadas aquilo que tem ar no meio.
- * (O estudo pedia de 32 a 40px; 24 é o que sobrevive num sistema de operação
- * onde a tabela precisa caber na tela sem rolar. A razão de 2 a 3 vezes, que
- * é o que cria a hierarquia, continua de pé.)
- */
 export function FaixaDeIndicadores({ children, className = '' }) {
   return (
     <div className={`mb-6 flex flex-wrap items-start gap-x-8 gap-y-5 ${className}`}>
@@ -145,7 +77,6 @@ export function FaixaDeIndicadores({ children, className = '' }) {
   )
 }
 
-/** Indicador numérico. Vive na faixa acima, sem caixa em volta. */
 export function Indicador({ rotulo, valor, unidade, apoio, icone, vazio, cor = 'text-tinta' }) {
   return (
     <div className="min-w-[140px] flex-1">
@@ -153,19 +84,6 @@ export function Indicador({ rotulo, valor, unidade, apoio, icone, vazio, cor = '
         <Icone de={icone} tamanho={TAMANHO.indicador} />
         <span className="truncate">{rotulo}</span>
       </p>
-      {/* ZERO NÃO É UM NÚMERO ÚTIL AQUI.
-          "0 cargas" em corpo 26 tem o mesmo peso visual de "184 cargas", e o
-          olho lê primeiro o tamanho: um painel cheio de zeros grandes parece
-          um painel que não carregou. Quem passa `vazio` troca o zero por uma
-          frase — que ocupa menos, diz mais, e não compete com os números que
-          têm alguma coisa a dizer.
-
-          QUEM DECIDE É QUEM CHAMA, e não este componente. A primeira versão
-          testava o valor aqui dentro, e testar aqui é impossível de acertar:
-          `valor` chega já formatado, então "R$ 0,00" e "R$ 33.709,44" são os
-          dois texto, e qualquer conversão numérica devolve NaN para os dois.
-          A regra virou simples — se veio `vazio`, mostra `vazio` — e a tela,
-          que tem o número cru na mão, passa `null` quando não é zero. */}
       {vazio ? (
         <p className="mt-1.5 text-xs text-cinza-400">{vazio}</p>
       ) : (
@@ -174,31 +92,11 @@ export function Indicador({ rotulo, valor, unidade, apoio, icone, vazio, cor = '
           {unidade && <span className="truncate text-[11px] font-medium text-cinza-400">{unidade}</span>}
         </p>
       )}
-      {/* line-clamp-2 e não truncate: a linha de apoio é uma frase, e frase
-          cortada na primeira linha perde justamente o predicado — "a balança
-          pesa mais que o…". Duas linhas cabem; o title guarda o resto. */}
       {apoio && <p className="mt-1.5 line-clamp-2 text-[10px] leading-snug text-cinza-600" title={apoio}>{apoio}</p>}
     </div>
   )
 }
 
-/**
- * Selo de situação · pílula com fundo tonal, ícone e texto.
- *
- * Era um quadrado de 7 pixels com o texto ao lado, e ele falhava nas duas
- * pontas. De perto, o quadrado é pequeno demais para uma cor ser lida como
- * cor. De longe — que é como esta coluna é lida de verdade, correndo o olho
- * pela tabela — só o vermelho aparecia; os três verdes viravam um só.
- *
- * A pílula resolve porque a cor passa a ocupar área, e porque o ícone diz a
- * mesma coisa por um segundo canal: quem não distingue o âmbar do verde
- * ainda distingue um documento de uma cédula. Isso não é detalhe de
- * acessibilidade avulso — é o que faz a coluna funcionar num monitor de
- * balança, com poeira na tela e o sol batendo.
- *
- * Mapa em lib/icones.js: desenho, texto e tom moram juntos porque mudam
- * juntos.
- */
 const TOM_DA_SITUACAO = {
   espera: 'border-borda bg-cabecalho text-cinza-600',
   analise: 'border-analise-bg bg-analise-bg text-analise',
@@ -219,60 +117,12 @@ export function Situacao({ valor }) {
   )
 }
 
-// --------------------------------- tabela ---------------------------------
-// Uso:
-//   <Tabela colunas={[{ chave:'nome', titulo:'PRODUTOR' }]} dados={lista} />
-
-/**
- * Tabela do sistema.
- *
- * LARGURA — a regra que vale para todas as telas:
- *
- * A tabela ocupa o espaço que tem e distribui as colunas dentro dele. Rolagem
- * lateral é o último recurso, não o primeiro: quando aparece, é porque a tela
- * ficou estreita de verdade, e não porque a tabela pediu mais largura do que
- * precisava. O que resolve o enquadramento é escolher menos colunas — o dado
- * secundário fica no detalhe do registro, onde ele é procurado, e não na
- * linha, onde ele só atrapalha a comparação.
- *
- * Opções de coluna:
- *   · `truncar` — corta o texto com reticências em vez de esticar a coluna.
- *     Nome de produtor é o caso típico: um nome comprido não pode empurrar a
- *     coluna de peso para fora da tela.
- *   · `oculta`  — 'md' | 'lg' | 'xl'. Some abaixo daquela largura. É para o
- *     dado que ajuda quando há espaço e não faz falta quando não há.
- *   · `quebrar` — volta a se comportar como parágrafo (observações).
- *   · `fixar`   — 'direita'. A coluna para de rolar junto e cola na borda.
- *
- * SOBRE `fixar` — por que uma coluna precisa disso:
- *
- * Quando a tabela estoura a largura, o que sai da tela é o fim da linha. E o
- * fim da linha era justamente a situação da carga — "Analisa…", "Reprov…" —
- * que é a coluna que o operador de balança mais olha. A informação mais
- * procurada era a primeira a ser cortada, e para lê-la era preciso rolar de
- * lado, o que desalinha a linha do olho e faz perder de qual carga se estava
- * falando.
- *
- * Fixar resolve sem esconder nada: a coluna fica ancorada na borda direita e o
- * resto rola por baixo dela. A sombra à esquerda é o que avisa que existe
- * conteúdo passando ali embaixo — sem ela, a coluna fixa parece só o fim da
- * tabela, e ninguém rola.
- */
 const OCULTAR_ABAIXO_DE = {
   md: 'hidden md:table-cell',
   lg: 'hidden lg:table-cell',
   xl: 'hidden xl:table-cell',
 }
 
-/**
- * `aoClicarLinha` e `linhaAtiva` são opcionais e andam juntos.
- *
- * Existem porque uma coluna inteira ocupada por um botão escrito "abrir" é
- * espaço gasto para repetir, linha a linha, a única coisa que dá para fazer
- * com uma linha de tabela. Clicar na linha diz o mesmo sem coluna nenhuma —
- * e o realce da linha ativa diz qual está aberta melhor do que a palavra
- * "aberto" escrita na ponta.
- */
 export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', rodape, aoClicarLinha, linhaAtiva }) {
   return (
     <div className="overflow-x-auto">
@@ -304,10 +154,6 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
           )}
           {dados.map((linha, i) => {
             const conteudo = (c) => (c.render ? c.render(linha) : linha[c.chave])
-            // O fundo da linha precisa ser conhecido AQUI, e não só no <tr>: a
-            // célula fixa sai do fluxo e flutua sobre as outras, então ela tem
-            // de pintar o próprio fundo — senão o texto que passa por baixo
-            // aparece através dela.
             const fundo =
               linhaAtiva != null && linhaAtiva === linha.id
                 ? 'bg-mate-100'
@@ -362,43 +208,9 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
   )
 }
 
-/**
- * Barra de filtros do sistema.
- *
- * O QUE MUDOU, E POR QUÊ.
- *
- * Antes esta barra ficava sempre aberta, com todos os campos à mostra, logo
- * abaixo do título — noventa pixels de altura, em toda tela, quase sempre
- * vazios: `dd/mm/aaaa`, `dd/mm/aaaa`, `Todos os produtores`. Era a primeira
- * coisa que a pessoa via ao abrir uma tela, e não era o que ela veio ver.
- * Filtro é ferramenta: importa quando se precisa dele, e o resto do tempo
- * ele deveria ocupar o tamanho de um botão.
- *
- * Agora a barra tem uma linha só. Nela ficam:
- *
- *   · a BUSCA, quando a tela tem uma — porque busca não é filtro no mesmo
- *     sentido. Ninguém 'abre a busca': digita nela. Escondê-la atrás de um
- *     clique custaria um gesto a cada pergunta feita no telefone;
- *   · o botão que abre o painel, com a contagem do que está aplicado;
- *   · um SELO por filtro ativo, com o × que remove aquele sozinho.
- *
- * Os selos são a parte que importa. Com o painel fechado, eles são a única
- * coisa que responde 'por que esta lista está assim?' — e essa pergunta é
- * exatamente a que faz alguém achar que o sistema perdeu dados, quando na
- * verdade sobrou um filtro de ontem. Um painel fechado sem selos esconderia
- * o recorte; com eles, o recorte fica dito em voz alta e some com um clique.
- *
- * O painel abre POR CIMA, e não empurrando o conteúdo: quem abre o filtro
- * está olhando para a tabela e quer ver o efeito da mudança. Empurrar a
- * tabela para baixo tira do campo de visão a coisa que se está tentando
- * ajustar.
- */
 export function Filtros({ children, busca, ativos = [], aoRemover, aoLimpar }) {
   const [aberto, setAberto] = useState(false)
 
-  // Esc fecha. É a tecla que a pessoa já aperta por reflexo diante de
-  // qualquer coisa que abriu por cima — e quando nada acontece, ela conclui
-  // que o painel travou.
   useEffect(() => {
     if (!aberto) return
     function aoTeclar(e) { if (e.key === 'Escape') setAberto(false) }
@@ -409,9 +221,6 @@ export function Filtros({ children, busca, ativos = [], aoRemover, aoLimpar }) {
   const temPainel = Boolean(children)
 
   return (
-    // items-end e não items-center: o campo de busca é mais alto que o
-    // botão, porque carrega o rótulo em cima. Centralizados, os dois ficam
-    // desencontrados; alinhados pela base, a linha volta a ser uma linha.
     <div data-fora-da-impressao className="relative mb-4 flex flex-wrap items-end gap-2">
       {busca}
 
@@ -468,10 +277,6 @@ export function Filtros({ children, busca, ativos = [], aoRemover, aoLimpar }) {
 
       {aberto && temPainel && (
         <>
-          {/* Camada invisível: um clique em qualquer lugar da tela fecha o
-              painel. Sem ela, o painel só fecharia pelo próprio botão — e
-              quem abre um painel por engano fecha clicando fora, não
-              procurando de novo o botão que abriu. */}
           <div className="fixed inset-0 z-30" onClick={() => setAberto(false)} />
           <div className="absolute left-0 top-full z-40 mt-1.5 w-full rounded-[3px] border border-borda bg-white shadow-[0_8px_24px_-8px_rgba(31,36,34,0.22)]">
             <div className="flex flex-wrap items-end gap-2 px-3 py-3 xl:gap-2.5">{children}</div>
@@ -499,15 +304,6 @@ export function Filtros({ children, busca, ativos = [], aoRemover, aoLimpar }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// PEÇAS ACRESCENTADAS COM AS TELAS DE CADASTRO, PREÇOS, RELATÓRIOS E AJUSTES
-// ---------------------------------------------------------------------------
-// Todas nasceram do mesmo motivo: quatro telas precisavam da mesma coisa.
-// Enquanto era uma tela só, o desenho podia ficar dentro dela — o Dashboard
-// desenhava a barra proporcional à mão. Com quatro, isso vira repetição, e
-// repetição de estilo é o que faz um sistema parecer remendado.
-
-/** Barra proporcional: rótulo à esquerda, valor à direita, barra embaixo. */
 export function Barra({ rotulo, valor, proporcao, cor = 'bg-mate-300' }) {
   const largura = Math.max(0, Math.min(100, Number(proporcao) || 0))
   return (
@@ -523,17 +319,6 @@ export function Barra({ rotulo, valor, proporcao, cor = 'bg-mate-300' }) {
   )
 }
 
-/**
- * Barra de saída de um painel: exportar e imprimir.
- *
- * Existe porque a exportação estava escondida num link de texto de 10 pixels
- * no canto do cabeçalho, e quem usava o sistema simplesmente não a encontrava.
- * Uma função que ninguém acha é uma função que não existe.
- *
- * O botão de imprimir não gera PDF: ele chama a impressão do navegador, que
- * já sabe salvar em PDF. Escrever um gerador de PDF aqui seria manter um
- * segundo desenho do mesmo relatório — e dois desenhos divergem.
- */
 export function SaidaDoPainel({ aoExportar, nome = 'CSV' }) {
   return (
     <span data-fora-da-impressao className="flex gap-1.5">
@@ -558,18 +343,6 @@ export function SaidaDoPainel({ aoExportar, nome = 'CSV' }) {
   )
 }
 
-/**
- * Bloco que abre e fecha — divulgação progressiva.
- *
- * O padrão existe para o caso em que a informação NÃO é dispensável, mas
- * também não é o que a maioria vem buscar. Apagá-la esconderia algo que
- * alguém precisa uma vez por mês; deixá-la aberta faz todo mundo pagar,
- * todo dia, o custo de rolar por ela.
- *
- * Usa o <details> nativo do HTML de propósito: ele já vem com teclado,
- * leitor de tela e o estado de aberto/fechado resolvidos. Reimplementar isso
- * com useState daria trinta linhas piores.
- */
 export function Detalhes({ titulo, children, aberto = false }) {
   return (
     <details open={aberto} className="rounded-[3px] border border-borda bg-white">
@@ -581,12 +354,10 @@ export function Detalhes({ titulo, children, aberto = false }) {
   )
 }
 
-/** Estado vazio padrão. Dizer "não há" é diferente de mostrar espaço em branco. */
 export function Vazio({ texto = 'Nenhum registro encontrado' }) {
   return <p className="px-4 py-10 text-center text-xs text-cinza-400">{texto}</p>
 }
 
-/** Etiqueta curta. Ex.: "cadastrado em campo". */
 export function Etiqueta({ children, tom = 'neutro' }) {
   const tons = {
     neutro: 'border-borda bg-cabecalho text-cinza-600',
@@ -601,7 +372,6 @@ export function Etiqueta({ children, tom = 'neutro' }) {
   )
 }
 
-/** Par rótulo/valor. Usado no detalhe do produtor e nas configurações. */
 export function LinhaDado({ rotulo, valor, className = '' }) {
   return (
     <div className={className}>
@@ -613,10 +383,9 @@ export function LinhaDado({ rotulo, valor, className = '' }) {
   )
 }
 
-/** Abas. Uso: <Abas abas={[{ id, rotulo }]} ativa={id} aoTrocar={fn} /> */
 export function Abas({ abas, ativa, aoTrocar }) {
   return (
-    <div className="mb-3 flex gap-0 overflow-x-auto border-b border-borda">
+    <div className="mb-3 flex gap-0 overflow-x-auto overflow-y-hidden border-b border-borda">
       {abas.map((a) => (
         <button
           key={a.id}
@@ -635,23 +404,6 @@ export function Abas({ abas, ativa, aoTrocar }) {
   )
 }
 
-/** Campo de texto de várias linhas, no mesmo desenho do Campo. */
-export function AreaTexto({ rotulo, className = '', ...props }) {
-  return (
-    <label className={`flex flex-col gap-1.5 ${className}`}>
-      {rotulo && (
-        <span className="text-[11px] font-medium text-cinza-600">{rotulo}</span>
-      )}
-      <textarea
-        rows={3}
-        className="resize-y rounded-[3px] border border-borda bg-white px-2.5 py-2 text-xs text-tinta outline-none focus:border-mate-500"
-        {...props}
-      />
-    </label>
-  )
-}
-
-/** Aviso curto no corpo da página. Serve para explicar uma regra, não um erro. */
 export function Aviso({ children, tom = 'neutro' }) {
   const tons = {
     neutro: 'border-borda bg-cabecalho text-cinza-600',
@@ -665,24 +417,6 @@ export function Aviso({ children, tom = 'neutro' }) {
   )
 }
 
-// A formatação NÃO mora mais aqui. Ela vive em lib/formatar.js, e as telas
-// importam de lá. Este arquivo cuida de como as coisas aparecem; aquele, de
-// como os valores viram texto — e misturar os dois obrigava qualquer arquivo
-// que precisasse formatar um número a arrastar a biblioteca de interface
-// inteira junto.
-
-/**
- * A espera, com a engrenagem da marca girando.
- *
- * O movimento QUER DIZER alguma coisa aqui, e é por isso que ele existe só
- * neste componente e no login: engrenagem girando é o sistema trabalhando,
- * engrenagem parada é o sistema pronto. Um símbolo que gira o tempo todo, em
- * toda tela, não diz nada — vira ruído periférico, e quem passa o dia aqui
- * pede para desligar.
- *
- * O texto continua, e continua sendo o principal: ele diz o que está sendo
- * esperado, e a marca só confirma que alguma coisa está acontecendo.
- */
 export function Carregando({ texto = 'Carregando...' }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-8" role="status" aria-live="polite">
@@ -702,7 +436,6 @@ export function Erro({ erro }) {
   )
 }
 
-/** Confirmação verde e curta. Some sozinha quando a tela recarrega os dados. */
 export function Sucesso({ texto }) {
   if (!texto) return null
   return (
@@ -712,74 +445,6 @@ export function Sucesso({ texto }) {
   )
 }
 
-/**
- * Medidor · uma razão medida contra um limite.
- *
- * Serve para o caso em que o número sozinho não responde a pergunta: 34% de
- * palito é muito? Só quem sabe que o limite acordado é 30% consegue responder.
- * O medidor põe os dois na mesma barra.
- *
- * A trilha é um passo CLARO DA MESMA COR do preenchimento, e não cinza: assim a
- * barra inteira comunica o estado, mesmo a parte vazia. O preenchimento troca
- * para a cor de alerta quando passa do limite — é a severidade indo para a cor,
- * que é o único trabalho que ela deveria ter aqui.
- *
- * A marca do limite é um traço fino sobre a trilha, com o valor escrito ao lado.
- * Ninguém precisa deduzir onde ele está pela cor.
- */
-export function Medidor({ rotulo, texto, valor, maximo, limite, apoio, alerta = false }) {
-  const escala = Number(maximo) || 1
-  const preenchido = Math.max(0, Math.min(100, (Number(valor) / escala) * 100))
-  const marca = limite == null ? null : Math.max(0, Math.min(100, (Number(limite) / escala) * 100))
-
-  return (
-    <div>
-      <div className="flex items-baseline gap-2">
-        <span className="flex-1 text-[9px] font-semibold uppercase tracking-wide text-cinza-400">
-          {rotulo}
-        </span>
-        <span className={`text-base font-bold tabular ${alerta ? 'text-alerta' : 'text-tinta'}`}>
-          {texto}
-        </span>
-      </div>
-
-      <div className="relative mt-1.5 h-[10px] w-full bg-mate-100">
-        <div
-          className={`h-full ${alerta ? 'bg-alerta' : 'bg-mate-500'}`}
-          style={{ width: `${preenchido}%` }}
-        />
-        {marca !== null && (
-          <span
-            className="absolute -top-[3px] h-[16px] w-[1px] bg-tinta"
-            style={{ left: `${marca}%` }}
-            aria-hidden="true"
-          />
-        )}
-      </div>
-
-      {apoio && <p className="mt-1.5 text-[10px] text-cinza-600">{apoio}</p>}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Paginação
-// ---------------------------------------------------------------------------
-// A rota de cargas devolve { total, pagina, porPagina } desde sempre, e a tela
-// usava só as vinte primeiras linhas — sem nenhum jeito de ver a vigésima
-// primeira. Numa ervateira que recebe quinze caminhões por dia, isso é o
-// histórico do dia anterior fora de alcance.
-//
-// DUAS DECISÕES:
-//
-// 1. NÚMEROS DE PÁGINA, e não "carregar mais". Quem procura uma carga antiga
-//    quer voltar a um ponto e voltar de novo depois; uma lista que só cresce
-//    obriga a rolar tudo outra vez a cada consulta. E o total já vem do banco,
-//    então dizer "página 3 de 12" não custa consulta nenhuma.
-//
-// 2. A FAIXA ANDA COM A PÁGINA ATUAL. Com trinta páginas, mostrar as trinta
-//    ocuparia mais espaço que a tabela. Mostra-se a primeira, a última e as
-//    vizinhas da atual — que é onde o dedo vai.
 export function Paginacao({ pagina, porPagina, total, aoTrocar }) {
   const paginas = Math.max(1, Math.ceil(total / porPagina))
   if (paginas <= 1) return null
@@ -824,8 +489,6 @@ function BotaoDePagina({ children, ativo = false, disabled = false, aoClicar, ro
       disabled={disabled}
       aria-label={rotulo}
       aria-current={ativo ? 'page' : undefined}
-      // min-h-[32px] e não py-1: em tela de toque o alvo precisa de altura, e
-      // o padding sozinho encolhe quando o número tem um dígito só.
       className={`min-h-[32px] min-w-[32px] rounded-[3px] px-2 text-[11.5px] font-medium tabular transition-colors disabled:opacity-30 ${
         ativo
           ? 'bg-mate-700 text-white'
@@ -837,36 +500,6 @@ function BotaoDePagina({ children, ativo = false, disabled = false, aoClicar, ro
   )
 }
 
-// ---------------------------------------------------------------------------
-// Janela
-// ---------------------------------------------------------------------------
-// O detalhe de um registro, aberto por cima da tela.
-//
-// O QUE ISSO SUBSTITUIU, e por quê:
-//
-// Antes o detalhe era uma coluna ao lado da lista, com altura própria. A lista
-// tem duas ou quatro linhas; o detalhe de uma avaliação de campo tem cinco
-// blocos empilhados. As duas colunas ficavam com alturas muito diferentes, e
-// para ler o detalhe inteiro era preciso rolar até um ponto em que a metade
-// esquerda estava vazia — o conteúdo sozinho no canto de baixo à direita.
-//
-// Numa janela o problema não existe: ela tem a tela inteira para si, e o que
-// não couber rola dentro dela.
-//
-// O QUE ISSO CUSTA: a lista some enquanto a janela está aberta. É aceitável
-// aqui porque nestas telas o detalhe é um registro que se LÊ, e não uma coisa
-// que se confere contra a lista. Onde o detalhe é um formulário que a pessoa
-// preenche olhando a fila — a análise de qualidade — a coluna ao lado
-// continua sendo o certo, e continua lá.
-//
-// TRÊS COISAS QUE UMA JANELA PRECISA TER, e que costumam faltar:
-//
-//   · Esc fecha. É o primeiro reflexo de quem usa teclado.
-//   · Clicar fora fecha, mas só no fundo — arrastar o texto de dentro e
-//     soltar o botão sobre o fundo NÃO pode fechar, e é isso que o
-//     `alvoDoAperto` resolve.
-//   · O fundo não rola atrás. Sem isso, a roda do mouse move a página de trás
-//     enquanto a pessoa acha que está rolando a janela.
 export function Janela({ titulo, subtitulo, acao, largura = 820, aoFechar, children }) {
   const fundo = useRef(null)
   const alvoDoAperto = useRef(null)
@@ -878,13 +511,8 @@ export function Janela({ titulo, subtitulo, acao, largura = 820, aoFechar, child
     }
     document.addEventListener('keydown', aoTeclar)
 
-    // Trava a rolagem do conteúdo atrás. O que rola nesta interface é o
-    // <main>, e não a janela do navegador — por isso o atributo vai no body e
-    // a regra que o usa está no index.css.
     document.body.setAttribute('data-janela-aberta', '')
 
-    // O foco entra na janela para que Tab ande dentro dela, e não na tela de
-    // trás, que a pessoa nem está vendo.
     painel.current?.focus()
 
     return () => {
@@ -928,8 +556,6 @@ export function Janela({ titulo, subtitulo, acao, largura = 820, aoFechar, child
           </button>
         </div>
 
-        {/* O corpo é quem rola. O cabeçalho fica: com o registro comprido, a
-            pessoa perde de vista de quem é a ficha que está lendo. */}
         <div className="min-h-0 flex-1 overflow-y-auto bg-fundo p-3 md:p-4">{children}</div>
       </div>
     </div>

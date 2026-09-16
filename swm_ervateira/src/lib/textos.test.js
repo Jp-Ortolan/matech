@@ -1,9 +1,3 @@
-// ---------------------------------------------------------------------------
-// TESTE UNITÁRIO · limites de tamanho dos campos cadastrais
-// ---------------------------------------------------------------------------
-// Dois testes carregam o arquivo: o do limite exato (que não pode recusar) e
-// o do PUT parcial (que não pode julgar campo que não veio).
-
 const { test, describe } = require('node:test')
 const assert = require('node:assert/strict')
 
@@ -33,8 +27,6 @@ describe('erroDeTamanho', () => {
   })
 
   test('não julga campo que não veio — é o caso do PUT parcial', () => {
-    // Uma atualização que só troca o telefone não pode ser recusada por causa
-    // do nome, que nem foi enviado.
     assert.equal(erroDeTamanho({ telefone: '4299999999' }), null)
   })
 
@@ -43,8 +35,6 @@ describe('erroDeTamanho', () => {
   })
 
   test('ignora campo que não está na lista', () => {
-    // uf e cpfCnpj têm tamanho garantido por outro caminho (slice e dígito
-    // verificador). Este arquivo não é o dono deles.
     assert.equal(erroDeTamanho({ uf: 'PARANA', cpfCnpj: '9'.repeat(50) }), null)
   })
 

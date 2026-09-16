@@ -1,14 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · login
-// ---------------------------------------------------------------------------
-// A ÚNICA tela do aplicativo que exige conexão, e não há como ser diferente:
-// a senha é conferida contra o hash que está no PostgreSQL, no servidor. Não
-// existe login offline sem guardar credencial no aparelho, e guardar
-// credencial no aparelho é pior do que exigir sinal uma vez por dia.
-//
-// Daí a orientação de uso que a própria tela dá: entre no aplicativo antes de
-// sair a campo. O token vale 8 horas, e a partir dele nada mais precisa de rede.
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -32,9 +21,6 @@ class _TelaLoginState extends State<TelaLogin> {
   final _usuario = TextEditingController();
   final _senha = TextEditingController();
 
-  /// Começa preenchido com o endereço que vale agora — e não vazio. Vazio
-  /// obrigaria a pessoa a saber de cor o que já está funcionando só para
-  /// conferir, e é assim que um endereço certo vira um endereço errado.
   late final _endereco = TextEditingController(text: Config.enderecoApi);
 
   bool _entrando = false;
@@ -51,11 +37,6 @@ class _TelaLoginState extends State<TelaLogin> {
     super.dispose();
   }
 
-  /// Grava o endereço digitado neste aparelho.
-  ///
-  /// NÃO passa pelo _formulario.validate(): aquele valida a tela inteira, e
-  /// pediria usuário e senha para quem só quer corrigir o endereço antes de
-  /// tentar entrar. A conferência é a mesma função, chamada direto.
   Future<void> _salvarEndereco() async {
     final problema = erroNoEndereco(_endereco.text);
     if (problema != null) {
@@ -68,8 +49,6 @@ class _TelaLoginState extends State<TelaLogin> {
     setState(() {
       _endereco.text = Config.enderecoApi;
       _avisoServidor = null;
-      // O erro que estava na tela era de um endereço que não vale mais.
-      // Deixá-lo faria a pessoa achar que a correção não pegou.
       _erro = null;
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -87,25 +66,9 @@ class _TelaLoginState extends State<TelaLogin> {
 
     try {
       await sessao.entrar(_usuario.text, _senha.text);
-      // Não navega: o ListenableBuilder do main() percebe a mudança e troca
-      // a tela sozinho. Uma fonte de verdade em vez de duas.
 
-      // Este é o instante em que HÁ SINAL COM CERTEZA — é o único momento do
-      // dia em que o aplicativo exige rede. Aproveitá-lo para trazer os
-      // cadastros do servidor é o que evita o avaliador chegar na propriedade,
-      // não encontrar o produtor na lista e cadastrar de novo alguém que já
-      // existe. O duplicado não nasce de má digitação: nasce de o dado não
-      // estar no aparelho na hora em que era preciso.
-      //
-      // Sem await de propósito: a lista pode continuar chegando enquanto a
-      // tela de início já aparece. Quem quiser esperar tem a tela de preparo,
-      // que mostra o andamento.
       unawaited(sincronizador.sincronizar());
     } on ErroDeRede catch (e) {
-      // A mensagem DIZ O ENDEREÇO que foi tentado. Sem isso, "sem conexão" faz
-      // todo mundo olhar para o sinal do celular — e na esmagadora maioria das
-      // vezes o sinal está bom e o endereço é que está errado, ou é um IP de
-      // rede local sendo procurado de fora dela.
       setState(
         () =>
             _erro =
@@ -120,9 +83,6 @@ class _TelaLoginState extends State<TelaLogin> {
     }
   }
 
-  /// A frase embaixo do campo. Muda conforme o endereço, porque a dúvida de
-  /// quem está olhando também muda: um endereço http:// numa rede local tem um
-  /// problema (só funciona nessa rede) que um https:// não tem.
   String get _mensagemDoServidor {
     final atual = Config.enderecoApi.toLowerCase();
     if (atual.startsWith('https://')) {
@@ -245,19 +205,6 @@ class _TelaLoginState extends State<TelaLogin> {
                     ),
                   ),
 
-                  // ------------------------------------------------------
-                  // ENDEREÇO DO SERVIDOR
-                  // ------------------------------------------------------
-                  // RECOLHIDO de propósito. O avaliador abre esta tela todo
-                  // dia e nunca precisa mexer aqui; quem mexe é quem instala o
-                  // aplicativo, uma vez. Um campo de URL visível no login
-                  // convida a mexer em algo que, alterado por engano, faz o
-                  // aplicativo parar de funcionar sem dizer por quê.
-                  //
-                  // Fica no login, e em nenhuma outra tela, porque trocar de
-                  // servidor no meio de uma sessão seria trocar de banco de
-                  // dados por baixo de um token que veio do servidor antigo.
-                  // Aqui ninguém está logado ainda: o problema não existe.
                   const SizedBox(height: 8),
                   TextButton.icon(
                     onPressed:
@@ -283,8 +230,6 @@ class _TelaLoginState extends State<TelaLogin> {
                       controller: _endereco,
                       keyboardType: TextInputType.url,
                       autocorrect: false,
-                      // Teclado de URL no Android ainda oferece maiúscula na
-                      // primeira letra, e "Http://" não conecta em lugar nenhum.
                       textCapitalization: TextCapitalization.none,
                       decoration: InputDecoration(
                         labelText: 'Endereço do servidor',
@@ -337,12 +282,6 @@ class _Marca extends StatelessWidget {
   const _Marca();
 
   @override
-  // A MARCA É O M DA PALAVRA, igual ao login da web.
-  //
-  // Antes era um Icons.eco_outlined branco num quadrado verde — um ícone
-  // genérico do Material, que não é a marca de nada e não aparecia em lugar
-  // nenhum do sistema web. Agora é o símbolo de verdade, e escrever "MATECH"
-  // ao lado dele repetiria a letra duas vezes: o símbolo já tem um M dentro.
   Widget build(BuildContext context) => const Column(
     mainAxisSize: MainAxisSize.min,
     children: [

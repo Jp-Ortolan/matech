@@ -1,31 +1,8 @@
-// ---------------------------------------------------------------------------
-// WIDGETS COMUNS
-// ---------------------------------------------------------------------------
-// As peças que aparecem em mais de uma tela. Ficam aqui para que "pendente"
-// tenha a mesma cara em todo lugar do aplicativo — se cada tela desenhasse a
-// sua, a etiqueta de sincronização acabaria significando coisas diferentes em
-// telas diferentes.
-
 import 'package:flutter/material.dart';
 
 import '../modelos/operacao_pendente.dart';
 import 'tema.dart';
 
-/// Etiqueta do estado de sincronização de um registro.
-///
-/// AS QUATRO PALAVRAS SÃO ESCOLHIDAS PARA QUEM NÃO PROGRAMA, porque quem lê
-/// esta etiqueta é o avaliador, no erval, decidindo se pode ir embora:
-///
-///   Pendente      salvo no aparelho, ainda não subiu. Estado NORMAL no campo,
-///                 e por isso a cor não é de alarme — não há nada errado.
-///   Aguardando    depende de um registro que ainda não chegou ao servidor.
-///                 Resolve sozinho na próxima passada.
-///   Sincronizada  o servidor confirmou. Está a salvo no escritório.
-///   Recusada      o servidor disse não. Insistir não conserta: precisa de
-///                 uma pessoa. É a única que pede ação.
-///
-/// Um registro sem linha na fila também aparece como Pendente: se ele existe
-/// no aparelho e ninguém confirmou, pendente é exatamente o que ele é.
 class EtiquetaSincronizacao extends StatelessWidget {
   final String? situacao;
   const EtiquetaSincronizacao(this.situacao, {super.key});
@@ -76,9 +53,6 @@ class EtiquetaSincronizacao extends StatelessWidget {
   }
 }
 
-/// Tela vazia com uma explicação — nunca uma lista em branco sem motivo.
-/// No erval, uma lista vazia sem texto deixa o avaliador sem saber se o dado
-/// não existe ou se o aplicativo falhou.
 class Vazio extends StatelessWidget {
   final IconData icone;
   final String titulo;
@@ -120,7 +94,6 @@ class Vazio extends StatelessWidget {
   );
 }
 
-/// Bloco de rótulo + valor, usado nos detalhes.
 class LinhaDado extends StatelessWidget {
   final String rotulo;
   final String valor;

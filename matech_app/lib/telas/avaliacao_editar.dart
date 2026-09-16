@@ -1,35 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · editar avaliação  (RF18 · resolução de conflito)
-// ---------------------------------------------------------------------------
-// ESTA É A TELA QUE TORNA O DIFERENCIAL DO TRABALHO DEMONSTRÁVEL.
-//
-// O mecanismo de última escrita válida já existia no modelo, no DAO e no
-// servidor — mas sem uma tela de edição não havia como acioná-lo. Um mecanismo
-// que ninguém consegue disparar é indistinguível de um mecanismo que não
-// funciona, e numa banca essa distinção não sobrevive a uma pergunta.
-//
-// O QUE ACONTECE AO SALVAR, NA ORDEM:
-//
-//   1. alteradoEmOrigem é reescrito com o relógio DESTE APARELHO, agora;
-//   2. a linha da avaliação é atualizada e sincronizado_em volta a ser nulo;
-//   3. a operação é reenfileirada com o payload NOVO, substituindo o antigo
-//      (a fila usa o clientId como chave, então nunca sobe versão vencida);
-//   4. no servidor, o applicator compara o alteradoEmOrigem que chegou com o
-//      que está gravado, e o mais recente vence — independente da ordem de
-//      chegada.
-//
-// O TERCEIRO PASSO É O QUE PARECE DETALHE E NÃO É. Se o reenfileiramento
-// criasse uma segunda linha em vez de substituir, o aparelho poderia enviar a
-// versão antiga DEPOIS da nova. O servidor até resolveria certo — é para isso
-// que o carimbo existe —, mas gastaria uma requisição para reafirmar um dado
-// que já estava correto.
-//
-// O QUE NÃO SE EDITA, E POR QUÊ: produtor, área e data da avaliação. Eles são
-// a IDENTIDADE do registro, não atributos dele. Uma avaliação de outro
-// produtor não é a mesma avaliação corrigida — é outra avaliação, e deve
-// nascer como tal, com clientId próprio. Permitir trocá-los aqui geraria, no
-// escritório, um registro cuja história não bate com nada.
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -102,8 +70,6 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
     for (final c in [_quantidade, _idadeErval, _valorCombinado, _observacoes]) {
       c.dispose();
     }
-    // Fotos adicionadas e não salvas são rascunho, como no formulário de
-    // criação. Saiu sem salvar, some.
     if (!_salvou) {
       for (final foto in _fotosNovas) {
         unawaited(Arquivos.apagarFoto(foto.caminho));
@@ -111,8 +77,6 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
     }
     super.dispose();
   }
-
-  // -------------------------------------------------------------------------
 
   Future<void> _lerLocalizacao() async {
     setState(() => _lendoGps = true);
@@ -141,17 +105,12 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
     }
   }
 
-  // -------------------------------------------------------------------------
-
   Future<void> _salvar() async {
     if (!_formulario.currentState!.validate()) return;
     setState(() => _salvando = true);
 
     final a = widget.original;
 
-    // O objeto é montado INTEIRO, campo a campo, em vez de "copiar mudando
-    // alguns". É o que permite LIMPAR um valor: apagar a observação ou o valor
-    // combinado passa null de verdade, e não restaura o antigo em silêncio.
     final editada = Avaliacao(
       clientId: a.clientId, // a identidade não muda — é ela que
       id: a.id, // amarra esta edição ao registro original
@@ -171,15 +130,11 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
       longitude: _localizacaoNova?.longitude ?? a.longitude,
       observacoes:
           _observacoes.text.trim().isEmpty ? null : _observacoes.text.trim(),
-      // Valor de passagem: o DAO reescreve com o instante da gravação, que é
-      // o momento certo — não o momento em que a tela abriu.
       alteradoEmOrigem: a.alteradoEmOrigem,
     );
 
     await AvaliacaoDao.atualizarEmCampo(editada);
 
-    // As fotos novas entram por fora: elas não alteram nenhum campo da
-    // avaliação, e por isso não participam da resolução de conflito dela.
     if (_fotosNovas.isNotEmpty) {
       await FotoDao.acrescentarAAvaliacao(
         _fotosNovas
@@ -204,8 +159,6 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
     if (mounted) Navigator.pop(context, true);
   }
 
-  // -------------------------------------------------------------------------
-
   @override
   Widget build(BuildContext context) {
     final a = widget.original;
@@ -214,33 +167,11 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
       appBar: AppBar(title: const Text('Editar avaliação')),
       body: Form(
         key: _formulario,
-        // SingleChildScrollView + Column, e NÃO ListView.
-        //
-        // A ARMADILHA QUE ISTO CONSERTA, e que custou uma fila travada:
-        //
-        // O ListView é preguiçoso — os filhos que saem da tela são desmontados.
-        // Um TextFormField desmontado SE DESREGISTRA do Form, e o validate()
-        // deixa de enxergá-lo. Como o botão de salvar fica no fim de um
-        // formulário longo, os campos obrigatórios do topo já tinham sido
-        // descartados quando o validador rodava: o formulário salvava sem
-        // reclamar, com campo obrigatório vazio, e o erro só aparecia no
-        // servidor — que recusava o registro e deixava os filhos dele
-        // esperando na fila para sempre.
-        //
-        // O SingleChildScrollView constrói tudo de uma vez. Num formulário de
-        // vinte campos isso não custa nada, e devolve ao validate() a única
-        // coisa que se espera dele: ver o formulário inteiro.
-        //
-        // O stretch é obrigatório: o ListView esticava os filhos na largura
-        // por padrão e a Column, não. Sem ele, botões e campos encolheriam
-        // para o tamanho do conteúdo.
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Identidade, em leitura. Deixar visível e não editável é mais
-              // honesto que esconder: o avaliador vê de qual registro se trata.
               Card(
                 color: Colors.black.withValues(alpha: 0.03),
                 child: Padding(
@@ -455,4 +386,3 @@ class _Secao extends StatelessWidget {
     ),
   );
 }
-

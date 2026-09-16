@@ -1,60 +1,48 @@
-# ---------------------------------------------------------------------------
-# MATECH · o que NÃO entra no repositório
-# ---------------------------------------------------------------------------
-
-# Dependências. São reinstaláveis a partir do package.json e do pubspec.yaml,
-# e somadas passam de 300 MB — versionar isso tornaria o repositório
-# inutilizável para quem clonar.
+# Dependências e artefatos de build
 node_modules/
-.pub-cache/
-.dart_tool/
-build/
+swm_ervateira/web/dist/
+matech_app/build/
+matech_app/.dart_tool/
 
-# SEGREDOS. O .env tem a senha do banco e a chave que assina os tokens JWT.
-# Quem tiver essa chave consegue forjar um token e entrar como qualquer
-# usuário — por isso ele nunca sai da máquina. O .env.exemplo, versionado,
-# mostra QUAIS variáveis existem sem revelar nenhum valor.
+# Segredos e ambiente
 .env
 .env.local
 *.env
 
-# Código gerado pelo Prisma a partir do schema.prisma. É reproduzido por
-# `npx prisma generate` e mudaria a cada versão do Prisma, poluindo o
-# histórico com diferenças que ninguém escreveu.
-generated/
+# Fotos gravadas em disco pela API (dado de operação, não código)
+swm_ervateira/uploads/
 
-# Dados de usuário: as fotos que o aplicativo envia do erval. São dados de
-# produção, não código.
-uploads/
+# Documentação de ferramentas copiada para dentro do projeto por
+# assistentes de código. Não é do MATECH.
+#
+# O "**/" é necessário: um padrão que já contém barra é ancorado na pasta do
+# .gitignore, e sem ele estas linhas só valeriam para a raiz.
+**/.claude/skills/
+**/.windsurf/skills/
+**/.agents/
 
-# Saídas de build do front
-dist/
-*.tsbuildinfo
+# Notas de contexto escritas para retomar conversa com assistente de código.
+# Valem para o dia em que foram escritas, não para quem lê o repositório.
+CONTEXTO_*.md
 
-# Artefatos do Flutter
-*.iml
-.flutter-plugins
-.flutter-plugins-dependencies
-matech_app/android/local.properties
-matech_app/android/.gradle/
-matech_app/android/app/debug/
-matech_app/android/app/profile/
-matech_app/android/app/release/
+# Material da banca: roteiro de apresentação e PDFs gerados a partir dele.
+# É entrega da faculdade, não do sistema.
+Guia_apresentacao_*.md
+MATECH_estudo.pdf
+MATECH_guia_banca.pdf
 
-# Editores e sistema operacional
-.idea/
-.vscode/
-Thumbs.db
-.DS_Store
+# Anotação solta de análise
+matech_app/analise.txt
 
-# Backups deixados durante o desenvolvimento
+# Arquivos removidos que aguardam exclusão manual, e backups de pasta
+_to_delete/
+**/_backup_*/
 *.bak
-_backup_*/
 
-# Documentação de terceiros baixada pelo CLI do Prisma. Não é código deste
-# trabalho, e são 40 arquivos que poluiriam qualquer busca no repositório.
-.agents/
+# Scripts soltos de verificação pontual
+swm_ervateira/verificar-*.js
 
-# Saídas de diagnóstico
-analise.txt
-npm-debug.log*
+# Sistema operacional
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,9 +1,3 @@
-// ---------------------------------------------------------------------------
-// TESTES · formatação e concordância de número
-// ---------------------------------------------------------------------------
-// Cobrem duas coisas que a interface repete o tempo todo: o travessão no lugar
-// de valor ausente, e o plural.
-
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -17,8 +11,6 @@ describe('plural', () => {
   })
 
   test('zero é plural em português', () => {
-    // "0 carga" está errado; "0 cargas" está certo. É o caso que mais aparece,
-    // porque tela vazia é o estado inicial de todo relatório.
     assert.equal(plural(0, 'ordem emitida', 'ordens emitidas'), 'ordens emitidas')
   })
 
@@ -52,8 +44,6 @@ describe('formatar · ausência vira travessão', () => {
   })
 
   test('zero NÃO é ausência', () => {
-    // A distinção que o travessão existe para fazer: "não pesou nada" e
-    // "não sabemos quanto pesou" são coisas diferentes na balança.
     assert.equal(formatar.kg(0), '0 kg')
     assert.equal(formatar.numero(0), '0')
   })
@@ -66,6 +56,8 @@ describe('formatar · números', () => {
 
   test('preço por quilo com as quatro casas do banco', () => {
     assert.match(formatar.precoKg(4.656), /4,6560\/kg$/)
+    assert.match(formatar.precoKgCurto(4.656), /4,66\/kg$/)
+    assert.equal(formatar.precoKgCurto(null), '—')
   })
 
   test('percentual com vírgula', () => {

@@ -1,19 +1,3 @@
-// ---------------------------------------------------------------------------
-// APLICAÇÃO · montagem do Express
-// ---------------------------------------------------------------------------
-// Este arquivo monta a aplicação e junta os módulos, mas NÃO sobe o servidor.
-// Quem sobe é o server.js.
-//
-// Por que separar: assim os testes automatizados conseguem importar o app e
-// disparar requisições sem ocupar a porta 3000. É o que vai permitir os testes
-// funcionais previstos no Quadro 8.
-//
-// A ORDEM importa. O Express executa os middlewares de cima para baixo:
-//   1. cors e json      → preparam a requisição
-//   2. rotas            → atendem
-//   3. naoEncontrado    → nada atendeu, é 404
-//   4. tratarErros      → alguém lançou erro, vira JSON
-
 const express = require('express')
 const cors = require('cors')
 
@@ -30,8 +14,6 @@ const avaliacoesRoutes = require('./modules/avaliacoes/avaliacoes.routes')
 const qualidadeRoutes = require('./modules/qualidade/qualidade.routes')
 const pagamentosRoutes = require('./modules/pagamentos/pagamentos.routes')
 const sincronizacaoRoutes = require('./modules/sincronizacao/sincronizacao.routes')
-const parametrosRoutes = require('./modules/parametros/parametros.routes')
-const dashboardRoutes = require('./modules/dashboard/dashboard.routes')
 const auditoriaRoutes = require('./modules/auditoria/auditoria.routes')
 
 const app = express()
@@ -39,13 +21,11 @@ const app = express()
 app.use(cors())            // libera o React (que roda em outra porta) a chamar esta API
 app.use(express.json())    // ensina o Express a ler corpo de requisição em JSON
 
-// Verificação de saúde: confirma que a API responde E que o banco está acessível.
 app.get('/health', async (req, res) => {
   await prisma.$queryRaw`SELECT 1`
   res.json({ status: 'ok', banco: 'conectado', horario: new Date() })
 })
 
-// Cada módulo cuida do seu pedaço da API.
 app.use('/api/auth', authRoutes)
 app.use('/api/usuarios', usuariosRoutes)
 app.use('/api/produtores', produtoresRoutes)
@@ -55,22 +35,8 @@ app.use('/api/avaliacoes', avaliacoesRoutes)
 app.use('/api/qualidade', qualidadeRoutes)
 app.use('/api/pagamentos', pagamentosRoutes)
 app.use('/api/sincronizacao', sincronizacaoRoutes)
-app.use('/api/parametros', parametrosRoutes)
-app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/auditoria', auditoriaRoutes)
 
-// As fotos enviadas pelo aplicativo ficam acessíveis por URL, para que a web
-// consiga exibi-las. express.static é do próprio Express — nenhuma biblioteca
-// nova entrou no projeto por causa de upload.
-//
-// Esta pasta é a ÚNICA na aplicação cujo conteúdo vem de fora. A rota de
-// upload já confere os bytes e só grava JPEG, PNG ou WebP — mas servir é a
-// segunda metade do problema, e as duas linhas abaixo tratam dela:
-//
-//   nosniff  — o navegador respeita o Content-Type que o Express deduz da
-//              extensão e não tenta "adivinhar" que aquilo é HTML.
-//   index    — desliga a listagem de diretório; ninguém precisa enumerar as
-//              fotos de todos os produtores para ver a de uma avaliação.
 app.use(
   '/uploads',
   express.static(PASTA_UPLOADS, {

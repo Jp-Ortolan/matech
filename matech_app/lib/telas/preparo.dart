@@ -1,29 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · preparo para o campo
-// ---------------------------------------------------------------------------
-// Aparece uma vez, logo depois do primeiro login, e resolve um problema de
-// SEQUÊNCIA — não de interface.
-//
-// O ANDROID PEDE PERMISSÃO NO MOMENTO DO USO. Sem esta tela, o avaliador só
-// veria o diálogo de câmera e de GPS quando já estivesse dentro do erval, na
-// frente do produtor, com o formulário aberto. Se negasse ali — por pressa,
-// por desconfiança, por engano — perderia a foto e a coordenada daquela
-// avaliação, e recuperar exigiria voltar à propriedade.
-//
-// Pedir aqui, com calma, no escritório, muda a natureza da pergunta: em vez de
-// um diálogo do sistema interrompendo o trabalho, é uma tela que explica para
-// que serve cada permissão antes de pedi-la.
-//
-// A MESMA LÓGICA VALE PARA OS PRODUTORES. Baixar o espelho é a única coisa do
-// aplicativo que degrada sem conexão, e é justamente a que precisa ser feita
-// ANTES de sair. Deixar isso a cargo da memória do avaliador seria garantir
-// que um dia ele esqueceria — e descobriria no erval, sem sinal, que o
-// produtor que procura não está na lista.
-//
-// NADA AQUI É OBRIGATÓRIO. O botão de pular existe e é honesto: quem já
-// concedeu tudo, ou quem está saindo às pressas, não deve ser barrado por uma
-// tela de preparo. Ela informa, não impõe.
-
 import 'package:flutter/material.dart';
 
 import '../servicos/api.dart';
@@ -33,7 +7,6 @@ import '../servicos/localizacao.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/tema.dart';
 
-/// Estado de cada passo, para a tela saber que ícone mostrar.
 enum _Passo { pendente, fazendo, feito, falhou }
 
 class TelaPreparo extends StatefulWidget {
@@ -57,14 +30,6 @@ class _TelaPreparoState extends State<TelaPreparo> {
       _camera != _Passo.pendente &&
       _produtores != _Passo.pendente;
 
-  // -------------------------------------------------------------------------
-
-  /// Pede a permissão de localização DE FATO — capturando uma posição.
-  ///
-  /// Não existe "só pedir a permissão" sem tentar usar: é o pedido de uso que
-  /// dispara o diálogo do sistema. E tentar de verdade tem uma vantagem: se o
-  /// GPS estiver desligado, o avaliador descobre agora, no escritório, e não
-  /// no meio do mato.
   Future<void> _pedirLocalizacao() async {
     setState(() => _localizacao = _Passo.fazendo);
 
@@ -86,15 +51,12 @@ class _TelaPreparoState extends State<TelaPreparo> {
     }
   }
 
-  /// Mesma ideia: abrir a câmera é o que dispara o pedido de permissão.
-  /// A foto tirada aqui é descartada — o objetivo é a permissão, não a imagem.
   Future<void> _pedirCamera() async {
     setState(() => _camera = _Passo.fazendo);
 
     final resultado = await CapturaDeFotos.daCamera();
     if (!mounted) return;
 
-    // Descarta o que foi capturado: era só para provocar o diálogo do sistema.
     for (final foto in resultado.fotos) {
       await Arquivos.apagarFoto(foto.caminho);
     }
@@ -105,8 +67,6 @@ class _TelaPreparoState extends State<TelaPreparo> {
         _camera = _Passo.feito;
         _detalheCamera = 'Liberada e funcionando.';
       } else if (resultado.cancelado) {
-        // Fechou a câmera sem tirar foto. A permissão foi concedida — senão
-        // a câmera nem teria aberto —, então isto conta como sucesso.
         _camera = _Passo.feito;
         _detalheCamera = 'Liberada.';
       } else {
@@ -152,8 +112,6 @@ class _TelaPreparoState extends State<TelaPreparo> {
     await _pedirCamera();
     await _baixarProdutores();
   }
-
-  // -------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {

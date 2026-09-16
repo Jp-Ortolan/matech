@@ -1,22 +1,8 @@
-// ---------------------------------------------------------------------------
-// MODELO · foto do erval
-// ---------------------------------------------------------------------------
-// A foto é o item mais pesado da coleta e o mais frágil no envio: 2 a 4 MB
-// atravessando uma conexão de zona rural. Por isso ela NÃO viaja junto da
-// avaliação — vai depois, uma requisição por foto.
-//
-// A consequência prática: a avaliação (uns poucos KB) sobe de primeira, e as
-// fotos vão pingando conforme o sinal permite. Se a terceira foto falhar, a
-// avaliação e as duas primeiras já estão salvas no servidor. Se elas viajassem
-// juntas, a mesma falha derrubaria tudo.
-
 class Foto {
   final String clientId;
   final String? id;
   final String avaliacaoClientId;
 
-  /// Caminho do arquivo NO APARELHO. Enquanto não sincroniza, é o único lugar
-  /// onde a imagem existe.
   final String caminhoLocal;
   final int? tamanhoBytes;
   final int? largura;

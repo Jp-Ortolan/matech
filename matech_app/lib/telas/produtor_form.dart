@@ -1,22 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · cadastro rápido de produtor  (RF01 e RF02)
-// ---------------------------------------------------------------------------
-// "RÁPIDO" É REQUISITO, NÃO ADJETIVO. Este formulário é preenchido em pé, no
-// meio de um erval, muitas vezes com o produtor esperando ao lado. Por isso:
-//
-//   - só nome e documento são obrigatórios; o resto pode ficar para depois,
-//     e o cadastro sobe assim mesmo (o servidor exige exatamente esses dois);
-//   - a chave Pix está aqui, e não numa segunda tela, porque é o dado que o
-//     produtor tem na cabeça NAQUELE momento — perguntar depois, por telefone,
-//     custa uma ligação e um dia;
-//   - a checagem de documento duplicado é local e imediata. O servidor também
-//     barraria (cpfCnpj é @unique), mas só na sincronização, horas depois,
-//     longe de quem digitou. Um erro descoberto no erval custa dez segundos;
-//     o mesmo erro descoberto no escritório custa uma viagem.
-//
-// Ao salvar, o produtor entra no SQLite e na fila NA MESMA TRANSAÇÃO. Nenhuma
-// linha deste arquivo fala com a rede.
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -78,7 +59,6 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
 
     final documento = apenasDigitos(_documento.text);
 
-    // Checagem local antes de gravar — ver o comentário no topo do arquivo.
     final jaExiste = await ProdutorDao.porDocumento(documento);
     if (jaExiste != null) {
       if (mounted) {
@@ -94,16 +74,12 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
     setState(() => _salvando = true);
 
     final produtor = Produtor(
-      // O clientId nasce AQUI, antes de qualquer conexão. É ele que impede a
-      // duplicação se o envio for repetido — a chave de idempotência.
       clientId: novoClientId(),
       nome: _nome.text.trim(),
       cpfCnpj: documento,
       telefone: _vazioVirauNulo(_telefone.text),
       municipio: _vazioVirauNulo(_municipio.text),
       uf: _vazioVirauNulo(_uf.text)?.toUpperCase(),
-      // formaPagamento fica no padrão do modelo, que já é PIX — é como a
-      // ervateira paga hoje.
       tipoChavePix: _chavePix.text.trim().isEmpty ? null : _tipoChave,
       chavePix: _vazioVirauNulo(_chavePix.text),
       criadoOffline: true,
@@ -112,10 +88,6 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
     await ProdutorDao.criarEmCampo(produtor);
     await sincronizador.atualizarContagens();
 
-    // Uma tentativa de subir na hora. Se não houver sinal, falha em silêncio —
-    // o produtor já está salvo e a fila já sabe que precisa enviá-lo.
-    // unawaited() é do dart:async: dispara e segue, deixando explícito
-    // que não esperar aqui é intencional.
     unawaited(sincronizador.sincronizar());
 
     if (mounted) Navigator.pop(context, true);
@@ -127,26 +99,6 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
       appBar: AppBar(title: const Text('Cadastrar produtor')),
       body: Form(
         key: _formulario,
-        // SingleChildScrollView + Column, e NÃO ListView.
-        //
-        // A ARMADILHA QUE ISTO CONSERTA, e que custou uma fila travada:
-        //
-        // O ListView é preguiçoso — os filhos que saem da tela são desmontados.
-        // Um TextFormField desmontado SE DESREGISTRA do Form, e o validate()
-        // deixa de enxergá-lo. Como o botão de salvar fica no fim de um
-        // formulário longo, os campos obrigatórios do topo já tinham sido
-        // descartados quando o validador rodava: o formulário salvava sem
-        // reclamar, com campo obrigatório vazio, e o erro só aparecia no
-        // servidor — que recusava o registro e deixava os filhos dele
-        // esperando na fila para sempre.
-        //
-        // O SingleChildScrollView constrói tudo de uma vez. Num formulário de
-        // vinte campos isso não custa nada, e devolve ao validate() a única
-        // coisa que se espera dele: ver o formulário inteiro.
-        //
-        // O stretch é obrigatório: o ListView esticava os filhos na largura
-        // por padrão e a Column, não. Sem ele, botões e campos encolheriam
-        // para o tamanho do conteúdo.
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -159,9 +111,6 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
                 maxLength: kMaxNome,
                 decoration: const InputDecoration(
                   labelText: 'Nome completo *',
-                  // O contador embaixo do campo só aparece quando incomoda:
-                  // um nome normal não chega perto de 120, e mostrar "18/120"
-                  // o tempo todo transforma um teto de sanidade em cobrança.
                   counterText: '',
                 ),
                 validator:
@@ -181,15 +130,6 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
                   helperText: 'Só os números',
                   counterText: '',
                 ),
-                // O DÍGITO VERIFICADOR, e não só o comprimento.
-                //
-                // Antes bastava ter 11 ou 14 dígitos. Um CPF com um número
-                // trocado passava aqui, o cadastro entrava na fila, o avaliador
-                // ia embora — e a recusa vinha do servidor horas depois, com o
-                // produtor a quarenta quilômetros e ninguém sabendo qual dígito
-                // estava errado.
-                //
-                // A conta é a mesma do servidor e da web, em servicos/documentos.
                 validator: erroNoDocumento,
               ),
               const SizedBox(height: 12),
@@ -226,8 +166,6 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
                       controller: _uf,
                       textCapitalization: TextCapitalization.characters,
                       maxLength: 2,
-                      // UF é sigla: dois dígitos aqui não são um estado, são
-                      // o dedo que escorregou do campo de cima.
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp('[A-Za-z]')),
                       ],

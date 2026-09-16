@@ -1,17 +1,3 @@
-// ---------------------------------------------------------------------------
-// PÁGINA · avaliações de campo
-// ---------------------------------------------------------------------------
-// O que o aplicativo coletou no erval, visto do escritório.
-//
-// Esta tela é a outra metade do trabalho. Sem ela, a única forma de conferir
-// uma sincronização seria abrir o banco de dados — e o diferencial do sistema,
-// que é a coleta em campo funcionando sem conexão, ficaria invisível para
-// quem usa. O que não aparece na tela, para a empresa, não existe.
-//
-// Duas metades, como na tela de análise: a lista à esquerda, o detalhe à
-// direita. A foto ocupa espaço de propósito — ela é a prova do que o avaliador
-// viu, e uma miniatura de 40 pixels não prova nada sobre folha, talo ou queima.
-
 import { useCallback, useEffect, useState } from 'react'
 import { avaliacoesCampo, produtores as apiProdutores, sincronizacao } from '../api/recursos'
 import { CabecalhoPagina } from '../componentes/Layout'
@@ -60,16 +46,11 @@ export default function CampoPagina() {
     apiProdutores.listar().then((r) => setListaProdutores(r.produtores)).catch(() => {})
   }, [])
 
-  // O resumo da sincronização vive aqui desde que a tela própria saiu do menu.
-  // Faz sentido: a pergunta "chegou tudo o que foi coletado?" só existe por
-  // causa desta tela, e antes obrigava a trocar de página para ser respondida.
   useEffect(() => {
     sincronizacao.resumo().then(setSincronia).catch(() => setSincronia(null))
   }, [])
 
   async function abrir(linha) {
-    // Busca o detalhe em vez de reaproveitar a linha da lista: o detalhe traz
-    // as cargas que nasceram desta avaliação, que a listagem não carrega.
     setSelecionada(await avaliacoesCampo.buscar(linha.id))
   }
 
@@ -144,11 +125,6 @@ export default function CampoPagina() {
 
       <ResumoDaSincronizacao sincronia={sincronia} />
 
-      {/* A lista ocupa a largura toda: o detalhe saiu da coluna ao lado e
-          passou a abrir numa janela. Com a coluna, o detalhe de uma avaliação
-          — cinco blocos empilhados — ficava muito mais alto que uma lista de
-          duas linhas, e ler até o fim exigia rolar até um ponto em que a
-          metade esquerda estava vazia. */}
       <Painel titulo="Coletadas" acao={`${dados?.avaliacoes.length ?? 0} na lista`}>
           {carregando ? (
             <Carregando />
@@ -228,8 +204,6 @@ function Detalhe({ avaliacao: a }) {
 
       <Fotos fotos={a.fotos ?? []} />
 
-      {/* A procedência do registro. É o que diferencia esta tela de um CRUD:
-          aqui se vê não só o dado, mas COMO ele chegou. */}
       <Painel titulo="Procedência">
         <div className="grid grid-cols-2 gap-3 px-3 py-3 md:grid-cols-3">
           <LinhaDado
@@ -279,13 +253,6 @@ function Detalhe({ avaliacao: a }) {
   )
 }
 
-/**
- * As fotos, em tamanho que dá para julgar.
- *
- * Abrem em nova aba no clique. Não há visualizador embutido de propósito: o
- * navegador já faz zoom, rotação e download melhor do que qualquer coisa que
- * eu escrevesse aqui, e uma tela de TCC não precisa reinventar isso.
- */
 function Fotos({ fotos }) {
   if (fotos.length === 0) {
     return (
@@ -319,17 +286,6 @@ function Fotos({ fotos }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Resumo da sincronização
-// ---------------------------------------------------------------------------
-// Era uma tela inteira, com filtro por aparelho e o log de todas as operações
-// recebidas. Virou este bloco por uma razão simples: aquilo respondia a uma
-// pergunta só — "chegou tudo o que foi coletado?" — e obrigava a trocar de
-// página para respondê-la, justamente na tela onde a pergunta nasce.
-//
-// O que ficou é o que se olha: a proporção do que chegou, e o que está preso.
-// O que saiu foi o log operação a operação, que interessa a quem depura a
-// sincronização, não a quem confere a coleta do dia.
 function ResumoDaSincronizacao({ sincronia }) {
   if (!sincronia || !sincronia.total) return null
 
@@ -340,8 +296,6 @@ function ResumoDaSincronizacao({ sincronia }) {
     if (l.situacao === 'ENVIADO') acc[chave].enviados += l.total
     return acc
   }, {})
-
-  const presos = sincronia.pendentes + sincronia.comErro
 
   return (
     <Painel
@@ -359,24 +313,6 @@ function ResumoDaSincronizacao({ sincronia }) {
             cor="bg-mate-500"
           />
         ))}
-
-        {presos > 0 && (
-          <p className="rounded-[3px] border border-[#e2c894] bg-alerta-bg px-3 py-2 text-[10.5px] leading-relaxed text-alerta">
-            {sincronia.pendentes > 0 && (
-              <>
-                {sincronia.pendentes} {sincronia.pendentes === 1 ? 'operação aguarda' : 'operações aguardam'} uma
-                dependência que ainda não chegou ao servidor — resolvem-se sozinhas no próximo envio do aparelho.
-              </>
-            )}
-            {sincronia.pendentes > 0 && sincronia.comErro > 0 && ' '}
-            {sincronia.comErro > 0 && (
-              <>
-                {sincronia.comErro} {sincronia.comErro === 1 ? 'foi recusada' : 'foram recusadas'} pelo servidor e
-                {sincronia.comErro === 1 ? ' precisa' : ' precisam'} de uma pessoa: insistir não resolve.
-              </>
-            )}
-          </p>
-        )}
 
         {sincronia.conflitos > 0 && (
           <p className="text-[10px] text-cinza-400">

@@ -1,14 +1,3 @@
-// ---------------------------------------------------------------------------
-// MODELO · erval
-// ---------------------------------------------------------------------------
-// A área de onde a erva sai. O schema exige que toda avaliação pertença a um
-// erval, e não diretamente ao produtor — o que está certo: quem avalia está
-// fisicamente numa área, e é a área que tem coordenada, idade e tipo.
-//
-// Por isso o formulário de avaliação tem "erval", com criação rápida na hora:
-// no mato, o avaliador não vai voltar a uma tela de cadastro para depois
-// avaliar. Ele escolhe uma área conhecida ou nomeia uma nova ali mesmo.
-
 class Erval {
   final String clientId;
   final String? id;
@@ -73,14 +62,6 @@ class Erval {
             : DateTime.tryParse(l['sincronizado_em'] as String),
   );
 
-  /// Vindo dentro de GET /api/produtores, que já devolve os ervais de cada
-  /// produtor. Espelhar essas áreas importa mais do que parece: sem elas, um
-  /// produtor baixado do servidor apareceria no aplicativo sem nenhuma área
-  /// conhecida, e o avaliador seria obrigado a criar uma nova a cada visita —
-  /// enchendo a web de áreas duplicadas da mesma propriedade.
-  ///
-  /// Como essas áreas nasceram no servidor, elas não têm clientId. O próprio
-  /// id serve de chave local, já que ele existe e é único.
   factory Erval.daApi(
     Map<String, dynamic> j, {
     required String produtorClientId,
@@ -98,9 +79,6 @@ class Erval {
     sincronizadoEm: DateTime.now(),
   );
 
-  /// O payload manda os DOIS identificadores do produtor. O servidor tenta
-  /// primeiro pelo id e cai no clientId se ele ainda não existir lá — é assim
-  /// que um erval de um produtor recém-criado offline encontra o dono.
   Map<String, dynamic> paraPayload() => {
     'produtorId': produtorId,
     'produtorClientId': produtorClientId,

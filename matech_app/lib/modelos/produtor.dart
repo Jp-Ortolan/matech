@@ -1,16 +1,3 @@
-// ---------------------------------------------------------------------------
-// MODELO · produtor
-// ---------------------------------------------------------------------------
-// DOIS IDENTIFICADORES, E É ISSO QUE FAZ O OFFLINE FUNCIONAR:
-//
-//   clientId  gerado no aparelho, SEMPRE presente, desde o primeiro instante.
-//   id        vem do servidor, NULO enquanto o registro não subiu.
-//
-// Enquanto id é nulo, quem identifica o produtor é o clientId — e é por ele
-// que o erval e a avaliação criados no mesmo dia se penduram. Sem esse par,
-// um produtor cadastrado no erval não teria como ser dono de nada até chegar
-// no escritório.
-
 class Produtor {
   final String clientId;
   final String? id;
@@ -44,7 +31,6 @@ class Produtor {
     this.sincronizadoEm,
   });
 
-  /// Já subiu para o servidor?
   bool get sincronizado => id != null && sincronizadoEm != null;
 
   Produtor copiarCom({String? id, DateTime? sincronizadoEm}) => Produtor(
@@ -64,7 +50,6 @@ class Produtor {
     sincronizadoEm: sincronizadoEm ?? this.sincronizadoEm,
   );
 
-  // ---- SQLite -------------------------------------------------------------
   Map<String, Object?> paraLinha() => {
     'client_id': clientId,
     'id': id,
@@ -99,9 +84,6 @@ class Produtor {
     sincronizadoEm: _data(l['sincronizado_em']),
   );
 
-  /// Vindo de GET /api/produtores. O servidor pode devolver produtores que
-  /// nasceram na web e nunca tiveram clientId — nesse caso o próprio id serve
-  /// de chave local, já que ele existe e é único.
   factory Produtor.daApi(Map<String, dynamic> j) => Produtor(
     clientId: (j['clientId'] as String?) ?? 'servidor:${j['id']}',
     id: j['id'] as String?,
@@ -119,7 +101,6 @@ class Produtor {
     sincronizadoEm: DateTime.now(),
   );
 
-  /// O que vai dentro do payload da operação de sincronização.
   Map<String, dynamic> paraPayload() => {
     'nome': nome,
     'cpfCnpj': cpfCnpj,

@@ -1,19 +1,3 @@
-// ---------------------------------------------------------------------------
-// DAO · fila de sincronização  (RNF08)
-// ---------------------------------------------------------------------------
-// A fila é o padrão Outbox: a INTENÇÃO de enviar é gravada no mesmo banco, e
-// na mesma transação, que o dado. Não existe instante em que a avaliação está
-// salva e a vontade de enviá-la não está — que é exatamente o buraco por onde
-// os dados somem em aplicativos que "enviam depois".
-//
-// A ORDEM É PARTE DA CORREÇÃO, não um detalhe de desempenho. O servidor
-// resolve as dependências dentro do lote lendo as operações uma a uma, na
-// ordem em que chegam. Se a avaliação subisse antes do erval, o servidor
-// responderia DEPENDENCIA_PENDENTE e o dado ficaria dando voltas. A coluna
-// sequencia (AUTOINCREMENT) é o que garante o FIFO — e ela existe porque
-// ordenar por data de criação empataria: produtor, erval e avaliação de um
-// mesmo formulário nascem no mesmo segundo.
-
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
@@ -23,8 +7,6 @@ import '../servicos/politica_de_tentativas.dart';
 import 'banco_local.dart';
 
 class FilaDao {
-  /// Enfileira DENTRO de uma transação já aberta. É sempre assim que o
-  /// enfileiramento acontece: junto da gravação do dado, nunca solto.
   static Future<void> enfileirarNaTransacao(
     Transaction txn, {
     required String clientId,
@@ -45,30 +27,10 @@ class FilaDao {
         'criado_em_origem':
             (criadoEmOrigem ?? DateTime.now()).toIso8601String(),
       },
-      // Reenfileirar o mesmo clientId SUBSTITUI a linha: o payload novo é o
-      // que vale, e nunca sobe uma versão vencida. A linha nova ganha uma
-      // sequencia nova, ou seja, vai para o fim da fila — o que é correto,
-      // porque nesse ponto o produtor e o erval de que ela depende já subiram.
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  /// O que sobe na próxima passada.
-  ///
-  /// Dois filtros importam: só entra o que está aguardando (PENDENTE ou
-  /// PENDENTE_DEPENDENCIA) e só o que já passou da hora de tentar de novo —
-  /// é a espera crescente da PoliticaDeTentativas, que evita martelar um
-  /// servidor fora do ar.
-  ///
-  /// [limite] é OBRIGATÓRIO de propósito. Ele já teve um valor padrão de 25
-  /// aqui, igual ao Config.tamanhoDoLote — e o analisador acusou o argumento
-  /// como redundante, o que estava certo pelo motivo errado: o problema não
-  /// era passar o número, era ele existir em DOIS lugares. Bastaria alguém
-  /// ajustar o Config para o padrão daqui continuar valendo em silêncio em
-  /// qualquer chamada que esquecesse o argumento.
-  ///
-  /// Além disso, tamanho de lote não é decisão deste arquivo. A fila sabe ler
-  /// a fila; quanto cabe numa requisição é assunto de quem conhece a rede.
   static Future<List<OperacaoPendente>> proximasDoLote({
     required int limite,
   }) async {
@@ -94,10 +56,6 @@ class FilaDao {
     return linhas.map(OperacaoPendente.deLinha).toList();
   }
 
-  /// As fotos saem por fora do lote, uma requisição cada — ver o modelo Foto.
-  ///
-  /// [limite] obrigatório pelo mesmo motivo de proximasDoLote: o número vive
-  /// num lugar só, com quem decide.
   static Future<List<OperacaoPendente>> proximasFotos({
     required int limite,
   }) async {
@@ -137,26 +95,6 @@ class FilaDao {
     );
   }
 
-  /// Reescreve o payload das operações que ainda esperam na fila para que
-  /// apontem o pai pelo id DEFINITIVO, e não apenas pelo clientId do aparelho.
-  ///
-  /// Sem isto o Outbox tem um buraco. O payload é CONGELADO no jsonEncode do
-  /// enfileiramento, e naquele instante o pai ainda não tinha id do servidor —
-  /// ele acabara de nascer no celular. Enquanto o servidor devolve o mesmo
-  /// clientId que subiu, ninguém percebe: o pai é encontrado pelo clientId.
-  ///
-  /// O buraco aparece quando dois avaliadores cadastram O MESMO produtor em
-  /// aparelhos diferentes. O servidor responde DUPLICADO apontando o cadastro
-  /// que já existia lá, que tem OUTRO clientId. O erval parado na fila continua
-  /// procurando um clientId que o servidor nunca viu, e volta
-  /// DEPENDENCIA_PENDENTE em toda rodada até desistir — levando junto a
-  /// avaliação que dependia dele.
-  ///
-  /// A tabela local já era corrigida: ProdutorDao.confirmarSincronizacao
-  /// escreve o produtor_id no erval. O que faltava era corrigir a CÓPIA do
-  /// dado que já estava dentro da fila.
-  ///
-  /// Devolve quantas operações foram corrigidas.
   static Future<int> apontarPaiPeloId({
     required String campoClientId,
     required String campoId,
@@ -167,9 +105,6 @@ class FilaDao {
     var corrigidas = 0;
 
     await db.transaction((txn) async {
-      // Tudo que ainda não foi enviado — inclusive o que está em ERRO. Uma
-      // operação que desistiu de esperar o pai continua na tela, e o botão de
-      // reativar só tem sentido se o payload dela estiver certo quando voltar.
       final linhas = await txn.query(
         'fila_sincronizacao',
         columns: ['client_id', 'payload'],
@@ -200,13 +135,6 @@ class FilaDao {
     return corrigidas;
   }
 
-  /// DEPENDENCIA_PENDENTE não é falha: o dado está bom, só chegou fora de
-  /// ordem, e na esmagadora maioria das vezes a rodada seguinte resolve.
-  ///
-  /// Por isso as três primeiras rodadas são baratas — vinte segundos, sem
-  /// escalonar. Só a partir da quarta a espera passa a crescer pela mesma
-  /// escada dos erros de rede, porque aí já não é mais "fora de ordem": é
-  /// sinal de que o pai não está subindo.
   static Future<void> marcarDependenciaPendente(
     String clientId,
     String? motivo, {
@@ -238,9 +166,6 @@ class FilaDao {
     );
   }
 
-  /// O servidor recusou por regra de negócio (4xx). Insistir não conserta:
-  /// um CPF duplicado continua duplicado na décima tentativa. Fica parado,
-  /// visível na tela de sincronização, esperando uma pessoa decidir.
   static Future<void> marcarErro(String clientId, String mensagem) async {
     final db = await BancoLocal.instancia;
     await db.update(
@@ -255,8 +180,6 @@ class FilaDao {
     );
   }
 
-  /// Falhou por rede ou por erro do servidor (5xx). Aí vale insistir, com
-  /// espera crescente — a escada está em PoliticaDeTentativas.
   static Future<void> reagendar(
     String clientId, {
     required int tentativas,
@@ -277,8 +200,6 @@ class FilaDao {
     );
   }
 
-  /// Usado pela tela de sincronização, no botão "tentar de novo": zera a
-  /// espera e a contagem de uma operação que estava parada em ERRO.
   static Future<void> reativar(String clientId) async {
     final db = await BancoLocal.instancia;
     await db.update(
@@ -294,13 +215,6 @@ class FilaDao {
     );
   }
 
-  /// Chamado logo depois de uma operação ser ACEITA pelo servidor.
-  ///
-  /// Se o produtor acabou de subir, a área e a avaliação que esperavam por ele
-  /// já podem ir — não faz sentido deixá-las esperando os vinte segundos que
-  /// foram agendados quando o pai ainda não existia. Zerar a espera faz a
-  /// mesma passada de sincronização resolver a cadeia inteira, em vez de
-  /// precisar de três passadas para subir produtor, área e avaliação.
   static Future<void> liberarDependentes() async {
     final db = await BancoLocal.instancia;
     await db.update(
@@ -311,15 +225,6 @@ class FilaDao {
     );
   }
 
-  /// Empurra para frente tudo que está pronto para subir agora.
-  ///
-  /// Usado quando a passada inteira fracassou por REDE. Sem isto, as operações
-  /// que nem chegaram a ser tentadas continuariam elegíveis, o despertador
-  /// acordaria em cinco segundos e o aplicativo entraria num laço apertado
-  /// tentando falar com um servidor que se sabe inalcançável — gastando
-  /// bateria justamente onde ela é mais escassa.
-  ///
-  /// Não conta como tentativa: elas de fato não foram tentadas.
   static Future<void> adiarProntos(Duration espera) async {
     final db = await BancoLocal.instancia;
     final agora = DateTime.now().toIso8601String();
@@ -339,11 +244,6 @@ class FilaDao {
     );
   }
 
-  /// Quando é a hora da próxima operação que está esperando.
-  ///
-  /// É o que permite ao aplicativo HONRAR a espera crescente. Sem isto, uma
-  /// operação reagendada para daqui a trinta minutos só seria retentada se o
-  /// usuário abrisse o aplicativo de novo — a escada do Config seria decorativa.
   static Future<DateTime?> proximoDespertar() async {
     final db = await BancoLocal.instancia;
     final linhas = await db.rawQuery(
@@ -360,8 +260,6 @@ class FilaDao {
     return valor == null ? null : DateTime.tryParse(valor);
   }
 
-  /// Existe alguma operação pronta para subir AGORA?
-  /// Usado para decidir se vale acordar e tentar.
   static Future<bool> temAlgoPronto() async {
     final db = await BancoLocal.instancia;
     final agora = DateTime.now().toIso8601String();
@@ -377,11 +275,6 @@ class FilaDao {
     return ((linhas.first['total'] as int?) ?? 0) > 0;
   }
 
-  /// Reativa TODAS as operações recusadas de uma vez.
-  ///
-  /// Serve para o caso em que a causa era comum a várias — o servidor estava
-  /// fora do ar, a sessão tinha expirado — e reativar uma a uma seria
-  /// trabalho manual sem propósito.
   static Future<int> reativarTodas() async {
     final db = await BancoLocal.instancia;
     return db.update(
@@ -397,8 +290,6 @@ class FilaDao {
     );
   }
 
-  /// Os números da tela de sincronização — e o mesmo indicador que o servidor
-  /// calcula no /resumo, só que visto do lado do aparelho.
   static Future<Map<String, int>> contagens() async {
     final db = await BancoLocal.instancia;
     final linhas = await db.rawQuery(
@@ -430,17 +321,6 @@ class FilaDao {
   }
 }
 
-/// A parte de apontarPaiPeloId que pode ser conferida sem banco: dado o JSON
-/// congelado de uma operação, devolve o JSON corrigido — ou null quando não há
-/// nada a corrigir.
-///
-/// Está fora da classe, e é pública, porque é o pedaço onde mora o erro
-/// possível. O SQL em volta é o mesmo update de sempre; o que precisa de teste
-/// é a decisão de mexer ou não mexer, e o cuidado de não perder nenhum outro
-/// campo do payload no caminho.
-///
-/// Devolver null em vez do JSON igual é proposital: quem chama usa isso para
-/// não gastar um UPDATE por linha que não mudou.
 String? payloadApontandoPai(
   String payloadJson, {
   required String campoClientId,
@@ -452,13 +332,9 @@ String? payloadApontandoPai(
   try {
     payload = jsonDecode(payloadJson) as Map<String, dynamic>;
   } catch (_) {
-    // Payload ilegível não é problema deste método. Ele vai falhar sozinho no
-    // envio, com a mensagem certa; reescrevê-lo aqui só esconderia a causa.
     return null;
   }
 
-  // Só toca em quem aponta ESTE pai por clientId. Uma operação de outro
-  // produtor, ou uma que já traz o id certo, fica exatamente como está.
   if (payload[campoClientId] != clientIdDoPai) return null;
   if (payload[campoId] == idDoPai) return null;
 

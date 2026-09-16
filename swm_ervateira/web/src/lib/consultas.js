@@ -1,25 +1,3 @@
-// ---------------------------------------------------------------------------
-// CONSULTAS EXTERNAS · CEP e CNPJ
-// ---------------------------------------------------------------------------
-// O QUE SE CONSULTA, E O QUE NÃO SE CONSULTA — e a distinção é de princípio:
-//
-//   CEP   · ViaCEP. Endereço é informação pública de logradouro.
-//   CNPJ  · BrasilAPI. Razão social de empresa é registro público na Receita.
-//   CPF   · NADA. Não existe consulta legítima: o nome do titular a partir do
-//           CPF é dado pessoal protegido pela LGPD, e os serviços que a
-//           oferecem operam em zona irregular. O sistema faz o que é correto
-//           e suficiente — valida o dígito verificador, offline, em
-//           lib/documentos.js.
-//
-// AS DUAS CONSULTAS SÃO OPCIONAIS POR CONSTRUÇÃO. Elas preenchem campos para
-// poupar digitação; nenhuma delas bloqueia o cadastro. Se a internet cair, ou
-// se o serviço estiver fora, o operador digita à mão e a vida segue — que é o
-// mesmo princípio do aplicativo em campo: rede é conveniência, não requisito.
-//
-// Por isso toda função aqui devolve null em vez de lançar. Quem chama trata
-// "não veio" como caso normal, não como erro.
-
-/** Tempo máximo de espera. Passou disso, digita-se à mão — é mais rápido. */
 const TEMPO_LIMITE = 6000
 
 async function buscarComLimite(url) {
@@ -30,19 +8,12 @@ async function buscarComLimite(url) {
     if (!resposta.ok) return null
     return await resposta.json()
   } catch {
-    // Sem rede, serviço fora, tempo esgotado: tudo dá no mesmo para quem
-    // chama, e nenhum desses casos é motivo para atrapalhar o cadastro.
     return null
   } finally {
     clearTimeout(relogio)
   }
 }
 
-/**
- * ViaCEP. Devolve { cep, endereco, bairro, municipio, uf } ou null.
- * O ViaCEP responde 200 com { erro: true } para CEP inexistente — por isso a
- * checagem explícita, e não só o status.
- */
 export async function consultarCep(cep) {
   const limpo = String(cep ?? '').replace(/\D/g, '')
   if (limpo.length !== 8) return null
@@ -59,13 +30,6 @@ export async function consultarCep(cep) {
   }
 }
 
-/**
- * BrasilAPI. Devolve { nome, fantasia, telefone, cep, endereco, ... } ou null.
- *
- * O nome preferido é o FANTASIA quando existe: numa ervateira, o produtor é
- * conhecido pelo nome da propriedade, não pela razão social com "LTDA" no fim.
- * A razão social vem junto, para quem precisar dela na nota.
- */
 export async function consultarCnpj(cnpj) {
   const limpo = String(cnpj ?? '').replace(/\D/g, '')
   if (limpo.length !== 14) return null

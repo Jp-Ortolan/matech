@@ -1,45 +1,6 @@
-// ---------------------------------------------------------------------------
-// TEMA · a mesma paleta do sistema web, aplicada ao aplicativo
-// ---------------------------------------------------------------------------
-// Os dois programas são o mesmo sistema, e precisam parecer. Quem usa o
-// aplicativo no erval de manhã abre a web no escritório à tarde — se as duas
-// telas tiverem cores e formatos diferentes, elas viram dois produtos.
-//
-// O QUE MUDOU EM RELAÇÃO AO TEMA ANTERIOR, e por quê:
-//
-// 1. A PALETA DEIXOU DE SER DERIVADA. Antes era ColorScheme.fromSeed a partir
-//    do verde da marca, e o Flutter inventava o resto. O algoritmo do Material
-//    é bom, mas ele não conhece o index.css da web — os verdes saíam parecidos
-//    e nenhum era o mesmo. Agora os valores são os literais do web, copiados
-//    da tabela abaixo, e as duas telas usam a MESMA tinta.
-//
-// 2. O RAIO CAIU DE 12 PARA 3. Era o sinal visual mais forte de que eram dois
-//    produtos: cantos macios de aplicativo de consumo contra cantos quase
-//    retos de sistema de operação. Três pixels não é minimalismo — é o que a
-//    web usa, e o que faz uma tabela de pesagem parecer um instrumento.
-//
-// 3. A BARRA SUPERIOR CLAREOU, pelo mesmo motivo que o menu da web clareou: a
-//    marca é verde-escura sobre transparente, e sobre fundo escuro o M some.
-//    Ver o comentário em web/src/index.css — os números de contraste estão lá.
-//
-// O QUE NÃO VEIO DA WEB: a tipografia. A web usa IBM Plex Sans, escolhida
-// pelos algarismos de largura fixa. Trazê-la para cá custaria empacotar quatro
-// arquivos de fonte ou uma dependência inteira, para uma diferença que ninguém
-// nota num celular — e a fonte do sistema é o que o usuário já lê o dia todo
-// no aparelho dele. Ficou a do sistema, de propósito.
-//
-// Alvos de toque grandes (48dp) não são preciosismo: quem usa este aplicativo
-// está em pé, no meio de um erval, possivelmente de luva.
-
 import 'package:flutter/material.dart';
 
-/// As cores do sistema, com os mesmos nomes e valores de web/src/index.css.
-///
-/// Estão numa classe, e não soltas, para que uma tela nunca precise escrever
-/// `Colors.red.shade700` de novo: o vermelho do Material não é o vermelho
-/// deste sistema, e a diferença aparece lado a lado.
 abstract final class Cores {
-  // Verdes da identidade
   static const mate900 = Color(0xFF0E2418);
   static const mate800 = Color(0xFF16351F);
   static const mate700 = Color(0xFF1B4D33); // ação primária e item ativo
@@ -47,13 +8,11 @@ abstract final class Cores {
   static const mate300 = Color(0xFF73A987);
   static const mate100 = Color(0xFFE4EEE8);
 
-  // A moldura: barra superior e navegação
   static const barra = Color(0xFFE7EFE9);
   static const barraBorda = Color(0xFFCBDCD1);
   static const barraTinta = Color(0xFF16351F);
   static const barraTenue = Color(0xFF4C6354);
 
-  // Neutros
   static const tinta = Color(0xFF1F2422);
   static const cinza600 = Color(0xFF5A6360);
   static const cinza400 = Color(0xFF8B938F);
@@ -61,27 +20,20 @@ abstract final class Cores {
   static const cabecalho = Color(0xFFF2F4F2);
   static const fundo = Color(0xFFF5F6F5);
 
-  // Situações. Uma cor por estado, como na web — e nenhuma delas é do
-  // Material: o âmbar aqui é o mesmo âmbar de lá.
   static const alerta = Color(0xFFB4740E);
   static const alertaFundo = Color(0xFFFDF6E3);
   static const perigo = Color(0xFFA33028);
   static const perigoFundo = Color(0xFFF9E7E5);
 }
 
-/// Três pixels. O mesmo `rounded-[3px]` de toda a web.
 const double raio = 3;
 const BorderRadius raioPadrao = BorderRadius.all(Radius.circular(raio));
 
-/// Mantido pelo nome antigo porque telas ainda o importam.
 const Color verdeMatech = Cores.mate700;
 
 ThemeData temaMatech() {
   final esquema = ColorScheme.fromSeed(
     seedColor: Cores.mate700,
-    // fromSeed continua sendo usado para os cantos que o Material preenche
-    // sozinho — mas os papéis que aparecem na tela são fixados aqui, para não
-    // ficarem à mercê do algoritmo.
     primary: Cores.mate700,
     onPrimary: Colors.white,
     secondary: Cores.mate500,
@@ -102,8 +54,6 @@ ThemeData temaMatech() {
     colorScheme: esquema,
     scaffoldBackgroundColor: Cores.fundo,
 
-    // A BARRA SUPERIOR clara, com a borda que devolve a separação que o fundo
-    // escuro dava de graça — a mesma solução do menu da web.
     appBarTheme: const AppBarTheme(
       backgroundColor: Cores.barra,
       foregroundColor: Cores.barraTinta,
@@ -141,8 +91,6 @@ ThemeData temaMatech() {
         backgroundColor: Cores.mate700,
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(48),
-        // Sem canto redondo. Botão de pílula é linguagem de aplicativo de
-        // consumo; este é um instrumento de trabalho, igual ao da web.
         shape: const RoundedRectangleBorder(borderRadius: raioPadrao),
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
@@ -176,9 +124,6 @@ ThemeData temaMatech() {
       ),
     ),
 
-    // A NAVEGAÇÃO DE BAIXO segue a moldura, e o item ativo é a única coisa de
-    // alto contraste — mesma decisão do menu da web, pelo mesmo motivo: sobre
-    // fundo claro, realce discreto se confunde com o toque.
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Cores.barra,
       surfaceTintColor: Colors.transparent,
@@ -253,11 +198,6 @@ ThemeData temaMatech() {
   );
 }
 
-/// A marca, do arquivo — a mesma imagem do sistema web.
-///
-/// Antes era um `Icons.eco_outlined` branco num quadrado verde: um ícone
-/// genérico do Material, que não é a marca de nada. Agora é o símbolo de
-/// verdade, e é o mesmo arquivo que a web serve.
 class MarcaMatech extends StatelessWidget {
   final double tamanho;
   const MarcaMatech({super.key, this.tamanho = 72});
@@ -267,7 +207,5 @@ class MarcaMatech extends StatelessWidget {
     'assets/marca/matech-marca.png',
     width: tamanho,
     height: tamanho,
-    // Sem placa atrás: as telas em que ela aparece têm fundo claro, que é
-    // exatamente para isso que o fundo do sistema clareou.
   );
 }

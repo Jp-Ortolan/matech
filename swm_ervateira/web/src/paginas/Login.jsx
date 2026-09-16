@@ -1,11 +1,3 @@
-// ---------------------------------------------------------------------------
-// PÁGINA · entrar no sistema
-// ---------------------------------------------------------------------------
-// Envia usuário e senha para POST /api/auth/login. Se der certo, o token fica
-// guardado e o React Router leva ao painel. Se der errado, mostra a mensagem
-// que veio do back-end — a mesma para usuário inexistente e senha errada,
-// para não revelar quais usuários existem.
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ROTA_INICIAL } from '../lib/acesso'
@@ -28,7 +20,6 @@ export default function Login() {
     setEnviando(true)
     try {
       const u = await entrar(usuario, senha)
-      // Cada perfil começa onde trabalha, e não num painel de indicadores.
       navegar(ROTA_INICIAL[u.perfil] || '/')
     } catch (e) {
       setErro(e)
@@ -39,20 +30,7 @@ export default function Login() {
 
   return (
     <div className="flex h-screen">
-      {/* lado esquerdo · identidade */}
       <aside className="hidden w-[46%] max-w-[620px] shrink-0 flex-col justify-center gap-5 border-r border-barra-borda bg-barra-900 px-10 lg:flex xl:px-16">
-        {/* A MARCA É O M DA PALAVRA.
-            
-            Escrever "MATECH" ao lado dela repetia a letra duas vezes a um
-            centímetro de distância — o símbolo já tem um M dentro. O lockup lê
-            a marca como a primeira letra e completa com "atech".
-            
-            A assinatura "gestão de matéria-prima" saiu junto: o parágrafo
-            logo abaixo diz a mesma coisa, com mais precisão e sem repetir.
-            
-            Aqui a engrenagem gira o tempo todo. Esta é a única tela do sistema
-            em que a pessoa está esperando em vez de trabalhando, e é a única
-            em que movimento contínuo não atrapalha ninguém. */}
         <MarcaEscrita tamanho={104} girando className="text-barra-tinta" />
 
         <p className="max-w-[470px] text-[15px] leading-relaxed text-barra-tenue">
@@ -74,7 +52,6 @@ export default function Login() {
         </ul>
       </aside>
 
-      {/* lado direito · formulário */}
       <div className="flex flex-1 items-center justify-center bg-white px-6">
         <form onSubmit={aoEnviar} className="flex w-full max-w-[360px] flex-col gap-4">
           <div>

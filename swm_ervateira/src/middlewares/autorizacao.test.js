@@ -1,26 +1,8 @@
-// ---------------------------------------------------------------------------
-// TESTE UNITÁRIO · autorização por perfil
-// ---------------------------------------------------------------------------
-// Cobre o RF15 e o RNF04, conforme o Quadro 8: "Unitários · funções e regras
-// de negócio isoladas".
-//
-// POR QUE ESTE TESTE EXISTE: a chegada do perfil ADMINISTRADOR mexeu no
-// middleware que decide TODAS as autorizações do sistema. Uma regressão aqui
-// não quebraria nada de forma visível — ela abriria uma porta em silêncio, ou
-// fecharia uma que estava aberta, e ninguém perceberia até alguém reclamar
-// que não consegue mais pesar. Os dois primeiros blocos abaixo são a garantia
-// escrita de que os quatro perfis antigos continuam podendo exatamente o que
-// podiam antes.
-//
-// Nenhum teste toca o banco nem sobe o servidor: um middleware do Express é
-// só uma função de três argumentos, e dá para chamá-la com dublês.
-
 const { test, describe } = require('node:test')
 const assert = require('node:assert/strict')
 
 const { permitir, apenas, podeNegocio, PERFIS, IRRESTRITOS } = require('./autorizacao')
 
-/** Dublê de req/res/next: registra o que o middleware fez, sem Express. */
 function executar(middleware, perfil) {
   const req = perfil ? { usuario: { id: 'u1', perfil } } : {}
   const resultado = { status: null, corpo: null, passou: false }
@@ -60,9 +42,6 @@ describe('permitir · operações de negócio', () => {
 })
 
 describe('permitir · nenhuma permissão antiga mudou', () => {
-  // A tabela abaixo é o comportamento de antes do perfil ADMINISTRADOR
-  // existir, escrito à mão a partir das rotas de cada módulo. Se alguma
-  // linha passar a falhar, uma permissão existente foi alterada.
   const COMO_ERA = [
     ['POST /api/cargas', ['OPERADOR_BALANCA'], ['OPERADOR_BALANCA', 'ADMINISTRATIVO']],
     ['POST /api/qualidade/cargas/:id', ['ANALISTA_QUALIDADE'], ['ANALISTA_QUALIDADE', 'ADMINISTRATIVO']],
@@ -93,8 +72,6 @@ describe('apenas · administração de contas', () => {
   })
 
   test('o administrativo NÃO entra, apesar de ser irrestrito no negócio', () => {
-    // É esta linha que distingue apenas() de permitir(). Se ela falhar, o
-    // acréscimo automático de perfil vazou para a administração de contas.
     const r = executar(apenas('ADMINISTRADOR'), 'ADMINISTRATIVO')
     assert.equal(r.passou, false)
     assert.equal(r.status, 403)
@@ -109,10 +86,6 @@ describe('apenas · administração de contas', () => {
 
 describe('podeNegocio · a mesma decisão, sem HTTP', () => {
   test('responde igual ao permitir() para todos os perfis', () => {
-    // Esta é a trava contra a segunda lógica de autorização: se algum dia
-    // podeNegocio e permitir discordarem, a tela vai omitir uma coisa e a
-    // rota vai liberar outra — e ninguém percebe até alguém ver o que não
-    // devia. Aqui as duas são comparadas perfil a perfil.
     for (const alvo of ['OPERADOR_BALANCA', 'ANALISTA_QUALIDADE', 'COMPRADOR_AVALIADOR', 'ADMINISTRATIVO']) {
       for (const perfil of PERFIS) {
         assert.equal(

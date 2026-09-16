@@ -1,9 +1,3 @@
-// ---------------------------------------------------------------------------
-// MODELO · usuário da sessão
-// ---------------------------------------------------------------------------
-// O token fica no SQLite, e não em shared_preferences — assim o aplicativo tem
-// UM lugar de armazenamento em vez de dois, e uma dependência a menos.
-
 class Usuario {
   final String id;
   final String nome;
@@ -21,8 +15,6 @@ class Usuario {
     this.expiraEm,
   });
 
-  /// Quem coleta em campo é o comprador/avaliador. O administrativo também
-  /// passa, como no permitir() do servidor.
   bool get podeAvaliar =>
       perfil == 'COMPRADOR_AVALIADOR' || perfil == 'ADMINISTRATIVO';
 

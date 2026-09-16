@@ -1,22 +1,3 @@
-// ---------------------------------------------------------------------------
-// PÁGINA · relatórios  (RF12 a RF14)
-// ---------------------------------------------------------------------------
-// Quatro recortes dos mesmos dados, escolhidos por aba. Um filtro só, no topo,
-// vale para os quatro — o usuário define o período uma vez e troca a pergunta,
-// em vez de refazer o filtro a cada relatório.
-//
-// POR QUE OS NÚMEROS SÃO CALCULADOS AQUI, E NÃO EM UMA ROTA DE RELATÓRIO:
-// a API já devolve as cargas do período com produtor, análise e situação
-// dentro. Criar rotas /api/relatorios/* significaria escrever pela segunda vez
-// somas que a tela já sabe fazer — e duas versões da mesma conta divergem.
-// Quando o volume crescer a ponto de a soma no navegador pesar, a conta migra
-// para o banco em uma consulta agregada; enquanto isso, uma fonte só.
-//
-// A quarta aba é a mais importante para o trabalho escrito: ela compara o peso
-// ESTIMADO em campo pelo avaliador com o peso REAL medido na balança. É o
-// indicador de acurácia da avaliação em campo do Quadro 9, e só existe porque
-// a carga guarda pesoEstimadoCampoKg junto com o peso pesado.
-
 import { useEffect, useState, useCallback } from 'react'
 import {
   cargas as apiCargas,
@@ -25,23 +6,21 @@ import {
 } from '../api/recursos'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
-  Painel, Filtros, SaidaDoPainel, Tabela, Indicador, Situacao, Campo, Selecao, Botao, Abas, Barra,
+  FaixaDeIndicadores, Painel, Filtros, SaidaDoPainel, Tabela, Indicador, Situacao, Campo, Selecao, Abas, Barra,
   Carregando, Erro, Vazio, Etiqueta, Aviso
 } from '../componentes/ui'
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { baixarCsv, numeroCsv } from '../lib/exportar'
-import { LIMITE_PALITO_PADRAO } from '../lib/calculo'
 import { formatar, contagem } from '../lib/formatar'
 import { motivoResumido } from '../lib/reprovacao'
+import { ICONE_DA_GRANDEZA } from '../lib/icones'
+import { resumirFiltros, nomeNaLista } from '../lib/filtros'
 
-// A aba financeira só existe para quem pode ler ordens de pagamento. Não é
-// uma regra desta tela: GET /api/pagamentos exige o perfil, e sem ele a aba
-// abriria vazia com 403 no console.
 const ABAS = [
   { id: 'recebimento', rotulo: 'Recebimento' },
   { id: 'qualidade', rotulo: 'Qualidade' },
+  { id: 'materia-prima', rotulo: 'Matéria-prima' },
   { id: 'financeiro', rotulo: 'Financeiro', exigeDinheiro: true },
-  { id: 'acuracia', rotulo: 'Acurácia da estimativa' },
 ]
 
 export default function Relatorios() {
@@ -63,8 +42,6 @@ export default function Relatorios() {
     setCarregando(true)
     setErro(null)
     try {
-      // As duas consultas saem juntas: são independentes uma da outra, então
-      // esperar a primeira para só depois pedir a segunda dobraria a espera.
       const [c, p] = await Promise.all([
         apiCargas.listar({ ...filtros, porPagina: 500 }),
         veDinheiro ? apiPagamentos.listar({ produtorId: filtros.produtorId }) : Promise.resolve(null),
@@ -80,8 +57,6 @@ export default function Relatorios() {
 
   useEffect(() => { buscar() }, [buscar])
 
-  // O filtro por produtor depende desta lista. Engolir a falha faria o relatório
-  // parecer completo enquanto o filtro estivesse mudo.
   useEffect(() => {
     apiProdutores
       .listar()
@@ -101,7 +76,15 @@ export default function Relatorios() {
         subtitulo={`${periodo}${nomeProdutor ? ` · ${nomeProdutor}` : ''}`}
       />
 
-      <Filtros>
+      <Filtros
+        ativos={resumirFiltros(filtros, {
+          de: (v) => `De ${formatar.data(v)}`,
+          ate: (v) => `Até ${formatar.data(v)}`,
+          produtorId: (v) => nomeNaLista(listaProdutores, v),
+        })}
+        aoRemover={(chave) => setFiltros((f) => ({ ...f, [chave]: '' }))}
+        aoLimpar={() => setFiltros({ de: '', ate: '', produtorId: '' })}
+      >
         <Campo rotulo="De" type="date" className="flex-1" value={filtros.de}
                onChange={(e) => setFiltros((f) => ({ ...f, de: e.target.value }))} />
         <Campo rotulo="Até" type="date" className="flex-1" value={filtros.ate}
@@ -111,7 +94,6 @@ export default function Relatorios() {
           <option value="">Todos os produtores</option>
           {listaProdutores.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </Selecao>
-        <Botao onClick={() => setFiltros({ de: '', ate: '', produtorId: '' })}>Limpar</Botao>
       </Filtros>
 
       <Abas abas={abas} ativa={aba} aoTrocar={setAba} />
@@ -132,17 +114,13 @@ export default function Relatorios() {
         <>
           {aba === 'recebimento' && <Recebimento lista={lista} veDinheiro={veDinheiro} />}
           {aba === 'qualidade' && <Qualidade lista={lista} veDinheiro={veDinheiro} />}
+          {aba === 'materia-prima' && <MateriaPrima lista={lista} veDinheiro={veDinheiro} />}
           {aba === 'financeiro' && veDinheiro && <Financeiro ordens={ordens} />}
-          {aba === 'acuracia' && <Acuracia lista={lista} />}
         </>
       )}
     </>
   )
 }
-
-// ---------------------------------------------------------------------------
-// ABA 1 · recebimento
-// ---------------------------------------------------------------------------
 
 function Recebimento({ lista, veDinheiro }) {
   const peso = somar(lista, (c) => c.pesoLiquidoKg)
@@ -161,9 +139,6 @@ function Recebimento({ lista, veDinheiro }) {
   function exportar() {
     baixarCsv(
       'matech-recebimento',
-      // O CSV segue a tela: quem não vê preço na coluna também não leva a
-      // coluna no arquivo. Exportar o que a tela esconde seria a porta dos
-      // fundos da segregação de função.
       ['Ticket', 'Data', 'Produtor', 'Matéria-prima', 'Motorista', 'Placa',
        'Peso bruto (kg)', 'Tara (kg)', 'Peso líquido (kg)',
        ...(veDinheiro ? ['Preço base (R$/kg)', 'Preço ajustado (R$/kg)', 'Valor (R$)'] : []),
@@ -188,18 +163,18 @@ function Recebimento({ lista, veDinheiro }) {
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap gap-2">
-        <Indicador rotulo="Peso líquido recebido" valor={formatar.numero(peso)} unidade="kg"
-                   apoio={`${lista.length} cargas`} cor="text-mate-700" />
-        <Indicador rotulo="Média por carga" valor={formatar.numero(peso / lista.length)} unidade="kg"
+      <FaixaDeIndicadores>
+        <Indicador rotulo="Peso líquido recebido" icone={ICONE_DA_GRANDEZA.peso} valor={formatar.numero(peso)} unidade="kg"
+                   apoio={`${lista.length} cargas`} />
+        <Indicador rotulo="Média por carga" icone={ICONE_DA_GRANDEZA.cargas} valor={formatar.numero(peso / lista.length)} unidade="kg"
                    apoio="peso líquido médio" />
-        <Indicador rotulo="Tara descontada" valor={formatar.numero(tara)} unidade="kg"
+        <Indicador rotulo="Tara descontada" icone={ICONE_DA_GRANDEZA.peso} valor={formatar.numero(tara)} unidade="kg"
                    apoio={`${formatar.porcento((tara / bruto) * 100)} do peso bruto`} />
-        <Indicador rotulo="Produtores atendidos" valor={porProdutor.length} unidade="produtores"
+        <Indicador rotulo="Produtores atendidos" icone={ICONE_DA_GRANDEZA.produtores} valor={porProdutor.length} unidade="produtores"
                    apoio="com entrega no período" />
-      </div>
+      </FaixaDeIndicadores>
 
-      <div className="mb-3 grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_360px]">
+      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
         <Painel titulo="Recebimento por produtor" acao={`${porProdutor.length} produtores`}>
           <Tabela
             colunas={[
@@ -236,7 +211,7 @@ function Recebimento({ lista, veDinheiro }) {
         </Painel>
       </div>
 
-      <Painel titulo="Recebimento por dia" acao={<SaidaDoPainel aoExportar={exportar} />}>
+      <Painel className="mb-6" titulo="Recebimento por dia" acao={<SaidaDoPainel aoExportar={exportar} />}>
         <div className="flex flex-col gap-3 px-4 py-4">
           {porDia
             .slice()
@@ -253,10 +228,6 @@ function Recebimento({ lista, veDinheiro }) {
     </>
   )
 }
-
-// ---------------------------------------------------------------------------
-// ABA 2 · qualidade
-// ---------------------------------------------------------------------------
 
 function Qualidade({ lista, veDinheiro }) {
   const analisadas = lista.filter((c) => c.analise)
@@ -276,35 +247,15 @@ function Qualidade({ lista, veDinheiro }) {
 
   const palitoMedio = media(analisadas, (c) => c.analise.palitoPercentual)
   const umidadeMedia = media(analisadas.filter((c) => c.analise.umidadePercentual != null), (c) => c.analise.umidadePercentual)
-  const acimaDoLimite = analisadas.filter((c) => Number(c.analise.palitoPercentual) > Number(c.analise.limitePalito))
+  const folhaMedia = media(analisadas.filter((c) => c.analise.folhaPercentual != null), (c) => c.analise.folhaPercentual)
   const reprovadas = analisadas.filter((c) => c.analise.aprovada === false)
-
-  // ---------------------------------------------------------------------
-  // O CARD DE DESCONTO FALA DE UM CONJUNTO SÓ
-  // ---------------------------------------------------------------------
-  // Desconto em dinheiro só existe para carga que já tem preço — e preço só
-  // existe depois da emissão da ordem, porque é lá que ele é acordado. Antes
-  // disso o desconto existe apenas em pontos percentuais.
-  //
-  // Antes, o número grande somava reais dessas cargas e o texto de apoio
-  // mostrava a média percentual de TODAS as analisadas. Duas populações
-  // diferentes no mesmo card: o leitor dividia um pelo outro e não fechava.
-  // Agora as duas medidas saem da mesma lista.
-  const comPreco = analisadas.filter(
-    (c) => c.precoBaseKg != null && c.analise.precoAjustadoKg != null
-  )
-  const descontoEmReais = somar(
-    comPreco,
-    (c) => Number(c.pesoLiquidoKg) * (Number(c.precoBaseKg) - Number(c.analise.precoAjustadoKg))
-  )
-  const descontoMedio = media(comPreco, (c) => c.analise.descontoPercentual)
   const valorAnalisado = somar(analisadas, (c) => c.analise.valorTotal)
 
   function exportar() {
     baixarCsv(
       'matech-qualidade',
       ['Ticket', 'Data', 'Produtor', 'Matéria-prima', 'Peso líquido (kg)',
-       'Palito (%)', 'Umidade (%)', 'Folha (%)', 'Limite (%)', 'Desconto (%)',
+       'Palito (%)', 'Umidade (%)', 'Folha (%)',
        ...(veDinheiro ? ['Preço base (R$/kg)', 'Preço ajustado (R$/kg)', 'Valor (R$)'] : []),
        'Aprovada', 'Motivo'],
       analisadas.map((c) => [
@@ -316,8 +267,6 @@ function Qualidade({ lista, veDinheiro }) {
         numeroCsv(c.analise.palitoPercentual, 1),
         numeroCsv(c.analise.umidadePercentual, 1),
         numeroCsv(c.analise.folhaPercentual, 1),
-        numeroCsv(c.analise.limitePalito, 1),
-        numeroCsv(c.analise.descontoPercentual, 2),
         ...(veDinheiro
           ? [numeroCsv(c.precoBaseKg, 4), numeroCsv(c.analise.precoAjustadoKg, 4), numeroCsv(c.analise.valorTotal)]
           : []),
@@ -329,23 +278,19 @@ function Qualidade({ lista, veDinheiro }) {
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap gap-2">
-        <Indicador rotulo="Cargas analisadas" valor={analisadas.length} unidade={`de ${lista.length}`}
-                   apoio={`${pendentes.length} aguardando`} cor="text-mate-700" />
-        <Indicador rotulo="Palito médio" valor={formatar.porcento(palitoMedio)}
-                   apoio={`limite acordado: ${LIMITE_PALITO_PADRAO}%`}
-                   cor={palitoMedio > LIMITE_PALITO_PADRAO ? 'text-alerta' : 'text-tinta'} />
-        <Indicador rotulo="Acima do limite" valor={acimaDoLimite.length} unidade="cargas"
-                   apoio={`${formatar.porcento((acimaDoLimite.length / analisadas.length) * 100)} das analisadas`}
-                   cor="text-alerta" />
-        {veDinheiro && <Indicador rotulo="Desconto concedido" valor={formatar.reais(descontoEmReais)}
-                   apoio={comPreco.length
-                     ? `${contagem(comPreco.length, 'carga já precificada', 'cargas já precificadas')} · média de ${formatar.porcento(descontoMedio, 2)}`
-                     : 'nenhuma carga precificada ainda'}
-                   cor="text-perigo" />}
-      </div>
+      <FaixaDeIndicadores>
+        <Indicador rotulo="Cargas analisadas" icone={ICONE_DA_GRANDEZA.qualidade} valor={analisadas.length} unidade={`de ${lista.length}`}
+                   apoio={`${pendentes.length} aguardando`} />
+        <Indicador rotulo="Palito médio" icone={ICONE_DA_GRANDEZA.qualidade} valor={formatar.porcento(palitoMedio)}
+                   apoio="medido nas amostras do período" />
+        <Indicador rotulo="Reprovadas" icone={ICONE_DA_GRANDEZA.alerta} valor={reprovadas.length} unidade="cargas"
+                   apoio={`${formatar.porcento((reprovadas.length / analisadas.length) * 100)} das analisadas`}
+                   cor={reprovadas.length ? 'text-perigo' : 'text-tinta'} />
+        {veDinheiro && <Indicador rotulo="Valor analisado" icone={ICONE_DA_GRANDEZA.dinheiro} valor={formatar.reais(valorAnalisado)}
+                   apoio="cargas com preço já acordado" />}
+      </FaixaDeIndicadores>
 
-      <div className="mb-3 grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_360px]">
+      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
         <Painel titulo="Análises lançadas" acao={<SaidaDoPainel aoExportar={exportar} />}>
           <Tabela
             colunas={[
@@ -354,19 +299,10 @@ function Qualidade({ lista, veDinheiro }) {
               { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', render: (c) => formatar.kg(c.pesoLiquidoKg) },
               {
                 chave: 'palito', titulo: 'Palito', alinhar: 'direita', forte: true,
-                render: (c) => (
-                  <span className={Number(c.analise.palitoPercentual) > Number(c.analise.limitePalito) ? 'text-alerta' : ''}>
-                    {formatar.porcento(c.analise.palitoPercentual)}
-                  </span>
-                ),
+                render: (c) => formatar.porcento(c.analise.palitoPercentual),
               },
               { chave: 'umidade', titulo: 'Umidade', alinhar: 'direita', oculta: 'xl', render: (c) => formatar.porcento(c.analise.umidadePercentual) },
-              {
-                chave: 'desconto', titulo: 'Desconto', alinhar: 'direita',
-                render: (c) => Number(c.analise.descontoPercentual) > 0
-                  ? <span className="font-semibold text-perigo">−{formatar.porcento(c.analise.descontoPercentual, 2)}</span>
-                  : <span className="text-cinza-400">—</span>,
-              },
+              { chave: 'folha', titulo: 'Folha', alinhar: 'direita', oculta: 'xl', render: (c) => formatar.porcento(c.analise.folhaPercentual) },
               { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (c) => formatar.reais(c.analise.valorTotal) },
               {
                 chave: 'motivo', titulo: 'Motivo', truncar: 240, oculta: 'xl',
@@ -375,7 +311,7 @@ function Qualidade({ lista, veDinheiro }) {
                   : '—'),
               },
               {
-                chave: 'aprovada', titulo: 'Resultado',
+                chave: 'aprovada', titulo: 'Resultado', fixar: 'direita',
                 render: (c) => c.analise.aprovada === false
                   ? <Etiqueta tom="perigo">reprovada</Etiqueta>
                   : <Etiqueta tom="verde">aprovada</Etiqueta>,
@@ -400,7 +336,7 @@ function Qualidade({ lista, veDinheiro }) {
                 <Barra key={f.rotulo} rotulo={f.rotulo}
                        valor={contagem(f.cargas, 'carga', 'cargas')}
                        proporcao={(f.cargas / analisadas.length) * 100}
-                       cor={f.acima ? 'bg-alerta' : 'bg-mate-500'} />
+                       cor="bg-mate-500" />
               ))}
             </div>
           </Painel>
@@ -409,12 +345,12 @@ function Qualidade({ lista, veDinheiro }) {
             <div className="grid grid-cols-2 gap-3 px-4 py-4">
               {[
                 ['Umidade média', umidadeMedia == null ? '—' : formatar.porcento(umidadeMedia)],
-                ['Folha média', formatar.porcento(media(analisadas.filter((c) => c.analise.folhaPercentual != null), (c) => c.analise.folhaPercentual))],
+                ['Folha média', formatar.porcento(folhaMedia)],
                 ['Aprovadas', `${analisadas.length - reprovadas.length} de ${analisadas.length}`],
                 ['Reprovadas', String(reprovadas.length)],
               ].map(([r, v]) => (
                 <div key={r}>
-                  <p className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">{r}</p>
+                  <p className="text-[11px] font-semibold text-cinza-600">{r}</p>
                   <p className="mt-0.5 text-base font-bold tabular text-tinta">{v}</p>
                 </div>
               ))}
@@ -427,9 +363,113 @@ function Qualidade({ lista, veDinheiro }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// ABA 3 · financeiro
-// ---------------------------------------------------------------------------
+const TIPOS = ['ERVA_MATE_PLANTADA', 'ERVA_MATE_NATIVA', 'PALITO', 'LENHA']
+
+function MateriaPrima({ lista, veDinheiro }) {
+  const porTipo = TIPOS.map((t) => resumirTipo(t, lista))
+
+  const resumo = porTipo.filter((r) => r.cargas > 0)
+  const semMovimento = porTipo.filter((r) => r.cargas === 0)
+  const pesoGeral = resumo.reduce((s, r) => s + r.peso, 0)
+  const valorGeral = resumo.reduce((s, r) => s + r.valor, 0)
+
+  if (!lista.length) {
+    return <Painel titulo="Matéria-prima"><Vazio texto="Nenhuma carga registrada no período selecionado." /></Painel>
+  }
+
+  function exportar() {
+    baixarCsv(
+      'matech-precos-praticados',
+      ['Matéria-prima', 'Cargas', 'Peso líquido (kg)', 'Participação (%)',
+       'Preço base médio (R$/kg)', 'Preço praticado médio (R$/kg)',
+       'Menor preço (R$/kg)', 'Maior preço (R$/kg)', 'Valor analisado (R$)'],
+      resumo.map((r) => [
+        formatar.materiaPrima(r.tipo),
+        r.cargas,
+        numeroCsv(r.peso),
+        numeroCsv(pesoGeral ? (r.peso / pesoGeral) * 100 : 0, 1),
+        numeroCsv(r.precoBaseMedio, 4),
+        numeroCsv(r.precoAjustadoMedio, 4),
+        numeroCsv(r.precoMinimo, 4),
+        numeroCsv(r.precoMaximo, 4),
+        numeroCsv(r.valor),
+      ])
+    )
+  }
+
+  return (
+    <>
+      <FaixaDeIndicadores>
+        {veDinheiro && (
+          <>
+            <Indicador rotulo="Valor já analisado" icone={ICONE_DA_GRANDEZA.dinheiro} valor={formatar.reais(valorGeral)}
+                       apoio="cargas com análise lançada" />
+            <Indicador rotulo="Preço médio praticado" icone={ICONE_DA_GRANDEZA.preco}
+                       valor={formatar.precoKgCurto(mediaPonderada(lista, (c) => c.precoBaseKg))}
+                       apoio="ponderado pelo peso" />
+          </>
+        )}
+        <Indicador rotulo="Peso recebido" icone={ICONE_DA_GRANDEZA.peso} valor={formatar.numero(pesoGeral)} unidade="kg"
+                   apoio={contagem(lista.length, 'carga no período', 'cargas no período')} />
+      </FaixaDeIndicadores>
+
+      <Painel
+        className="mb-6"
+        titulo={veDinheiro ? 'Preços praticados por tipo' : 'Recebido por tipo'}
+        acao={<SaidaDoPainel aoExportar={resumo.length ? exportar : null} />}
+      >
+        <Tabela
+          colunas={[
+            { chave: 'tipo', titulo: 'Matéria-prima', forte: true, render: (r) => formatar.materiaPrima(r.tipo) },
+            { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', render: (r) => r.cargas || '—' },
+            { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', forte: true, render: (r) => formatar.kg(r.peso) },
+            { chave: 'part', titulo: 'Part.', alinhar: 'direita', render: (r) => (pesoGeral && r.peso ? formatar.porcento((r.peso / pesoGeral) * 100, 0) : '—') },
+            ...(veDinheiro ? [
+              { chave: 'base', titulo: 'Preço base', alinhar: 'direita', render: (r) => formatar.precoKgCurto(r.precoBaseMedio) },
+              { chave: 'faixa', titulo: 'Faixa praticada', alinhar: 'direita', oculta: 'lg', render: (r) => (r.precoMinimo == null ? '—' : `${formatar.reais(r.precoMinimo)} a ${formatar.reais(r.precoMaximo)}`) },
+              { chave: 'praticado', titulo: 'Praticado', alinhar: 'direita', render: (r) => formatar.precoKgCurto(r.precoAjustadoMedio) },
+              { chave: 'valor', titulo: 'Valor analisado', alinhar: 'direita', forte: true, render: (r) => (r.valor ? formatar.reais(r.valor) : '—') },
+            ] : []),
+          ]}
+          dados={resumo}
+          vazio="Nenhuma carga no período."
+          rodape={semMovimento.length > 0 && (
+            <span>
+              Não entrou no período: {semMovimento.map((r) => formatar.materiaPrima(r.tipo).toLowerCase()).join(', ')}.
+            </span>
+          )}
+        />
+      </Painel>
+    </>
+  )
+}
+
+function mediaPonderada(cargas, obterPreco) {
+  const validas = cargas.filter((c) => obterPreco(c) != null)
+  const peso = validas.reduce((s, c) => s + Number(c.pesoLiquidoKg), 0)
+  if (!peso) return null
+  const soma = validas.reduce((s, c) => s + Number(c.pesoLiquidoKg) * Number(obterPreco(c)), 0)
+  return soma / peso
+}
+
+function resumirTipo(tipo, cargas) {
+  const doTipo = cargas.filter((c) => c.tipoMateriaPrima === tipo)
+  const analisadas = doTipo.filter((c) => c.analise)
+  const precos = doTipo
+    .filter((c) => c.precoBaseKg != null)
+    .map((c) => Number(c.precoBaseKg))
+
+  return {
+    tipo,
+    cargas: doTipo.length,
+    peso: doTipo.reduce((s, c) => s + Number(c.pesoLiquidoKg), 0),
+    valor: analisadas.reduce((s, c) => s + Number(c.analise.valorTotal), 0),
+    precoBaseMedio: mediaPonderada(doTipo, (c) => c.precoBaseKg),
+    precoAjustadoMedio: mediaPonderada(analisadas, (c) => c.analise.precoAjustadoKg),
+    precoMinimo: precos.length ? Math.min(...precos) : null,
+    precoMaximo: precos.length ? Math.max(...precos) : null,
+  }
+}
 
 function Financeiro({ ordens }) {
   if (!ordens.length) {
@@ -477,18 +517,18 @@ function Financeiro({ ordens }) {
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap gap-2">
-        <Indicador rotulo="Emitido no período" valor={formatar.reais(total)}
-                   apoio={`${ordens.length} ordens`} cor="text-mate-700" />
-        <Indicador rotulo="Pago" valor={formatar.reais(valorPago)}
-                   apoio={`${pagas.length} ordens quitadas`} cor="text-mate-700" />
-        <Indicador rotulo="Em aberto" valor={formatar.reais(valorAberto)}
+      <FaixaDeIndicadores>
+        <Indicador rotulo="Emitido no período" icone={ICONE_DA_GRANDEZA.dinheiro} valor={formatar.reais(total)}
+                   apoio={`${ordens.length} ordens`} />
+        <Indicador rotulo="Pago" icone={ICONE_DA_GRANDEZA.quitado} valor={formatar.reais(valorPago)}
+                   apoio={`${pagas.length} ordens quitadas`} />
+        <Indicador rotulo="Em aberto" icone={ICONE_DA_GRANDEZA.espera} valor={formatar.reais(valorAberto)}
                    apoio={`${pendentes.length} ordens aguardando`} cor="text-alerta" />
-        <Indicador rotulo="Ordem média" valor={formatar.reais(total / ordens.length)}
+        <Indicador rotulo="Ordem média" icone={ICONE_DA_GRANDEZA.preco} valor={formatar.reais(total / ordens.length)}
                    apoio="valor médio por ordem emitida" />
-      </div>
+      </FaixaDeIndicadores>
 
-      <div className="mb-3 grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_360px]">
+      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
         <Painel titulo="Ordens emitidas" acao={<SaidaDoPainel aoExportar={exportar} />}>
           <Tabela
             colunas={[
@@ -522,147 +562,6 @@ function Financeiro({ ordens }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// ABA 4 · acurácia da estimativa de campo
-// ---------------------------------------------------------------------------
-// Este é o relatório que o trabalho escrito precisa. Ele compara duas medidas
-// da MESMA carga: a que o avaliador estimou no erval, pelo celular, e a que a
-// balança mediu na chegada. A diferença entre elas é a acurácia da avaliação
-// em campo — um dos indicadores do Quadro 9.
-//
-// Só entram cargas que tenham pesoEstimadoCampoKg preenchido: sem estimativa
-// não há o que comparar, e incluí-las como "desvio zero" inflaria o resultado.
-
-function Acuracia({ lista }) {
-  const comEstimativa = lista.filter(
-    (c) => c.pesoEstimadoCampoKg != null && Number(c.pesoEstimadoCampoKg) > 0
-  )
-
-  if (!comEstimativa.length) {
-    return (
-      <Painel titulo="Acurácia da estimativa de campo">
-        <div className="px-4 py-4">
-          <Aviso>
-            Nenhuma das {lista.length} cargas do período tem peso estimado em campo.
-            Sem estimativa não há o que comparar com a balança.
-          </Aviso>
-        </div>
-      </Painel>
-    )
-  }
-
-  const comDesvio = comEstimativa.map((c) => {
-    const estimado = Number(c.pesoEstimadoCampoKg)
-    const real = Number(c.pesoLiquidoKg)
-    const diferenca = real - estimado
-    return { ...c, estimado, real, diferenca, desvio: (diferenca / estimado) * 100 }
-  })
-
-  const desvioMedioAbsoluto = media(comDesvio, (c) => Math.abs(c.desvio))
-  const vies = media(comDesvio, (c) => c.desvio)
-  const dentroDeDez = comDesvio.filter((c) => Math.abs(c.desvio) <= 10)
-  const totalEstimado = somar(comDesvio, (c) => c.estimado)
-  const totalReal = somar(comDesvio, (c) => c.real)
-
-  function exportar() {
-    baixarCsv(
-      'matech-acuracia-estimativa',
-      ['Ticket', 'Data', 'Produtor', 'Erval', 'Matéria-prima',
-       'Estimado em campo (kg)', 'Pesado na balança (kg)', 'Diferença (kg)', 'Desvio (%)'],
-      comDesvio.map((c) => [
-        c.numeroTicket,
-        formatar.data(c.dataHora),
-        c.produtor?.nome,
-        c.erval?.identificacao || '',
-        formatar.materiaPrima(c.tipoMateriaPrima),
-        numeroCsv(c.estimado),
-        numeroCsv(c.real),
-        numeroCsv(c.diferenca),
-        numeroCsv(c.desvio, 2),
-      ])
-    )
-  }
-
-  const maiorDesvio = Math.max(1, ...comDesvio.map((c) => Math.abs(c.desvio)))
-
-  return (
-    <>
-      <div className="mb-3 flex flex-wrap gap-2">
-        <Indicador rotulo="Cargas comparáveis" valor={comDesvio.length} unidade={`de ${lista.length}`}
-                   apoio="com estimativa de campo" cor="text-mate-700" />
-        <Indicador rotulo="Desvio médio absoluto" valor={formatar.porcento(desvioMedioAbsoluto)}
-                   apoio="erro da estimativa, em módulo"
-                   cor={desvioMedioAbsoluto <= 10 ? 'text-mate-700' : 'text-alerta'} />
-        {/* O apoio era "a balança pesa mais que o estimado" e vinha cortado no
-            meio pela largura do card — sobrava "a balança pesa mais que o…",
-            que é justamente a metade sem a informação. Encurtado para caber,
-            e o card agora deixa o texto quebrar em duas linhas quando precisa. */}
-        <Indicador rotulo="Viés" valor={`${vies > 0 ? '+' : ''}${formatar.porcento(vies)}`}
-                   apoio={vies > 0 ? 'pesou mais que o estimado' : 'pesou menos que o estimado'} />
-        <Indicador rotulo="Dentro de ±10%" valor={dentroDeDez.length} unidade="cargas"
-                   apoio={`${formatar.porcento((dentroDeDez.length / comDesvio.length) * 100)} das comparáveis`} />
-      </div>
-
-      <Painel
-        titulo="Estimado em campo × pesado na balança"
-        acao={<SaidaDoPainel aoExportar={exportar} />}
-      >
-        <Tabela
-          colunas={[
-            { chave: 'numeroTicket', titulo: 'Ticket', forte: true },
-            { chave: 'data', titulo: 'Data', render: (c) => formatar.data(c.dataHora) },
-            { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 220, render: (c) => c.produtor?.nome },
-            { chave: 'erval', titulo: 'Erval', truncar: 150, oculta: 'lg', render: (c) => c.erval?.identificacao || '—' },
-            { chave: 'estimado', titulo: 'Estimado', alinhar: 'direita', render: (c) => formatar.kg(c.estimado) },
-            { chave: 'real', titulo: 'Pesado', alinhar: 'direita', forte: true, render: (c) => formatar.kg(c.real) },
-            {
-              chave: 'diferenca', titulo: 'Diferença', alinhar: 'direita',
-              render: (c) => (
-                <span className={c.diferenca < 0 ? 'text-perigo' : 'text-mate-700'}>
-                  {c.diferenca > 0 ? '+' : ''}{formatar.numero(c.diferenca)} kg
-                </span>
-              ),
-            },
-            {
-              chave: 'desvio', titulo: 'Desvio', alinhar: 'direita', forte: true,
-              render: (c) => (
-                <span className={Math.abs(c.desvio) > 10 ? 'text-alerta' : ''}>
-                  {c.desvio > 0 ? '+' : ''}{formatar.porcento(c.desvio)}
-                </span>
-              ),
-            },
-            {
-              chave: 'barra', titulo: 'Erro relativo', largura: '120px', oculta: 'xl',
-              render: (c) => (
-                <div className="h-[7px] w-full bg-cabecalho">
-                  <div className={`h-full ${Math.abs(c.desvio) > 10 ? 'bg-alerta' : 'bg-mate-500'}`}
-                       style={{ width: `${(Math.abs(c.desvio) / maiorDesvio) * 100}%` }} />
-                </div>
-              ),
-            },
-          ]}
-          dados={comDesvio}
-          rodape={
-            <>
-              <span>
-                Total estimado {formatar.kg(totalEstimado)} · total pesado {formatar.kg(totalReal)}
-              </span>
-              <span className="font-medium text-mate-700">
-                diferença acumulada {formatar.kg(totalReal - totalEstimado)}
-              </span>
-            </>
-          }
-        />
-      </Painel>
-
-    </>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Contas auxiliares
-// ---------------------------------------------------------------------------
-
 function somar(itens, obter) {
   return itens.reduce((s, i) => s + (Number(obter(i)) || 0), 0)
 }
@@ -672,7 +571,6 @@ function media(itens, obter) {
   return somar(itens, obter) / itens.length
 }
 
-/** Agrupa por uma chave e devolve a lista já ordenada por peso, do maior. */
 function agrupar(cargas, obterChave) {
   const mapa = cargas.reduce((acc, c) => {
     const chave = obterChave(c)
@@ -685,12 +583,6 @@ function agrupar(cargas, obterChave) {
   return Object.values(mapa).sort((a, b) => b.peso - a.peso)
 }
 
-/**
- * A rota de pagamentos filtra por produtor e por situação, mas não por data.
- * O recorte por período é feito aqui, sobre a data de EMISSÃO da ordem — que é
- * o que o financeiro pergunta ("o que foi emitido neste mês"), e não sobre o
- * período que a ordem cobre, que pode atravessar o filtro.
- */
 function recortarPorPeriodo(ordens, { de, ate }) {
   if (!de && !ate) return ordens
   const inicio = de ? new Date(`${de}T00:00:00`) : null
@@ -703,13 +595,12 @@ function recortarPorPeriodo(ordens, { de, ate }) {
   })
 }
 
-/** Faixas fixas para a distribuição do palito, com o limite acordado no meio. */
 function faixasDePalito(analisadas) {
   const faixas = [
-    { rotulo: 'até 20%', teste: (v) => v <= 20, acima: false },
-    { rotulo: `20% a ${LIMITE_PALITO_PADRAO}%`, teste: (v) => v > 20 && v <= LIMITE_PALITO_PADRAO, acima: false },
-    { rotulo: `${LIMITE_PALITO_PADRAO}% a 40%`, teste: (v) => v > LIMITE_PALITO_PADRAO && v <= 40, acima: true },
-    { rotulo: 'acima de 40%', teste: (v) => v > 40, acima: true },
+    { rotulo: 'até 20%', teste: (v) => v <= 20 },
+    { rotulo: '20% a 30%', teste: (v) => v > 20 && v <= 30 },
+    { rotulo: '30% a 40%', teste: (v) => v > 30 && v <= 40 },
+    { rotulo: 'acima de 40%', teste: (v) => v > 40 },
   ]
   return faixas.map((f) => ({
     ...f,

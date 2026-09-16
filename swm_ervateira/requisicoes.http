@@ -140,3 +140,126 @@ Content-Type: application/json
   "taraKg": 980,
   "precoBaseKg": 0.32
 }
+
+### ---------------------------------------------------------------------------
+### ADMINISTRAÇÃO DE CONTAS  ·  só o perfil ADMINISTRADOR
+### ---------------------------------------------------------------------------
+### Rode o login abaixo antes das quatro requisições seguintes: elas usam o
+### token do administrador, e nenhum outro perfil passa.
+
+# @name loginAdmin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usuario": "admin.matech",
+  "senha": "matech123"
+}
+
+###
+@tokenAdmin = {{loginAdmin.response.body.token}}
+
+### Listar as contas. A senha nunca vem: o select do serviço não inclui
+### senhaHash, e é por isso que o hash de ninguém trafega para o navegador.
+GET {{host}}/api/usuarios
+Authorization: Bearer {{tokenAdmin}}
+
+### Criar conta
+POST {{host}}/api/usuarios
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nome": "Teste da Silva",
+  "usuario": "teste.silva",
+  "senha": "matech123",
+  "perfil": "OPERADOR_BALANCA",
+  "ativo": true
+}
+
+### Editar nome, perfil e situação. O login NÃO se altera.
+PUT {{host}}/api/usuarios/COLE_AQUI_O_ID
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nome": "Teste da Silva Júnior",
+  "perfil": "ANALISTA_QUALIDADE",
+  "ativo": false
+}
+
+### Redefinir a senha de outra pessoa. Não pede a senha atual, porque quem usa
+### isto é o administrador atendendo quem esqueceu a senha.
+PUT {{host}}/api/usuarios/COLE_AQUI_O_ID/senha
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "senha": "novasenha123"
+}
+
+### PROVA DE QUE A AUTORIZAÇÃO É DO SERVIDOR, e não da tela:
+### o mesmo GET com o token do ADMINISTRATIVO (solange.petry) devolve 403.
+### É a resposta pronta para "e se o usuário digitar /usuarios na barra?".
+GET {{host}}/api/usuarios
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------------------
+### TROCA DA PRÓPRIA SENHA  ·  qualquer usuário autenticado
+### ---------------------------------------------------------------------------
+### Pede a senha atual, ao contrário da redefinição acima. O id sai do token:
+### não há parâmetro que permita trocar a senha de outra pessoa por aqui.
+POST {{host}}/api/auth/senha
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "senhaAtual": "matech123",
+  "senhaNova": "matech456"
+}
+
+### ---------------------------------------------------------------------------
+### ORDEM DE PAGAMENTO EM DUAS ETAPAS  ·  o preço entra aqui
+### ---------------------------------------------------------------------------
+### O preço saiu da balança. Quem pesa não sabe o valor acordado — quem sabe é
+### o administrativo, e ele decide depois da análise. Por isso a emissão tem
+### duas etapas: primeiro a prévia mostra o que entraria, com o desconto que o
+### laboratório já mediu; depois o preço de cada carga vira o valor final.
+
+### 1. PRÉVIA — o que entraria na ordem, antes de emitir.
+### Quando não há nada elegível, o campo `motivo` diz por quê: falta análise,
+### já está em outra ordem, foi reprovada, ou não há carga no período.
+GET {{host}}/api/pagamentos/previa?produtorId=COLE_AQUI_O_ID&periodoInicio=2026-08-01&periodoFim=2026-08-31
+Authorization: Bearer {{token}}
+
+### 2. EMITIR — um preço por carga.
+### O valor de cada uma é o preço informado menos o desconto que a análise
+### mediu. A emissão grava o preço ajustado e o valor de volta na análise,
+### fechando o histórico que ela não tinha como completar sozinha.
+POST {{host}}/api/pagamentos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "produtorId": "COLE_AQUI_O_ID",
+  "periodoInicio": "2026-08-01",
+  "periodoFim": "2026-08-31",
+  "precos": [
+    { "cargaId": "COLE_O_ID_DA_CARGA_1", "precoKg": 4.85 },
+    { "cargaId": "COLE_O_ID_DA_CARGA_2", "precoKg": 0.32 }
+  ]
+}
+
+### 3. PROVA DE QUE TODA CARGA PRECISA DE PREÇO
+### Emitir sem informar o preço de alguma delas devolve 400, nomeando o ticket
+### que ficou sem. É a regra que impede uma ordem sair com valor pela metade.
+POST {{host}}/api/pagamentos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "produtorId": "COLE_AQUI_O_ID",
+  "periodoInicio": "2026-08-01",
+  "periodoFim": "2026-08-31",
+  "precos": []
+}

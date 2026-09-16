@@ -1,18 +1,8 @@
-// ---------------------------------------------------------------------------
-// TESTE UNITÁRIO · o tipo da imagem vem dos bytes
-// ---------------------------------------------------------------------------
-// O teste que dá sentido a este arquivo é o penúltimo: um HTML anunciado como
-// image/jpeg. Era o que o servidor gravava antes, porque acreditava no
-// cabeçalho — e gravava dentro de uma pasta servida estaticamente, na mesma
-// origem da API.
-
 const { test, describe } = require('node:test')
 const assert = require('node:assert/strict')
 
 const { tipoDaImagem, EXTENSOES } = require('./imagens')
 
-/// Cabeçalho verdadeiro + enchimento. O conteúdo depois da assinatura não
-/// importa para esta checagem, e é por isso que ela é barata.
 const comCabecalho = (bytes) =>
   Buffer.concat([Buffer.from(bytes), Buffer.alloc(32)])
 
@@ -39,8 +29,6 @@ describe('reconhece os formatos que aceitamos', () => {
 
 describe('recusa o que não é imagem', () => {
   test('HTML — é ESTE o caso que motivou a checagem', () => {
-    // Antes bastava mandar isto com Content-Type: image/jpeg. O arquivo era
-    // gravado como .jpg em uploads/fotos/ e servido pela mesma origem da API.
     const html = Buffer.from('<html><script>alert(document.cookie)</script></html>')
     assert.equal(tipoDaImagem(html), null)
   })

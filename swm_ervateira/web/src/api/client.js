@@ -1,18 +1,3 @@
-// ---------------------------------------------------------------------------
-// API · cliente HTTP
-// ---------------------------------------------------------------------------
-// Este é o ÚNICO arquivo do front que fala diretamente com a API.
-// Todos os outros passam por aqui.
-//
-// O que ele resolve de uma vez só:
-//   · anexa o token JWT em toda requisição
-//   · converte a resposta de JSON para objeto
-//   · transforma erro da API em exceção com mensagem legível
-//   · se o token venceu (401), limpa a sessão e manda para o login
-//
-// Sem isso, cada tela repetiria fetch, cabeçalho, tratamento de erro e
-// verificação de token — e uma delas esqueceria algum.
-
 const CHAVE_TOKEN = 'matech.token'
 const CHAVE_USUARIO = 'matech.usuario'
 
@@ -35,7 +20,6 @@ export function limparSessao() {
   localStorage.removeItem(CHAVE_USUARIO)
 }
 
-/** Erro vindo da API, já com a mensagem que o back-end mandou. */
 export class ErroApi extends Error {
   constructor(mensagem, status, detalhe) {
     super(mensagem)
@@ -44,10 +28,6 @@ export class ErroApi extends Error {
   }
 }
 
-/**
- * Faz a requisição. O caminho é relativo: '/api/cargas'.
- * O proxy do Vite (ver vite.config.js) encaminha para a porta 3000.
- */
 async function requisicao(caminho, { metodo = 'GET', corpo, semToken = false } = {}) {
   const cabecalhos = { 'Content-Type': 'application/json' }
 
@@ -60,7 +40,6 @@ async function requisicao(caminho, { metodo = 'GET', corpo, semToken = false } =
     body: corpo ? JSON.stringify(corpo) : undefined,
   })
 
-  // 204 = sucesso sem conteúdo de volta
   if (resposta.status === 204) return null
 
   let dados = null
@@ -71,7 +50,6 @@ async function requisicao(caminho, { metodo = 'GET', corpo, semToken = false } =
   }
 
   if (!resposta.ok) {
-    // Token vencido ou inválido: derruba a sessão e volta para o login.
     if (resposta.status === 401 && !semToken) {
       limparSessao()
       if (window.location.pathname !== '/login') window.location.href = '/login'
@@ -90,5 +68,6 @@ export const api = {
   get: (caminho) => requisicao(caminho),
   post: (caminho, corpo, opcoes) => requisicao(caminho, { metodo: 'POST', corpo, ...opcoes }),
   put: (caminho, corpo) => requisicao(caminho, { metodo: 'PUT', corpo }),
+  patch: (caminho, corpo) => requisicao(caminho, { metodo: 'PATCH', corpo }),
   del: (caminho) => requisicao(caminho, { metodo: 'DELETE' }),
 }

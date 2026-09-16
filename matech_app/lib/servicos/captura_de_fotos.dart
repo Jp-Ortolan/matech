@@ -1,26 +1,3 @@
-// ---------------------------------------------------------------------------
-// SERVIÇO · captura de fotos
-// ---------------------------------------------------------------------------
-// Abre a câmera (ou a galeria), copia o que vier para o diretório do
-// aplicativo e devolve fotos prontas para entrar na avaliação.
-//
-// NADA AQUI FALA COM A REDE, e é por isso que fotografar funciona sem sinal:
-// a foto é um arquivo local com uma linha no SQLite, exatamente como a
-// avaliação. O envio é assunto do sincronizador, depois.
-//
-// COMO OS ERROS SÃO TRATADOS
-//
-// O image_picker sinaliza tudo com PlatformException e um código de texto.
-// Traduzir esses códigos para um enum aqui, num lugar só, evita que a tela
-// precise conhecer strings como 'camera_access_denied' — e evita o pior
-// resultado possível, que é despejar a mensagem crua da plataforma na cara de
-// alguém que está no meio de um erval.
-//
-// A distinção entre permissão NEGADA e BLOQUEADA é a mais importante: na
-// primeira, pedir de novo funciona; na segunda, o Android nem mostra mais o
-// diálogo, e insistir só produz a mesma recusa. Aí o único caminho é abrir as
-// configurações — e a tela precisa saber disso para oferecer o botão certo.
-
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,30 +6,21 @@ import 'arquivos.dart';
 import 'identificadores.dart';
 
 enum FalhaDeFoto {
-  /// Negou agora. Dá para pedir de novo.
   permissaoNegada,
 
-  /// Negou permanentemente, ou a política do aparelho bloqueia.
-  /// Só as configurações resolvem.
   permissaoBloqueada,
 
-  /// Não há câmera utilizável — acontece em emulador sem câmera configurada.
   cameraIndisponivel,
 
-  /// Sem espaço para guardar o arquivo.
   semEspaco,
 
-  /// A cópia para o diretório do aplicativo falhou.
   armazenamentoFalhou,
 
-  /// A imagem veio corrompida ou num formato que não dá para ler.
   imagemInvalida,
 
   indisponivel,
 }
 
-/// Uma foto já copiada para o diretório do aplicativo, pronta para virar
-/// linha na tabela `fotos`.
 class FotoCapturada {
   final String clientId;
   final String caminho;
@@ -82,28 +50,15 @@ class ResultadoDeCaptura {
 
   bool get temFotos => fotos.isNotEmpty;
 
-  /// Cancelar não é falha: o usuário fechou a câmera de propósito, e a tela
-  /// não deve mostrar erro nenhum por causa disso.
   bool get cancelado => fotos.isEmpty && falha == null;
 
   bool get abreConfiguracoes => falha == FalhaDeFoto.permissaoBloqueada;
 }
 
 class CapturaDeFotos {
-  /// Reduzir aqui não é preciosismo de estética.
-  ///
-  /// Uma foto de celular tem de 2 a 4 MB; com largura máxima de 1600 e
-  /// qualidade 70 ela cai para uns 300 KB. Numa conexão de zona rural, é a
-  /// diferença entre a foto subir e a foto ficar tentando a tarde inteira —
-  /// e a resolução que sobra continua mostrando folha, talo e queima, que é o
-  /// que a foto precisa provar.
-  ///
-  /// Também importa para o armazenamento: um dia de coleta com quarenta fotos
-  /// ocupa 12 MB em vez de 160 MB.
   static const double _larguraMaxima = 1600;
   static const int _qualidade = 70;
 
-  /// Uma foto pela câmera.
   static Future<ResultadoDeCaptura> daCamera() => _capturar(() async {
     final imagem = await ImagePicker().pickImage(
       source: ImageSource.camera,
@@ -113,12 +68,6 @@ class CapturaDeFotos {
     return imagem == null ? <XFile>[] : <XFile>[imagem];
   });
 
-  /// VÁRIAS fotos da galeria, numa seleção só.
-  ///
-  /// pickMultiImage em vez de abrir a galeria N vezes: o avaliador que
-  /// fotografou o erval antes de abrir o aplicativo escolhe as seis fotos de
-  /// uma vez, em vez de repetir o mesmo gesto seis vezes com o produtor
-  /// esperando ao lado.
   static Future<ResultadoDeCaptura> daGaleria() => _capturar(
     () => ImagePicker().pickMultiImage(
       maxWidth: _larguraMaxima,
@@ -141,21 +90,14 @@ class CapturaDeFotos {
       );
     }
 
-    // Lista vazia = o usuário voltou sem escolher. Não é erro.
     if (escolhidas.isEmpty) return const ResultadoDeCaptura._();
 
     final prontas = <FotoCapturada>[];
 
     for (final imagem in escolhidas) {
-      // O clientId nasce AQUI, antes de qualquer conexão, e vira o nome do
-      // arquivo. É ele que amarra arquivo, linha do banco e upload.
       final clientId = novoClientId();
 
       try {
-        // A origem vai das duas formas: o caminho, que o aparelho usa para
-        // copiar arquivo sem carregar a imagem na memória, e o leitor de
-        // bytes, que é o único jeito no navegador — lá o "caminho" é uma URL
-        // temporária que não dá para abrir. Cada implementação usa a sua.
         final caminho = await Arquivos.guardarFoto(
           clientId,
           caminhoDeOrigem: imagem.path,
@@ -182,9 +124,6 @@ class CapturaDeFotos {
           ),
         );
       } on ErroDeArquivo catch (e) {
-        // As que já foram copiadas nesta seleção são MANTIDAS: se o espaço
-        // acabou na quinta foto, as quatro primeiras continuam boas e não há
-        // motivo para descartá-las junto.
         return ResultadoDeCaptura._(
           fotos: prontas,
           falha:
@@ -203,7 +142,6 @@ class CapturaDeFotos {
     return ResultadoDeCaptura._(fotos: prontas);
   }
 
-  /// Traduz os códigos do image_picker para algo que a tela saiba tratar.
   static ResultadoDeCaptura _traduzir(PlatformException e) {
     switch (e.code) {
       case 'camera_access_denied':
@@ -235,8 +173,6 @@ class CapturaDeFotos {
           mensagem: 'A imagem escolhida não pôde ser lida.',
         );
 
-      // Duas chamadas ao seletor ao mesmo tempo — toque duplo no botão.
-      // Não é erro que valha mostrar: o primeiro pedido segue em pé.
       case 'multiple_request':
         return const ResultadoDeCaptura._();
 
@@ -248,10 +184,5 @@ class CapturaDeFotos {
     }
   }
 
-  /// Abre as configurações do aplicativo, para o caso de permissão bloqueada.
-  ///
-  /// Vem do geolocator, que já está no projeto e expõe isto — em vez de
-  /// acrescentar o permission_handler só para abrir uma tela. É a mesma tela
-  /// de configurações do aplicativo, seja a permissão de câmera ou de GPS.
   static Future<void> abrirConfiguracoes() => Geolocator.openAppSettings();
 }

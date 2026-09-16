@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="960" viewBox="0 0 1240 960" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="pf" markerWidth="9" markerHeight="9" refX="8" refY="3.2" orient="auto"><path d="M0,0 L8,3.2 L0,6.4 z" fill="#5a6360"/></marker></defs>
+<rect width="1240" height="960" fill="#ffffff"/>
+<text x="620.0" y="34" font-size="19" fill="#1f2422" font-weight="700" text-anchor="middle">MATECH · Diagrama de Componentes</text>
+<rect x="50" y="58" width="1140" height="230" rx="6" fill="#f5f6f5" stroke="#8b938f" stroke-width="1.2" stroke-dasharray="7 4"/>
+<text x="64" y="78" font-size="11.5" fill="#5a6360" font-weight="700" text-anchor="start" letter-spacing="1.6">CAMADA DE APRESENTAÇÃO</text>
+<rect x="70" y="84" width="530" height="186" rx="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.6"/>
+<rect x="566" y="96" width="20" height="15" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<rect x="561" y="99" width="9" height="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<rect x="561" y="105" width="9" height="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<text x="86" y="106" font-size="13.5" fill="#1f2422" font-weight="700" text-anchor="start">Cliente Web</text>
+<text x="86" y="122" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">React 19 · Vite 8 · Tailwind 4 · React Router</text>
+<rect x="90" y="130" width="490" height="24" rx="3" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="335.0" y="146.0" font-size="11.5" fill="#1f2422" font-weight="400" text-anchor="middle">Painel · Pesagem · Avaliações de qualidade</text>
+<rect x="90" y="158" width="490" height="24" rx="3" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="335.0" y="174.0" font-size="11.5" fill="#1f2422" font-weight="400" text-anchor="middle">Avaliações de campo · Sincronização</text>
+<rect x="90" y="186" width="490" height="24" rx="3" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="335.0" y="202.0" font-size="11.5" fill="#1f2422" font-weight="400" text-anchor="middle">Produtores · Matéria-prima</text>
+<rect x="90" y="214" width="490" height="24" rx="3" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="335.0" y="230.0" font-size="11.5" fill="#1f2422" font-weight="400" text-anchor="middle">Pagamentos · Relatórios</text>
+<rect x="90" y="242" width="490" height="24" rx="3" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="335.0" y="258.0" font-size="11.5" fill="#1f2422" font-weight="400" text-anchor="middle">Configurações · Usuários</text>
+<rect x="650" y="84" width="520" height="186" rx="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.6"/>
+<rect x="1136" y="96" width="20" height="15" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<rect x="1131" y="99" width="9" height="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<rect x="1131" y="105" width="9" height="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<text x="666" y="106" font-size="13.5" fill="#1f2422" font-weight="700" text-anchor="start">Cliente Móvel</text>
+<text x="666" y="122" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">Flutter 3.44 · Dart 3.12 · local-first</text>
+<rect x="690" y="130" width="440" height="26" rx="3" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="910.0" y="147.0" font-size="11.5" fill="#1f2422" font-weight="400" text-anchor="middle">Telas de coleta</text>
+<rect x="690" y="172" width="440" height="26" rx="3" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="910.0" y="189.0" font-size="11.5" fill="#1f2422" font-weight="400" text-anchor="middle">DAOs · gravam no SQLite</text>
+<rect x="690" y="214" width="440" height="26" rx="3" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="910.0" y="231.0" font-size="11.5" fill="#1f2422" font-weight="400" text-anchor="middle">Sincronizador · fila Outbox</text>
+<line x1="910" y1="156" x2="910" y2="172" stroke="#5a6360" stroke-width="1.4" marker-end="url(#pf)"/>
+<line x1="910" y1="198" x2="910" y2="214" stroke="#5a6360" stroke-width="1.4" marker-end="url(#pf)"/>
+<rect x="50" y="330" width="1140" height="330" rx="6" fill="#f5f6f5" stroke="#8b938f" stroke-width="1.2" stroke-dasharray="7 4"/>
+<text x="64" y="350" font-size="11.5" fill="#5a6360" font-weight="700" text-anchor="start" letter-spacing="1.6">CAMADA DE APLICAÇÃO</text>
+<rect x="70" y="356" width="1100" height="286" rx="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.6"/>
+<rect x="1136" y="368" width="20" height="15" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<rect x="1131" y="371" width="9" height="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<rect x="1131" y="377" width="9" height="4" fill="#ffffff" stroke="#1B4D33" stroke-width="1.2"/>
+<text x="86" y="378" font-size="13.5" fill="#1f2422" font-weight="700" text-anchor="start">API REST</text>
+<text x="86" y="394" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">Node.js 24 · Express 5 · sem estado</text>
+<rect x="100" y="400" width="1040" height="40" rx="3" fill="#e4eee8" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="620.0" y="424.0" font-size="12" fill="#1f2422" font-weight="400" text-anchor="middle">Middlewares · autenticar (JWT) → permitir() para negócio · apenas() para administração de contas</text>
+<rect x="100" y="470" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="197.0" y="494.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">auth</text>
+<rect x="309" y="470" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="406.0" y="494.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">usuarios</text>
+<rect x="518" y="470" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="615.0" y="494.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">produtores</text>
+<rect x="727" y="470" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="824.0" y="494.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">motoristas</text>
+<rect x="936" y="470" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="1033.0" y="494.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">cargas</text>
+<rect x="100" y="522" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="197.0" y="546.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">qualidade</text>
+<rect x="309" y="522" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="406.0" y="546.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">pagamentos</text>
+<rect x="518" y="522" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="615.0" y="546.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">sincronizacao</text>
+<rect x="727" y="522" width="194" height="40" rx="3" fill="#ffffff" stroke="#1B4D33" stroke-width="1.1"/>
+<text x="824.0" y="546.0" font-size="12.5" fill="#1f2422" font-weight="400" text-anchor="middle">avaliacoes</text>
+<text x="620" y="606" font-size="11.5" fill="#5a6360" font-weight="400" text-anchor="middle" font-style="italic">cada módulo: rota → controlador → serviço</text>
+<line x1="100" y1="440" x2="100" y2="470" stroke="#5a6360" stroke-width="1.2"/>
+<line x1="100" y1="455" x2="1140" y2="455" stroke="#5a6360" stroke-width="1.2"/>
+<line x1="1140" y1="440" x2="1140" y2="470" stroke="#5a6360" stroke-width="1.2"/>
+<rect x="50" y="700" width="1140" height="200" rx="6" fill="#f5f6f5" stroke="#8b938f" stroke-width="1.2" stroke-dasharray="7 4"/>
+<text x="64" y="720" font-size="11.5" fill="#5a6360" font-weight="700" text-anchor="start" letter-spacing="1.6">CAMADA DE DADOS</text>
+<path d="M 110.0 767.0 a 120.0 12 0 0 1 240 0 v 86 a 120.0 12 0 0 1 -240 0 Z" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.6"/>
+<path d="M 110.0 767.0 a 120.0 12 0 0 0 240 0" fill="none" stroke="#1B4D33" stroke-width="1.6"/>
+<text x="230" y="812" font-size="12.5" fill="#1f2422" font-weight="700" text-anchor="middle">PostgreSQL 18</text>
+<text x="230" y="828" font-size="11" fill="#5a6360" font-weight="400" text-anchor="middle">12 tabelas · fonte da verdade</text>
+<path d="M 540 780 h 90 l 14 16 h 96 v 76 h -200 Z" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.6"/>
+<text x="640" y="830" font-size="12.5" fill="#1f2422" font-weight="700" text-anchor="middle">uploads/fotos</text>
+<text x="640" y="848" font-size="11" fill="#5a6360" font-weight="400" text-anchor="middle">arquivos do erval</text>
+<path d="M 890.0 767.0 a 120.0 12 0 0 1 240 0 v 86 a 120.0 12 0 0 1 -240 0 Z" fill="#eef3f0" stroke="#1B4D33" stroke-width="1.6"/>
+<path d="M 890.0 767.0 a 120.0 12 0 0 0 240 0" fill="none" stroke="#1B4D33" stroke-width="1.6"/>
+<text x="1010" y="812" font-size="12.5" fill="#1f2422" font-weight="700" text-anchor="middle">SQLite · sqflite</text>
+<text x="1010" y="828" font-size="11" fill="#5a6360" font-weight="400" text-anchor="middle">7 tabelas + fila Outbox</text>
+<line x1="335" y1="270" x2="335" y2="400" stroke="#5a6360" stroke-width="1.4" marker-end="url(#pf)"/>
+<text x="343.0" y="327.0" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">HTTPS · REST sem estado</text>
+<text x="343.0" y="343.0" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">JSON + Bearer token</text>
+<line x1="910" y1="270" x2="910" y2="400" stroke="#5a6360" stroke-width="1.4" marker-end="url(#pf)"/>
+<text x="918.0" y="327.0" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">POST /api/sincronizacao</text>
+<text x="918.0" y="343.0" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">lote idempotente por clientId</text>
+<line x1="230" y1="642" x2="230" y2="755" stroke="#5a6360" stroke-width="1.4" marker-end="url(#pf)"/>
+<text x="238.0" y="696.5" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">Prisma 7 + adapter-pg</text>
+<line x1="640" y1="642" x2="640" y2="780" stroke="#5a6360" stroke-width="1.4" marker-end="url(#pf)"/>
+<text x="648.0" y="709.0" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">express.raw · imagem</text>
+<line x1="1170" y1="185" x2="1205" y2="185" stroke="#5a6360" stroke-width="1.4" stroke-dasharray="6 4"/>
+<line x1="1205" y1="185" x2="1205" y2="810" stroke="#5a6360" stroke-width="1.4" stroke-dasharray="6 4"/>
+<line x1="1205" y1="810" x2="1134" y2="810" stroke="#5a6360" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#pf)"/>
+<text x="1196" y="316" font-size="11" fill="#5a6360" font-weight="400" text-anchor="end">local-first: lê e grava sem rede</text>
+<path d="M 50 912 H 1176 L 1190 926 V 952 H 50 Z" fill="#f5f6f5" stroke="#8b938f"/>
+<path d="M 1176 912 V 926 H 1190" fill="none" stroke="#8b938f"/>
+<text x="62" y="933" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">A regra de negócio vive apenas na camada de aplicação: os dois clientes só apresentam. O cliente móvel nunca fala com o PostgreSQL — ele grava no SQLite e o</text>
+<text x="62" y="948" font-size="11" fill="#5a6360" font-weight="400" text-anchor="start">sincronizador leva a fila embora, o que faz o aplicativo se comportar igual com e sem sinal.</text>
+</svg>

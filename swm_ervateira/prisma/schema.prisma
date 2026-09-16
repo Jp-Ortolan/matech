@@ -84,6 +84,10 @@ enum TipoChavePix {
 }
 
 enum SituacaoCarga {
+  /// O caminhão entrou, foi pesado cheio e ainda não voltou vazio à balança.
+  /// A carga existe, tem produtor, matéria-prima e peso bruto — o que ela não
+  /// tem é peso líquido, e por isso não vai para o laboratório.
+  AGUARDANDO_TARA
   AGUARDANDO_ANALISE
   ANALISADA
   EM_ORDEM_PAGAMENTO
@@ -123,7 +127,6 @@ model Usuario {
   avaliacoes Avaliacao[]
   pesagens   Carga[]
   analises   AnaliseQualidade[]
-  parametrosQualidade ParametroQualidade[]
 
   @@map("usuarios")
 }
@@ -325,10 +328,28 @@ model Carga {
   dataHora         DateTime         @default(now())
   tipoMateriaPrima TipoMateriaPrima
 
+  /// A PESAGEM ACONTECE EM DUAS IDAS À BALANÇA, e é por isso que dois destes
+  /// três campos são anuláveis.
+  ///
+  /// Na entrada o caminhão sobe cheio: grava-se o peso bruto, e só ele. A
+  /// carga fica em AGUARDANDO_TARA — ela existe, tem produtor e matéria-prima,
+  /// mas ainda não tem quanto pesa a erva. Depois de descarregar, o caminhão
+  /// volta vazio, a tara é pesada, o líquido fecha e o ticket é emitido.
+  ///
+  /// Anulável é diferente de zero: zero seria um caminhão sem peso, e o peso
+  /// líquido zerado entraria numa ordem de pagamento como se fosse um valor
+  /// legítimo. Nulo obriga quem lê a perceber que a pesagem não terminou.
   pesoBrutoKg        Decimal  @db.Decimal(12, 2)
-  taraKg             Decimal  @db.Decimal(12, 2)
+  taraKg             Decimal? @db.Decimal(12, 2)
   /// Bruto menos tara. Guardado calculado para não recalcular em toda consulta.
-  pesoLiquidoKg      Decimal  @db.Decimal(12, 2)
+  pesoLiquidoKg      Decimal? @db.Decimal(12, 2)
+  /// Metragem da lenha, em metros cúbicos. Só existe para o tipo LENHA.
+  ///
+  /// É REGISTRO, e não base de cálculo: a lenha continua sendo paga por quilo,
+  /// como todo o resto. O metro cúbico entra porque é assim que o negócio de
+  /// lenha se fala e se confere no pátio — o caminhão é medido, e o número
+  /// precisa estar no ticket ao lado do peso.
+  metragemM3         Decimal? @db.Decimal(10, 2)
   /// Quanto o avaliador tinha estimado em campo — permite medir a acurácia da estimativa.
   pesoEstimadoCampoKg Decimal? @db.Decimal(12, 2)
 
@@ -340,7 +361,7 @@ model Carga {
   /// do campo.
   precoBaseKg Decimal? @db.Decimal(10, 4)
 
-  situacao  SituacaoCarga @default(AGUARDANDO_ANALISE)
+  situacao  SituacaoCarga @default(AGUARDANDO_TARA)
   observacoes String?
 
   criadoEm     DateTime @default(now())
@@ -375,32 +396,17 @@ model AnaliseQualidade {
   folhaPercentual    Decimal? @db.Decimal(5, 2)
   observacoes        String?
 
-  /// OS LIMITES QUE VALIAM NO DIA DA ANÁLISE, copiados para cá.
-  ///
-  /// Não são lidos dos parâmetros na hora de consultar, e isso é deliberado:
-  /// se a ervateira mudar o limite de palito de 30% para 28% no ano que vem,
-  /// as análises de hoje continuam dizendo o que diziam. Sem esta cópia, um
-  /// laudo antigo passaria a acusar reprovação por um limite que não existia
-  /// quando a amostra foi medida.
-  ///
-  /// Os três de reprovação são anuláveis porque são opcionais: a ervateira que
-  /// não quiser reprovar por umidade simplesmente não define o limite.
-  limitePalito       Decimal  @db.Decimal(5, 2) @default(30.00)
-  descontoPercentual Decimal  @db.Decimal(5, 2) @default(0)
-  palitoMaximo       Decimal? @db.Decimal(5, 2)
-  umidadeMaxima      Decimal? @db.Decimal(5, 2)
-  folhaMinima        Decimal? @db.Decimal(5, 2)
-  /// Motivo escrito pelo analista quando ele reprova sem limite estourado —
-  /// ou aprova apesar de um limite estourado. Nos demais casos o motivo é
-  /// deduzido das medidas e dos limites acima, sem texto guardado.
+  /// Motivo escrito pelo analista ao reprovar a carga. Obrigatório na
+  /// reprovação: sem ele, ninguém sabe seis meses depois em que a decisão se
+  /// baseou. Nulo nas análises aprovadas.
   motivoReprovacao   String?
-  /// Preço menos o desconto, e o valor que ele produz.
+  /// O preço por quilo e o valor que ele produz.
   ///
   /// ANULÁVEIS de propósito: a análise mede QUALIDADE, e qualidade não depende
-  /// de preço. O laboratório registra o percentual de palito e o desconto que
-  /// ele gera; o preço só entra na emissão da ordem. Quando a ordem é emitida,
-  /// ela grava estes dois campos de volta aqui — assim o histórico da análise
-  /// fica completo e as consultas de valor continuam funcionando.
+  /// de preço. O laboratório registra as medidas da amostra; o preço só entra
+  /// na emissão da ordem. Quando a ordem é emitida, ela grava estes dois
+  /// campos de volta aqui — assim o histórico da análise fica completo e as
+  /// consultas de valor continuam funcionando.
   precoAjustadoKg    Decimal? @db.Decimal(10, 4)
   valorTotal         Decimal? @db.Decimal(12, 2)
   aprovada           Boolean  @default(true)
@@ -425,9 +431,26 @@ model OrdemPagamento {
   valorTotal    Decimal       @db.Decimal(14, 2)
   situacao      SituacaoOrdem @default(PENDENTE)
 
-  /// Cópia da chave no momento da emissão: se o produtor trocar de chave depois,
-  /// a ordem antiga continua mostrando para onde o dinheiro realmente foi.
-  chavePixSnapshot String?
+  /// DESTINO DO PAGAMENTO, COPIADO NA EMISSÃO.
+  ///
+  /// O cadastro do produtor diz para onde pagar HOJE. A ordem precisa dizer
+  /// para onde se pagou NAQUELE DIA — são perguntas diferentes, e a segunda é
+  /// a que se responde quando o produtor liga meses depois dizendo que não
+  /// recebeu. Por isso o destino inteiro é copiado, e não referenciado.
+  ///
+  /// E porque é cópia, ele pode ser DIFERENTE do cadastro: acontece de o
+  /// produtor avisar na hora da emissão que desta vez o dinheiro vai para
+  /// outra chave, ou para a conta do filho. O sistema aceita, registra o que
+  /// foi combinado, e deixa o cadastro em paz — a menos que se peça para
+  /// atualizar os dois.
+  formaPagamentoSnapshot FormaPagamento?
+  chavePixSnapshot       String?
+  tipoChavePixSnapshot   TipoChavePix?
+  titularSnapshot        String?
+  bancoSnapshot          String?
+  agenciaSnapshot        String?
+  contaSnapshot          String?
+  tipoContaSnapshot      TipoConta?
 
   emitidaEm DateTime  @default(now())
   pagaEm    DateTime?
@@ -491,38 +514,56 @@ model RegistroSincronizacao {
 }
 
 // ---------------------------------------------------------------------------
-// PARÂMETROS DE QUALIDADE · a régua da ervateira
+// AUDITORIA — quem alterou o quê
 // ---------------------------------------------------------------------------
-// Os limites não são do sistema, são de quem compra. Uma ervateira aceita
-// palito até 30% e desconta um ponto por ponto excedente; outra trabalha com
-// 25% e desconta dois. Deixar isso no código obrigaria a recompilar o sistema
-// para cada cliente — e, pior, esconderia dentro do programa uma regra que é
-// comercial e muda por negociação.
-//
-// LINHA ÚNICA, e não uma por ervateira: cada instalação atende uma. O id fixo
-// 'padrao' torna a leitura e a gravação um upsert simples, sem precisar
-// descobrir qual linha é a boa.
-//
-// Os três limites de reprovação são ANULÁVEIS de propósito. Nulo quer dizer
-// "não reprovamos por isso" — que é diferente de zero, e é o estado inicial:
-// enquanto ninguém definir, o sistema mede e registra sem reprovar sozinho.
-model ParametroQualidade {
-  id String @id @default("padrao")
 
-  /// Acima deste percentual de palito começa o desconto.
-  limitePalito     Decimal @db.Decimal(5, 2) @default(30.00)
-  /// Quantos pontos de desconto no preço cada ponto percentual excedente gera.
-  descontoPorPonto Decimal @db.Decimal(5, 2) @default(1.00)
+/// Registro de alteração administrativa. Guarda o que ninguém consegue
+/// reconstituir depois: quem abriu uma conta, quem trocou o perfil de alguém,
+/// quem redefiniu senha de quem.
+///
+/// DUAS DECISÕES DE MODELAGEM QUE VALEM EXPLICAR:
+///
+/// 1. NÃO há relação com Usuario. É de propósito. Se houvesse, apagar uma
+///    conta apagaria junto o rastro do que ela fez — que é exatamente o
+///    momento em que o rastro mais importa. Por isso o nome e o perfil de quem
+///    agiu ficam COPIADOS aqui (usuarioNome, usuarioPerfil): o registro
+///    continua legível mesmo que a conta suma ou mude de nome depois.
+///
+/// 2. `antes` e `depois` guardam o valor dos campos que mudaram, e só deles.
+///    Guardar o objeto inteiro encheria a tabela de repetição; guardar só a
+///    ação ("perfil alterado") não responderia "alterado de quê para quê", que
+///    é a única pergunta que se faz a um log de auditoria.
+///
+/// Senha NUNCA entra aqui, nem em `antes` nem em `depois` — nem o hash. O que
+/// se registra é que a senha foi redefinida, não qual era nem qual passou a ser.
+model RegistroAuditoria {
+  id String @id @default(uuid())
 
-  /// Limites de reprovação. Nulo = não reprova por este critério.
-  palitoMaximo  Decimal? @db.Decimal(5, 2)
-  umidadeMaxima Decimal? @db.Decimal(5, 2)
-  folhaMinima   Decimal? @db.Decimal(5, 2)
+  /// Quem fez. Copiado, e não referenciado — ver a nota 1 acima.
+  usuarioId     String
+  usuarioNome   String
+  usuarioPerfil PerfilUsuario
 
-  atualizadoEm DateTime @updatedAt
-  usuarioId    String?
+  /// O que aconteceu, em maiúsculas e sem espaço: USUARIO_CRIADO,
+  /// USUARIO_ALTERADO, SENHA_REDEFINIDA.
+  acao String
 
-  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+  /// Sobre o quê: hoje sempre Usuario.
+  entidade   String
+  entidadeId String?
 
-  @@map("parametros_qualidade")
+  /// Descrição legível do alvo, também copiada: "Cristiane Modesto
+  /// (cristiane.modesto)". Sem isso, a tela do log precisaria de um JOIN com
+  /// uma conta que pode não existir mais.
+  alvo String?
+
+  antes  Json?
+  depois Json?
+
+  criadoEm DateTime @default(now())
+
+  @@index([criadoEm])
+  @@index([acao])
+  @@index([usuarioId])
+  @@map("registros_auditoria")
 }

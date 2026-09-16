@@ -1,18 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · detalhe da avaliação
-// ---------------------------------------------------------------------------
-// Mostra uma avaliação inteira e é a porta para a edição.
-//
-// O QUE ELA DEIXA CLARO, E POR QUÊ: o estado de sincronização aparece em
-// destaque, no topo, e não como um detalhe no rodapé. Quem abre esta tela
-// costuma estar respondendo a uma pergunta específica — "essa avaliação já
-// chegou no escritório?" — e a resposta não pode exigir procurar.
-//
-// As fotos abrem em tamanho cheio porque é para isso que elas existem: provar
-// o que foi visto. Uma miniatura de 96 pixels não prova nada sobre folha,
-// talo ou queima.
-
-
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -40,7 +25,6 @@ class _TelaDetalheAvaliacaoState extends State<TelaDetalheAvaliacao> {
   List<Foto> _fotos = const [];
   bool _carregando = true;
 
-  /// true se algo mudou — a lista anterior precisa se recarregar ao voltar.
   bool _houveMudanca = false;
 
   @override
@@ -118,8 +102,6 @@ class _TelaDetalheAvaliacaoState extends State<TelaDetalheAvaliacao> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // O estado vai em primeiro, e sozinho: é a pergunta que traz a
-            // maioria das pessoas a esta tela.
             _FaixaDeEstado(situacao: r.situacaoFila, avaliacao: a),
             const SizedBox(height: 16),
 
@@ -206,7 +188,6 @@ class _TelaDetalheAvaliacaoState extends State<TelaDetalheAvaliacao> {
   }
 }
 
-/// Faixa do estado de sincronização, com a explicação do que ele significa.
 class _FaixaDeEstado extends StatelessWidget {
   final String? situacao;
   final Avaliacao avaliacao;
@@ -222,13 +203,6 @@ class _FaixaDeEstado extends StatelessWidget {
             : 'Esta avaliação existe SÓ neste aparelho. Ela sobe sozinha quando '
                 'houver sinal.';
 
-    // TRÊS TONS EXPLÍCITOS, e não uma família do Material.
-    //
-    // Antes isto era `Colors.green` e `Colors.blueGrey`, de onde saíam
-    // shade50 para o fundo, shade200 para a borda e shade900 para o texto. É
-    // cômodo e é do Material — os tons não são os deste sistema, e a diferença
-    // aparece na hora de comparar com a web. Agora cada papel tem o seu, do
-    // mesmo jeito que o index.css declara alerta e alerta-bg em separado.
     final ({Color fundo, Color borda, Color texto}) tom =
         sincronizada
             ? (fundo: Cores.mate100, borda: Cores.mate300, texto: Cores.mate800)
@@ -248,10 +222,6 @@ class _FaixaDeEstado extends StatelessWidget {
             children: [
               EtiquetaSincronizacao(situacao),
               const Spacer(),
-              // A hora da última alteração NO APARELHO. É este carimbo que
-              // decide o conflito no servidor, e por isso ele é exibido: se
-              // duas versões da mesma avaliação existirem, é por ele que se
-              // explica qual venceu.
               Text(
                 'alterada ${formatarDataHora(avaliacao.alteradoEmOrigem)}',
                 style: const TextStyle(fontSize: 11, color: Cores.cinza400),
@@ -323,13 +293,6 @@ class _Miniatura extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A LEITURA VIROU ASSÍNCRONA, e não por gosto: no navegador a foto não é
-    // um arquivo em disco que se possa perguntar se existe de forma síncrona —
-    // é uma linha no banco local. Uma porta só para as duas plataformas custa
-    // este FutureBuilder.
-    //
-    // cacheWidth de 200 para uma miniatura de 100: sem ele o Flutter decodifica
-    // a foto inteira, de vários megapixels, para desenhar um quadrado pequeno.
     return FutureBuilder<Uint8List?>(
       future: Arquivos.lerFoto(foto.caminhoLocal),
       builder: (context, quadro) {
@@ -346,13 +309,6 @@ class _Miniatura extends StatelessWidget {
 
         final bytes = quadro.data;
 
-        // caminho vazio é a marca de "o arquivo sumiu do aparelho" — ver
-        // FotoDao.marcarArquivoAusente. A linha continua existindo de
-        // propósito: ela é a prova de que a avaliação teve esta foto.
-        //
-        // O `if` com retorno, e não um ternário com a condição guardada numa
-        // variável: o Dart só promove `bytes` para não-nulo quando o teste
-        // está na própria condição do desvio.
         if (foto.caminhoLocal.isEmpty || bytes == null) return _semArquivo();
 
         return _comArquivo(context, bytes);

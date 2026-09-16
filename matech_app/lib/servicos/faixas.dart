@@ -1,80 +1,23 @@
-// ---------------------------------------------------------------------------
-// FAIXAS · o que é número plausível numa avaliação de campo
-// ---------------------------------------------------------------------------
-// ISTO NÃO É REGRA DE NEGÓCIO, e a diferença importa.
-//
-// Regra de negócio é o limite de palito que reprova uma carga: ela é da
-// ervateira, muda por negociação, e por isso mora numa tabela editável do
-// servidor. O que está aqui é outra coisa — é a defesa contra o DEDO ERRADO.
-//
-// O caso real: o avaliador digita a estimativa com luva, no sol, e sai 70000
-// em vez de 7000. Ninguém confere, a avaliação sobe, e o número errado vira
-// base de comparação com a pesagem lá no escritório — onde o desvio de 900%
-// aparece como problema de avaliação, e não como problema de digitação.
-//
-// Os limites são LARGOS de propósito. Não estão aqui para dizer o que é uma
-// carga boa, e sim o que é impossível: um erval de duzentos anos, um preço de
-// mil reais o quilo, uma umidade de 300%. Apertar mais que isso seria inventar
-// regra de negócio pelas costas de quem decide, que é o dono da ervateira.
-//
-// Por isso as mensagens perguntam em vez de afirmar: "confira" e não "errado".
-
-// ---------------------------------------------------------------------------
-// TAMANHO DOS CAMPOS DE TEXTO
-// ---------------------------------------------------------------------------
-// Os mesmos números de src/lib/textos.js, no servidor. Repetidos aqui porque
-// Dart e Node não compartilham arquivo — e repetidos COM O ENDEREÇO DO OUTRO
-// LADO escrito, para que quem mexer num saiba onde está o par.
-//
-// O maxLength da tela não é a garantia; a garantia é o servidor, que recusa o
-// que passar do limite. O maxLength é o que impede a pessoa de digitar cento e
-// cinquenta caracteres para descobrir na sincronização, à noite, longe do
-// produtor, que o cadastro não entrou.
-
-/// Nome completo. Cabe qualquer nome brasileiro com folga larga.
 const int kMaxNome = 120;
 
-/// Telefone com DDD e pontuação: "(42) 99999-9999" tem 15.
 const int kMaxTelefone = 20;
 
-/// Município. O nome mais longo do Brasil tem 32 caracteres.
 const int kMaxMunicipio = 60;
 
-/// Chave Pix. 77 é o teto da especificação do Banco Central — o caso do
-/// e-mail. A chave aleatória tem 36 e o telefone, 14.
 const int kMaxChavePix = 77;
 
-/// CPF tem 11 dígitos, CNPJ tem 14. O campo só aceita dígitos, então o
-/// maxLength é o próprio comprimento do CNPJ.
 const int kMaxDocumento = 14;
 
-/// Identificação do erval: "Talhão 3 — fundo do potreiro" e coisas assim.
 const int kMaxIdentificacao = 80;
 
-/// Observações da avaliação. Um parágrafo, não um relatório.
 const int kMaxObservacoes = 1000;
 
-/// O maior peso que um caminhão de erva-mate entrega. Um bitrem carregado
-/// passa longe disto; o número existe para pegar o zero a mais.
 const double kPesoMaximoKg = 100000;
 
-/// Erval de mais de um século existe, mas não se colhe. Cem anos é folga.
 const int kIdadeMaximaAnos = 100;
 
-/// Preço por quilo. A erva-mate verde é negociada em reais e centavos; cem
-/// reais o quilo é duas ordens de grandeza acima de qualquer safra.
 const double kPrecoMaximoKg = 100;
 
-/// Converte o que foi digitado, na convenção brasileira: PONTO É MILHAR e
-/// vírgula é decimal. "7.500" são sete mil e quinhentos quilos, não sete e
-/// meio.
-///
-/// Esta função tinha de ser exatamente a mesma que a tela usa para GRAVAR, e
-/// por pouco não foi: a primeira versão daqui tratava o ponto como decimal.
-/// O efeito seria silencioso e feio — o validador aprovaria "70.000" lendo
-/// setenta, e o banco guardaria setenta mil. Validar com uma régua e gravar
-/// com outra é pior que não validar, porque dá a impressão de que alguém
-/// conferiu.
 double? numeroDigitado(String? valor) {
   final limpo = (valor ?? '').trim().replaceAll('.', '').replaceAll(',', '.');
   if (limpo.isEmpty) return null;
@@ -87,8 +30,6 @@ int? inteiroDigitado(String? valor) {
   return int.tryParse(limpo);
 }
 
-/// Estimativa de quantidade. Obrigatória: é ela que o relatório de acurácia
-/// compara com a pesagem, e sem ela a avaliação não mede nada.
 String? erroNaQuantidade(String? valor) {
   final n = numeroDigitado(valor);
   if (n == null) return 'Informe a estimativa';
@@ -99,8 +40,6 @@ String? erroNaQuantidade(String? valor) {
   return null;
 }
 
-/// Idade do erval. Opcional — nem todo avaliador sabe, e chutar é pior que
-/// deixar em branco.
 String? erroNaIdade(String? valor) {
   final texto = (valor ?? '').trim();
   if (texto.isEmpty) return null;
@@ -112,8 +51,6 @@ String? erroNaIdade(String? valor) {
   return null;
 }
 
-/// Valor por quilo combinado no erval. Opcional: na maioria das vezes o preço
-/// só é acertado depois, na emissão da ordem de pagamento.
 String? erroNoValorPorQuilo(String? valor) {
   final texto = (valor ?? '').trim();
   if (texto.isEmpty) return null;

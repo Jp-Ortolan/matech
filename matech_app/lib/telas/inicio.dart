@@ -1,16 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · início (casca com as três abas)
-// ---------------------------------------------------------------------------
-// TRÊS ABAS, E O ESCOPO ESTÁ AÍ: avaliar, consultar produtor, sincronizar.
-// Não há pesagem, não há análise de laboratório, não há pagamento — essas
-// telas são da web, e reproduzi-las aqui seria transformar o aplicativo numa
-// segunda versão do sistema, com o dobro de código para manter e nenhum
-// ganho: a balança fica no pátio, onde há computador e internet.
-//
-// O contador de pendências no rótulo da aba de sincronização é a informação
-// mais importante do aplicativo inteiro. É o que responde, sem o avaliador
-// precisar perguntar, "quanto do meu dia ainda está só neste celular?".
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -42,9 +29,6 @@ class _TelaInicioState extends State<TelaInicio> {
   ];
   static const _titulos = ['Avaliações', 'Produtores', 'Sincronização'];
 
-  /// Chave do ajuste que marca que o preparo já foi oferecido.
-  /// Uma vez por instalação, e não por login: quem já concedeu as permissões
-  /// não precisa vê-lo de novo a cada vez que troca de conta no aparelho.
   static const _chaveDoPreparo = 'preparo_oferecido';
 
   @override
@@ -52,28 +36,16 @@ class _TelaInicioState extends State<TelaInicio> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Uma tentativa de subir a fila assim que o aplicativo abre. Se não
-      // houver sinal, falha em silêncio e reagenda — o avaliador não precisa
-      // saber.
       unawaited(sincronizador.sincronizar());
 
       await _oferecerPreparoNaPrimeiraVez();
     });
   }
 
-  /// Mostra a tela de preparo na primeira vez, e só nela.
-  ///
-  /// Vai aqui, e não logo depois do login, porque o preparo precisa que o
-  /// aplicativo já esteja de pé — ele baixa produtores e usa a sessão. E vai
-  /// num addPostFrameCallback porque empurrar uma rota durante o build da
-  /// própria tela que a empurra é erro clássico de Flutter.
   Future<void> _oferecerPreparoNaPrimeiraVez() async {
     final jaFoi = await BancoLocal.obterAjuste(_chaveDoPreparo, () => 'nao');
     if (jaFoi == 'sim' || !mounted) return;
 
-    // Marca ANTES de abrir. Se marcasse depois, um fechamento abrupto no meio
-    // do preparo faria a tela voltar a aparecer toda vez — e uma tela de
-    // boas-vindas insistente é pior que nenhuma.
     await BancoLocal.gravarAjuste(_chaveDoPreparo, 'sim');
     if (!mounted) return;
 
@@ -124,9 +96,6 @@ class _TelaInicioState extends State<TelaInicio> {
                       ),
                     ),
                     const PopupMenuDivider(),
-                    // Continua acessível depois da primeira vez: baixar os
-                    // produtores é rotina de todo dia em que se sai a campo, não
-                    // um passo de instalação.
                     const PopupMenuItem(
                       value: 'preparo',
                       child: Text('Preparar para o campo'),
@@ -192,9 +161,6 @@ class _TelaInicioState extends State<TelaInicio> {
     );
   }
 
-  /// A confirmação existe por causa de uma coisa só: deixar claro, antes, que
-  /// sair NÃO apaga o que ainda não subiu. Sem esse texto, um avaliador com
-  /// trinta avaliações na fila hesitaria em sair — ou sairia com medo.
   Future<void> _confirmarSaida(BuildContext context) async {
     final pendentes = sincronizador.pendentes;
 

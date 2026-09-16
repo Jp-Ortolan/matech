@@ -1,0 +1,151 @@
+classDiagram
+    direction TB
+
+    class Usuario {
+        +String id
+        +String nome
+        +String usuario
+        +String senhaHash
+        +PerfilUsuario perfil
+        +Boolean ativo
+        +DateTime ultimoAcesso
+    }
+
+    class Produtor {
+        +String id
+        +String nome
+        +String cpfCnpj
+        +String municipio
+        +FormaPagamento formaPagamento
+        +String chavePix
+        +String clientId
+        +Boolean criadoOffline
+        +DateTime sincronizadoEm
+    }
+
+    class Erval {
+        +String id
+        +String identificacao
+        +TipoErva tipoErva
+        +Decimal quantidadeEstimadaKg
+        +Int idadeAnos
+        +Decimal latitude
+        +Decimal longitude
+        +String clientId
+        +Boolean criadoOffline
+    }
+
+    class Avaliacao {
+        +String id
+        +DateTime dataAvaliacao
+        +TipoErva tipoErva
+        +GrauQueima ervaQueimada
+        +Decimal quantidadeEstimadaKg
+        +Decimal valorCombinadoKg
+        +Decimal latitude
+        +Decimal longitude
+        +String clientId
+        +DateTime alteradoEmOrigem
+    }
+
+    class FotoErval {
+        +String id
+        +String caminho
+        +Int tamanhoBytes
+        +String clientId
+    }
+
+    class Motorista {
+        +String id
+        +String nome
+        +String cpf
+        +String cnhCategoria
+    }
+
+    class Veiculo {
+        +String id
+        +String placa
+        +String tipo
+        +Decimal taraKg
+    }
+
+    class Carga {
+        +String id
+        +String numeroTicket
+        +DateTime dataHora
+        +TipoMateriaPrima tipoMateriaPrima
+        +Decimal pesoBrutoKg
+        +Decimal taraKg
+        +Decimal pesoLiquidoKg
+        +Decimal pesoEstimadoCampoKg
+        +Decimal precoBaseKg
+        +SituacaoCarga situacao
+    }
+
+    class AnaliseQualidade {
+        +String id
+        +DateTime dataHora
+        +Decimal palitoPercentual
+        +Decimal umidadePercentual
+        +Decimal limitePalito
+        +Decimal descontoPercentual
+        +Decimal precoAjustadoKg
+        +Decimal valorTotal
+        +Boolean aprovada
+    }
+
+    class OrdemPagamento {
+        +String id
+        +String numero
+        +DateTime periodoInicio
+        +DateTime periodoFim
+        +Decimal valorTotal
+        +String chavePixSnapshot
+        +SituacaoOrdem situacao
+        +DateTime pagaEm
+    }
+
+    class ItemOrdemPagamento {
+        +String id
+        +Decimal pesoLiquidoKg
+        +Decimal precoKg
+        +Decimal valor
+    }
+
+    class RegistroSincronizacao {
+        +String id
+        +String dispositivoId
+        +String entidade
+        +String operacao
+        +String clientId
+        +SituacaoSincronizacao situacao
+        +Int tentativas
+        +Boolean houveConflito
+        +String versaoVencedora
+        +DateTime criadoEmOrigem
+        +DateTime recebidoEm
+    }
+
+    Produtor "1" --> "0..*" Erval : possui
+    Produtor "1" --> "0..*" Carga : entrega
+    Produtor "1" --> "0..*" OrdemPagamento : recebe
+
+    Erval "1" --> "0..*" Avaliacao : é avaliado em
+    Erval "0..1" --> "0..*" Carga : origina
+
+    Usuario "1" --> "0..*" Avaliacao : avalia
+    Usuario "1" --> "0..*" Carga : pesa
+    Usuario "1" --> "0..*" AnaliseQualidade : analisa
+
+    Avaliacao "1" *-- "0..*" FotoErval : comprova
+    Avaliacao "0..1" --> "0..*" Carga : estimou
+
+    Motorista "1" *-- "0..*" Veiculo : conduz
+    Motorista "0..1" --> "0..*" Carga : transporta
+    Veiculo "0..1" --> "0..*" Carga : transporta
+
+    Carga "1" --> "0..1" AnaliseQualidade : recebe
+    Carga "1" --> "0..1" ItemOrdemPagamento : compõe
+    OrdemPagamento "1" *-- "1..*" ItemOrdemPagamento : agrupa
+
+    note for RegistroSincronizacao "Auditoria da sincronização: sem chave estrangeira para as demais. Guarda o clientId, que é a chave de idempotência."

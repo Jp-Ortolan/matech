@@ -1,12 +1,3 @@
-// ---------------------------------------------------------------------------
-// TESTES · agrupamento e leitura de datas
-// ---------------------------------------------------------------------------
-// Rodar com:  npm test  (dentro de web/)
-//
-// Os casos são construídos com `new Date(ano, mes, dia, hora)`, que cria um
-// instante no fuso da máquina, e verificados com métodos locais. Assim o teste
-// vale em qualquer fuso — inclusive no do servidor da faculdade.
-
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -18,9 +9,6 @@ describe('chaveDoDia', () => {
   })
 
   test('carga das 21h30 fica no dia dela, e não no seguinte', () => {
-    // ESTE É O CASO QUE ESTAVA ERRADO. Com toISOString(), 21h30 de 11/08 no
-    // horário de Brasília vira 12/08 00h30 em UTC — e a carga era somada no
-    // balde do dia seguinte, num relatório que ninguém conferia carga a carga.
     assert.equal(chaveDoDia(new Date(2026, 7, 11, 21, 30)), '2026-08-11')
   })
 
@@ -44,7 +32,6 @@ describe('chaveDoDia', () => {
   })
 
   test('documenta o comportamento antigo, que era o bug', () => {
-    // Um instante fixo em UTC−3: 21h30 de 11/08. Em UTC já é dia 12.
     const noite = new Date('2026-08-11T21:30:00-03:00')
     assert.equal(noite.toISOString().slice(0, 10), '2026-08-12')
   })
@@ -52,7 +39,6 @@ describe('chaveDoDia', () => {
 
 describe('paraData', () => {
   test('data sem hora é lida como o dia local, não como UTC', () => {
-    // `new Date('2026-08-11')` daria 10/08 em qualquer fuso negativo.
     const d = paraData('2026-08-11')
     assert.equal(d.getFullYear(), 2026)
     assert.equal(d.getMonth(), 7)
@@ -60,7 +46,6 @@ describe('paraData', () => {
   })
 
   test('a chave de agrupamento volta a ser o mesmo dia depois de formatada', () => {
-    // O ciclo completo do relatório: instante → chave → rótulo.
     const chave = chaveDoDia(new Date(2026, 7, 11, 21, 30))
     assert.equal(paraData(chave).getDate(), 11)
   })

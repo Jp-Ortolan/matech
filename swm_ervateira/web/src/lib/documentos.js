@@ -1,15 +1,3 @@
-// ---------------------------------------------------------------------------
-// DOCUMENTOS · validação e máscara, no navegador
-// ---------------------------------------------------------------------------
-// Cópia deliberada do src/lib/documentos.js do servidor, pelo mesmo motivo do
-// cálculo de pagamento: a tela avisa CEDO, o servidor GARANTE. Aqui o operador
-// vê o erro enquanto ainda está com o produtor na frente; lá, nenhum cliente é
-// confiável — nem esta tela, nem o aplicativo móvel, nem o próximo que vier.
-//
-// A duplicação é pequena e estável (o algoritmo do dígito verificador não muda
-// desde 1970). Compartilhar o arquivo entre os dois exigiria um pacote comum e
-// uma etapa de build só para isso, que não se paga num sistema deste tamanho.
-
 const apenasDigitos = (valor) => String(valor ?? '').replace(/\D/g, '')
 
 function digitoPorPesos(digitos, pesos) {
@@ -36,7 +24,6 @@ export function cnpjValido(valor) {
   )
 }
 
-/** Mensagem de recusa, ou null. Texto e não booleano: "inválido" não conserta nada. */
 export function erroNoDocumento(valor) {
   const d = apenasDigitos(valor)
   if (!d) return 'Informe o CPF ou CNPJ'
@@ -58,12 +45,6 @@ export function erroNoCpf(valor) {
   if (d.length !== 11) return `CPF tem 11 dígitos — foram digitados ${d.length}`
   return cpfValido(d) ? null : 'CPF inválido: confira, algum dígito está trocado'
 }
-
-// ---------------------------------------------------------------------------
-// MÁSCARAS
-// ---------------------------------------------------------------------------
-// Aplicadas enquanto se digita, e SEMPRE removidas antes de enviar. O banco
-// guarda só dígitos — a pontuação é da tela, não do dado.
 
 export function mascararDocumento(valor) {
   const d = apenasDigitos(valor).slice(0, 14)
@@ -90,7 +71,6 @@ export function mascararTelefone(valor) {
   return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2')
 }
 
-/** ABC1D23 — sem hífen, que o Mercosul não usa. */
 export function mascararPlaca(valor) {
   return String(valor ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7)
 }

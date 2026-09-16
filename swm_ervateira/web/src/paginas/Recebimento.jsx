@@ -1,27 +1,3 @@
-// ---------------------------------------------------------------------------
-// PÁGINA · recebimento
-// ---------------------------------------------------------------------------
-// Duas coisas numa tela só:
-//   · consulta do histórico com filtro por data e por produtor  (RF12 a RF14)
-//   · registro de uma nova pesagem                              (RF06 a RF09)
-//
-// O botão de registrar só aparece para quem pode — mas quem garante mesmo é o
-// back-end. Esconder na interface é conveniência; a segurança está na API.
-//
-// TRÊS CORREÇÕES VINDAS DA AUDITORIA FUNCIONAL:
-//
-//   1. O número do ticket agora é confirmado na tela. O POST devolve a carga
-//      criada, com o número que o servidor gerou, e antes esse retorno era
-//      descartado — o operador tinha que caçar a linha na tabela para descobrir
-//      o número que precisa ditar para o motorista.
-//
-//   2. Os campos numéricos ganharam limite inferior. Sem min, o navegador
-//      aceitava preço negativo, e o servidor gravava.
-//
-//   3. A falha ao carregar produtores deixou de ser engolida por um
-//      .catch(() => {}). Quando a API cai, o campo fica vazio — e vazio, sem
-//      aviso, se lê como "não há produtor cadastrado".
-
 import { useEffect, useState, useCallback } from 'react'
 import {
   cargas as apiCargas,
@@ -31,29 +7,22 @@ import {
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import TicketPesagem from '../componentes/TicketPesagem'
+import FichaDaCarga from '../componentes/FichaDaCarga'
 import {
-  Painel, Filtros, Tabela, Paginacao, Campo, Selecao, Botao,
+  Painel, Filtros, Tabela, Paginacao, Campo, Selecao, Botao, Janela,
   Carregando, Erro, Aviso, LinhaDado
 } from '../componentes/ui'
 import { mascararPlaca, mascararDocumento, erroNoCpf, erroNaPlaca } from '../lib/documentos'
-import { formatar } from '../lib/formatar'
-import { ICONE_DA_ACAO, SITUACAO } from '../lib/icones'
+import { formatar, contagem } from '../lib/formatar'
+import { ICONE_DA_ACAO, SITUACAO, SITUACOES_DA_CARGA } from '../lib/icones'
 import { colunasDeCargas } from '../componentes/tabelas'
 import { resumirFiltros, nomeNaLista } from '../lib/filtros'
 
 export default function Recebimento() {
   const { podeFazer } = useAutenticacao()
-  // O servidor não manda preço nem valor para quem não é do administrativo.
-  // A coluna some junto: uma coluna inteira de travessões não informa nada e
-  // ainda sugere que o dado está faltando, e não que não é seu.
   const veDinheiro = podeFazer('ADMINISTRATIVO')
 
   const [filtros, setFiltros] = useState({ busca: '', de: '', ate: '', produtorId: '', situacao: '' })
-  // A página fica FORA de `filtros` de propósito: mudar um filtro tem de
-  // voltar para a primeira página, e mudar de página não pode reabrir a busca
-  // do zero. Guardados juntos, um mexeria no outro sem querer — e o caso
-  // clássico é filtrar estando na página 7 e receber uma tabela vazia, porque
-  // o resultado novo tem duas páginas.
   const [pagina, setPagina] = useState(1)
   const [dados, setDados] = useState(null)
   const [listaProdutores, setListaProdutores] = useState([])
@@ -63,12 +32,11 @@ export default function Recebimento() {
   const [erroProdutores, setErroProdutores] = useState(null)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [confirmacao, setConfirmacao] = useState(null)
-  // A carga cujo ticket está aberto para impressão. Separado da confirmação
-  // porque o ticket também é reimpresso a partir do histórico, dias depois —
-  // motorista perde papel, e a via tem que poder sair de novo.
   const [ticket, setTicket] = useState(null)
+  const [fichaId, setFichaId] = useState(null)
+  const [fila, setFila] = useState([])
+  const [erroFila, setErroFila] = useState(null)
 
-  // useCallback evita recriar a função a cada renderização
   const buscar = useCallback(async () => {
     setCarregando(true)
     setErro(null)
@@ -83,7 +51,18 @@ export default function Recebimento() {
 
   useEffect(() => { buscar() }, [buscar])
 
-  // A lista de produtores alimenta o filtro e o formulário de pesagem.
+  const buscarFila = useCallback(async () => {
+    try {
+      const r = await apiCargas.listar({ situacao: 'AGUARDANDO_TARA', porPagina: 100 })
+      setFila(r.cargas)
+      setErroFila(null)
+    } catch (e) {
+      setErroFila(e)
+    }
+  }, [])
+
+  useEffect(() => { buscarFila() }, [buscarFila])
+
   useEffect(() => {
     apiProdutores
       .listar()
@@ -92,10 +71,6 @@ export default function Recebimento() {
   }, [])
 
   const carregarMotoristas = useCallback(async () => {
-    // Aqui o silêncio no erro é aceitável, e a diferença em relação aos
-    // produtores é real: sem produtor não há pesagem, e sem motorista há —
-    // o campo é opcional. Uma lista vazia significa "cadastre agora", que é
-    // exatamente o que o botão ao lado oferece.
     try {
       const r = await apiMotoristas.listar()
       setListaMotoristas(r.motoristas)
@@ -120,27 +95,25 @@ export default function Recebimento() {
             onClick={() => { setConfirmacao(null); setMostrarForm((v) => !v) }}
             icone={mostrarForm ? ICONE_DA_ACAO.limpar : ICONE_DA_ACAO.registrar}
           >
-            {mostrarForm ? 'Fechar' : 'Registrar pesagem'}
+            {mostrarForm ? 'Fechar' : 'Registrar entrada'}
           </Botao>
         )}
       </CabecalhoPagina>
 
-      {/* ------------------- confirmação da pesagem gravada ------------------- */}
-      {/* O número do ticket é o que o motorista leva. Ele precisa ser lido em voz
-          alta, conferido e anotado — então tem de estar grande e sozinho, não
-          diluído numa linha de tabela. */}
       {confirmacao && (
         <Painel
           className="mb-6"
-          titulo="Pesagem registrada"
+          titulo={confirmacao.pesoLiquidoKg == null ? 'Entrada registrada' : 'Pesagem fechada'}
           acao={
             <span className="flex flex-wrap gap-2 xl:gap-3">
-              <button
-                onClick={() => setTicket(confirmacao)}
-                className="font-semibold text-mate-700 hover:underline"
-              >
-                imprimir ticket
-              </button>
+              {confirmacao.pesoLiquidoKg != null && (
+                <button
+                  onClick={() => setTicket(confirmacao)}
+                  className="font-semibold text-mate-700 hover:underline"
+                >
+                  imprimir ticket
+                </button>
+              )}
               <button onClick={() => setConfirmacao(null)} className="font-semibold hover:underline">
                 fechar
               </button>
@@ -150,33 +123,47 @@ export default function Recebimento() {
           <div className="flex flex-wrap items-center gap-5 bg-mate-100 px-4 py-3">
             <div>
               <p className="text-[11px] font-semibold text-mate-700">
-                Número do ticket
+                {confirmacao.pesoLiquidoKg == null ? 'Carga' : 'Número do ticket'}
               </p>
               <p className="text-2xl font-bold tabular text-mate-700">{confirmacao.numeroTicket}</p>
             </div>
             <span className="h-9 w-px bg-mate-300" />
             <LinhaDado rotulo="Produtor" valor={confirmacao.produtor?.nome} />
-            <LinhaDado rotulo="Peso líquido" valor={formatar.kg(confirmacao.pesoLiquidoKg)} />
             <LinhaDado rotulo="Matéria-prima" valor={formatar.materiaPrima(confirmacao.tipoMateriaPrima)} />
+            {confirmacao.pesoLiquidoKg == null ? (
+              <>
+                <LinhaDado rotulo="Peso bruto" valor={formatar.kg(confirmacao.pesoBrutoKg)} />
+                <LinhaDado rotulo="Falta" valor="pesar o caminhão vazio" />
+              </>
+            ) : (
+              <LinhaDado rotulo="Peso líquido" valor={formatar.kg(confirmacao.pesoLiquidoKg)} />
+            )}
           </div>
         </Painel>
       )}
 
       {mostrarForm && (
-        <FormularioPesagem
+        <FormularioEntrada
           produtores={listaProdutores}
           motoristas={listaMotoristas}
           aoCadastrarMotorista={carregarMotoristas}
-          aoRegistrar={(criada) => { setMostrarForm(false); setConfirmacao(criada); buscar() }}
+          aoRegistrar={(criada) => {
+            setMostrarForm(false)
+            setConfirmacao(criada)
+            buscar()
+            buscarFila()
+          }}
         />
       )}
 
-      {/* barra de filtros — RF13 e RF14 */}
+      <FilaDeTara
+        cargas={fila}
+        erro={erroFila}
+        podeFechar={podeFazer('OPERADOR_BALANCA')}
+        aoFechar={(fechada) => { setConfirmacao(fechada); buscar(); buscarFila() }}
+      />
+
       <Filtros
-        /* A busca fica FORA do painel, sempre na tela. Alguém liga
-           perguntando por uma carga com o papel do ticket na mão; obrigar a
-           abrir um painel antes de digitar seria um clique cobrado em toda
-           ligação. Filtro se abre, busca se usa. */
         busca={(
           <Campo
             rotulo="Ticket ou produtor" className="min-w-[220px] flex-1 max-w-[340px]"
@@ -201,11 +188,9 @@ export default function Recebimento() {
         </Selecao>
         <Selecao rotulo="Situação" className="flex-1" value={filtros.situacao} onChange={(e) => alterar('situacao', e.target.value)}>
           <option value="">Todas</option>
-          <option value="AGUARDANDO_ANALISE">Aguardando avaliação</option>
-          <option value="ANALISADA">Analisada</option>
-          <option value="EM_ORDEM_PAGAMENTO">Em ordem de pagamento</option>
-          <option value="PAGA">Paga</option>
-          <option value="REPROVADA">Reprovada</option>
+          {SITUACOES_DA_CARGA.map((s) => (
+            <option key={s} value={s}>{SITUACAO[s].rotulo}</option>
+          ))}
         </Selecao>
       </Filtros>
 
@@ -228,12 +213,8 @@ export default function Recebimento() {
           <Tabela
             colunas={colunasDeCargas({ veDinheiro })}
             dados={dados?.cargas ?? []}
-            // A linha inteira abre a via do motorista. Antes havia uma coluna
-            // só para isso, com a palavra "ticket" repetida em toda linha —
-            // largura gasta para dizer, trinta vezes, a única coisa que dá
-            // para fazer com uma linha desta tabela.
-            aoClicarLinha={(c) => setTicket(c)}
-            linhaAtiva={ticket?.id}
+            aoClicarLinha={(c) => setFichaId(c.id)}
+            linhaAtiva={fichaId}
             vazio="Nenhuma carga encontrada com esses filtros."
           />
           <Paginacao
@@ -246,61 +227,156 @@ export default function Recebimento() {
         )}
       </Painel>
 
+      {fichaId && (
+        <Janela
+          titulo="Ficha da carga"
+          subtitulo="Pesagem, análise de qualidade e pagamento"
+          aoFechar={() => setFichaId(null)}
+        >
+          <FichaDaCarga
+            key={fichaId}
+            cargaId={fichaId}
+            veDinheiro={veDinheiro}
+            aoImprimirTicket={(carga) => { setFichaId(null); setTicket(carga) }}
+          />
+        </Janela>
+      )}
+
       {ticket && <TicketPesagem carga={ticket} aoFechar={() => setTicket(null)} />}
     </>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Formulário de pesagem
-// ---------------------------------------------------------------------------
-// O peso líquido aparece calculado enquanto o operador digita — mas quem
-// calcula de verdade, e vale, é o servidor. A conta aqui é só conferência
-// visual, para o operador perceber um erro de digitação antes de gravar.
-//
-// Os limites (min) nos campos numéricos são a primeira barreira, não a única:
-// o servidor valida de novo, porque nada que chega pela rede é confiável.
-// A diferença é que a barreira do navegador avisa na hora, antes do envio.
+function FilaDeTara({ cargas, erro, podeFechar, aoFechar }) {
+  const [taras, setTaras] = useState({})
+  const [enviandoId, setEnviandoId] = useState(null)
+  const [erroDaLinha, setErroDaLinha] = useState(null)
 
-function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoRegistrar }) {
+  if (erro) {
+    return (
+      <div className="mb-6">
+        <Aviso tom="alerta">
+          Não foi possível ler a fila da segunda pesagem ({erro.message}). Pode haver
+          caminhão esperando sem aparecer aqui.
+        </Aviso>
+      </div>
+    )
+  }
+
+  if (!cargas.length) return null
+
+  async function fechar(carga) {
+    const tara = taras[carga.id]
+    setErroDaLinha(null)
+    setEnviandoId(carga.id)
+    try {
+      const fechada = await apiCargas.fecharTara(carga.id, Number(tara))
+      setTaras((t) => ({ ...t, [carga.id]: '' }))
+      aoFechar(fechada)
+    } catch (e) {
+      setErroDaLinha(e)
+    } finally {
+      setEnviandoId(null)
+    }
+  }
+
+  return (
+    <Painel
+      className="mb-6"
+      titulo="Aguardando tara"
+      acao={contagem(cargas.length, 'caminhão na área', 'caminhões na área')}
+    >
+      <div className="px-4 pt-3">
+        <Erro erro={erroDaLinha} />
+      </div>
+      <Tabela
+        colunas={[
+          { chave: 'numeroTicket', titulo: 'Carga', forte: true },
+          {
+            chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 200,
+            render: (c) => (
+              <>
+                {c.produtor?.nome}
+                <span className="block text-[10.5px] font-normal text-cinza-600">
+                  {formatar.materiaPrima(c.tipoMateriaPrima)}
+                  {c.veiculo?.placa ? ` · ${c.veiculo.placa}` : ''}
+                </span>
+              </>
+            ),
+          },
+          { chave: 'entrada', titulo: 'Entrada', render: (c) => formatar.dataHora(c.dataHora) },
+          {
+            chave: 'bruto', titulo: 'Peso bruto', alinhar: 'direita', forte: true,
+            render: (c) => formatar.kg(c.pesoBrutoKg),
+          },
+          {
+            chave: 'tara', titulo: 'Tara (kg)', largura: '150px', fixar: podeFechar ? undefined : 'direita',
+            render: (c) => (
+              podeFechar ? (
+                <input
+                  type="number" step="0.01" min="0"
+                  value={taras[c.id] ?? ''}
+                  onChange={(e) => setTaras((t) => ({ ...t, [c.id]: e.target.value }))}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-[130px] rounded-[3px] border border-borda bg-white px-2 py-1 text-right text-[11.5px] tabular text-tinta outline-none focus:border-mate-500"
+                  placeholder="caminhão vazio"
+                />
+              ) : <span className="text-cinza-400">—</span>
+            ),
+          },
+          ...(podeFechar ? [{
+            chave: 'acao', titulo: '', fixar: 'direita',
+            render: (c) => {
+              const tara = Number(taras[c.id])
+              const valida = Number.isFinite(tara) && tara > 0 && tara < Number(c.pesoBrutoKg)
+              return (
+                <Botao
+                  variante="primario"
+                  disabled={!valida || enviandoId === c.id}
+                  onClick={(e) => { e.stopPropagation(); fechar(c) }}
+                  title={
+                    taras[c.id] && !valida
+                      ? 'A tara precisa ser maior que zero e menor que o peso bruto.'
+                      : undefined
+                  }
+                >
+                  {enviandoId === c.id ? 'Fechando...' : 'Fechar pesagem'}
+                </Botao>
+              )
+            },
+          }] : []),
+        ]}
+        dados={cargas}
+        vazio="Nenhum caminhão aguardando a segunda pesagem."
+      />
+    </Painel>
+  )
+}
+
+function FormularioEntrada({ produtores, motoristas, aoCadastrarMotorista, aoRegistrar }) {
   const [form, setForm] = useState({
     produtorId: '', tipoMateriaPrima: 'ERVA_MATE_NATIVA',
     motoristaId: '', veiculoId: '',
-    pesoBrutoKg: '', taraKg: '', pesoEstimadoCampoKg: '',
+    pesoBrutoKg: '', pesoEstimadoCampoKg: '', metragemM3: '',
   })
   const [erro, setErro] = useState(null)
   const [enviando, setEnviando] = useState(false)
   const [cadastrandoMotorista, setCadastrandoMotorista] = useState(false)
+  const [fichaMotorista, setFichaMotorista] = useState(null)
 
   const motorista = motoristas.find((m) => m.id === form.motoristaId)
   const veiculos = motorista?.veiculos ?? []
 
   const bruto = Number(form.pesoBrutoKg || 0)
-  const tara = Number(form.taraKg || 0)
-  const liquido = bruto - tara
-
-  // Avisos que aparecem ANTES do envio, enquanto o operador ainda está no campo.
-  // Sem isto ele descobria o problema só depois de clicar em gravar.
-  const taraInvalida = form.pesoBrutoKg !== '' && form.taraKg !== '' && tara >= bruto
+  const ehLenha = form.tipoMateriaPrima === 'LENHA'
 
   function alterar(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor }))
   }
 
-  /**
-   * Trocar de motorista zera o veículo e escolhe o principal dele.
-   *
-   * Sem isso, o operador poderia deixar selecionada a carreta do motorista
-   * anterior — e a carga sairia registrada com a placa errada, que é
-   * justamente o dado que a rastreabilidade promete.
-   */
   function escolherMotorista(id) {
     const novo = motoristas.find((m) => m.id === id)
     const principal = novo?.veiculos?.[0]
-    // A tara NÃO é preenchida a partir do cadastro do veículo: ela é medida na
-    // balança, a cada entrega. Um caminhão chega com estepe, ferramenta, o
-    // motorista dentro ou não — a tara guardada seria um número plausível e
-    // errado, e errado num campo que multiplica direto o valor a pagar.
     setForm((f) => ({
       ...f,
       motoristaId: id,
@@ -317,17 +393,13 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
     setErro(null)
     setEnviando(true)
     try {
-      // O 201 devolve a carga criada, com o número do ticket que o servidor
-      // gerou. Este retorno sobe para a página e vira a confirmação na tela.
       const criada = await apiCargas.registrar({
         ...form,
-        // Campos opcionais viajam como null e não como string vazia: o Prisma
-        // recusaria "" onde espera um identificador.
         motoristaId: form.motoristaId || null,
         veiculoId: form.veiculoId || null,
         pesoBrutoKg: Number(form.pesoBrutoKg),
-        taraKg: Number(form.taraKg),
         pesoEstimadoCampoKg: form.pesoEstimadoCampoKg ? Number(form.pesoEstimadoCampoKg) : null,
+        metragemM3: ehLenha && form.metragemM3 ? Number(form.metragemM3) : null,
       })
       aoRegistrar(criada)
     } catch (e) {
@@ -338,7 +410,7 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
   }
 
   return (
-    <Painel titulo="Nova pesagem" className="mb-6">
+    <Painel titulo="Entrada do veículo" className="mb-6">
       <form onSubmit={enviar} className="flex flex-col gap-3 px-4 py-4">
         <Erro erro={erro} />
 
@@ -385,7 +457,16 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
             ))}
           </Selecao>
 
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
+            {motorista && (
+              <button
+                type="button"
+                onClick={() => setFichaMotorista(motorista)}
+                className="whitespace-nowrap rounded-[2px] border border-borda px-2.5 py-2 text-[11px] font-semibold text-cinza-600 hover:border-mate-500 hover:text-mate-700"
+              >
+                Ver ficha
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setCadastrandoMotorista((v) => !v)}
@@ -413,51 +494,81 @@ function FormularioPesagem({ produtores, motoristas, aoCadastrarMotorista, aoReg
 
         <div className="flex flex-wrap gap-2 xl:gap-3">
           <Campo rotulo="Peso bruto (kg)" type="number" step="0.01" min="0.01" className="flex-1" required value={form.pesoBrutoKg} onChange={(e) => alterar('pesoBrutoKg', e.target.value)} />
-          <Campo rotulo="Tara (kg)" type="number" step="0.01" min="0" className="flex-1" required value={form.taraKg} onChange={(e) => alterar('taraKg', e.target.value)} />
           <Campo rotulo="Estimado em campo (kg)" type="number" step="0.01" min="0.01" className="flex-1" value={form.pesoEstimadoCampoKg} onChange={(e) => alterar('pesoEstimadoCampoKg', e.target.value)} />
+          {ehLenha && (
+            <Campo rotulo="Metragem (m³)" type="number" step="0.01" min="0.01" max="500" className="flex-1"
+                   value={form.metragemM3} onChange={(e) => alterar('metragemM3', e.target.value)} />
+          )}
         </div>
-
-        {taraInvalida && (
-          <Aviso tom="alerta">
-            Tara ({formatar.kg(tara)}) maior ou igual ao peso bruto ({formatar.kg(bruto)}).
-          </Aviso>
-        )}
 
         <div className="flex items-center gap-4 rounded-[3px] bg-mate-100 px-4 py-3">
           <div className="flex-1">
-            <p className="text-[11px] font-semibold text-mate-700">Peso líquido</p>
+            <p className="text-[11px] font-semibold text-mate-700">Peso bruto na balança</p>
             <p className="text-xl font-bold tabular text-mate-700">
-              {liquido > 0 ? formatar.kg(liquido) : '—'}
+              {bruto > 0 ? formatar.kg(bruto) : '—'}
+            </p>
+            <p className="mt-0.5 text-[10.5px] text-mate-700">
+              A tara é pesada quando o caminhão voltar vazio. O ticket sai lá.
             </p>
           </div>
-          <Botao variante="primario" type="submit" disabled={enviando || taraInvalida}>
-            {enviando ? 'Gravando...' : 'Registrar carga'}
+          <Botao variante="primario" type="submit" disabled={enviando || !(bruto > 0)}>
+            {enviando ? 'Gravando...' : 'Registrar entrada'}
           </Botao>
         </div>
       </form>
+
+      {fichaMotorista && (
+        <Janela
+          titulo={fichaMotorista.nome}
+          subtitulo="Motorista e veículos cadastrados"
+          largura={560}
+          aoFechar={() => setFichaMotorista(null)}
+        >
+          <FichaDoMotorista motorista={fichaMotorista} />
+        </Janela>
+      )}
     </Painel>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Cadastro rápido de motorista, sem sair da balança
-// ---------------------------------------------------------------------------
-// Aparece DENTRO do formulário de pesagem, e isso é a decisão que importa:
-// o motorista novo chega junto com a carga, com o caminhão em cima da balança
-// e a fila atrás. Mandar o operador para uma tela de cadastro, e depois voltar
-// e recomeçar a pesagem, é o tipo de caminho que faz as pessoas anotarem no
-// papel "resolver depois" — e o depois não vem.
-//
-// Só três campos são pedidos, e um deles é opcional. O resto do cadastro
-// (CNH, telefone) pode ser completado no escritório, sem ninguém esperando.
+function FichaDoMotorista({ motorista }) {
+  const veiculos = motorista.veiculos ?? []
+
+  return (
+    <Painel titulo={motorista.nome} acao={contagem(veiculos.length, 'veículo', 'veículos')}>
+      <div className="flex flex-col gap-4 px-4 py-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+          <LinhaDado rotulo="Nome" valor={motorista.nome} />
+          <LinhaDado rotulo="CPF" valor={motorista.cpf ? mascararDocumento(motorista.cpf) : null} />
+        </div>
+
+        <div>
+          <p className="mb-2 text-[11px] font-semibold text-cinza-600">Veículos</p>
+          {veiculos.length ? (
+            <div className="flex flex-col gap-1.5">
+              {veiculos.map((v) => (
+                <div key={v.id} className="flex items-baseline gap-3 rounded-[3px] border border-borda px-3 py-2">
+                  <span className="text-[12.5px] font-bold tabular text-tinta">{v.placa}</span>
+                  <span className="flex-1 text-[11px] text-cinza-600">{v.tipo || 'tipo não informado'}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-cinza-400">
+              Nenhum veículo cadastrado para este motorista.
+            </p>
+          )}
+        </div>
+      </div>
+    </Painel>
+  )
+}
 
 function NovoMotorista({ aoCriar, aoCancelar }) {
   const [dados, setDados] = useState({ nome: '', cpf: '', placa: '', tipo: '' })
   const [erro, setErro] = useState(null)
   const [salvando, setSalvando] = useState(false)
 
-  // Validação enquanto digita, mas a mensagem só aparece depois que o campo
-  // tem conteúdo: acusar "CPF inválido" na primeira tecla é hostil.
   const erroCpf = dados.cpf ? erroNoCpf(dados.cpf) : null
   const erroPlaca = erroNaPlaca(dados.placa)
   const podeSalvar = dados.nome.trim().length >= 3 && !erroCpf && dados.cpf && !erroPlaca

@@ -1,29 +1,6 @@
-// ---------------------------------------------------------------------------
-// SERVIÇO · ordens de pagamento  (RF11)
-// ---------------------------------------------------------------------------
-// Uma ordem agrupa todas as cargas ANALISADAS de um produtor num período.
-//
-// É AQUI QUE O PREÇO ENTRA NO SISTEMA. A balança pesa, o laboratório mede a
-// qualidade e registra o desconto em pontos percentuais — e só então o
-// administrativo, que é quem negocia com o produtor, informa por quanto cada
-// carga foi acordada. O valor final nasce deste encontro: o preço que ele
-// informa, menos o desconto que o laboratório já mediu.
-//
-// Duas etapas, e a primeira existe para a segunda não ser às cegas:
-//   previaDaOrdem() → mostra as cargas elegíveis, com peso e desconto
-//   gerarOrdem()    → recebe o preço de cada uma e emite
-
 const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 
-/**
- * Normaliza e valida o período. Usado pela prévia e pela emissão, para que as
- * duas recortem exatamente o mesmo intervalo.
- *
- * O fim vai até o último instante do dia: quem digita "até 31/08" quer as
- * cargas do dia 31, e `new Date('2026-08-31')` é meia-noite — o que deixaria
- * o dia inteiro de fora.
- */
 function periodoDe(periodoInicio, periodoFim) {
   const inicio = new Date(periodoInicio)
   const fim = new Date(periodoFim)
@@ -33,7 +10,56 @@ function periodoDe(periodoInicio, periodoFim) {
   return { inicio, fim }
 }
 
-async function gerarOrdem({ produtorId, periodoInicio, periodoFim, precos }) {
+function montarDestino(produtor, destino) {
+  const forma = destino?.formaPagamento || produtor.formaPagamento || 'PIX'
+  const usa = (campo) => (destino && campo in destino ? destino[campo] : produtor[campo])
+
+  const base = {
+    formaPagamentoSnapshot: forma,
+    titularSnapshot: vazioNulo(usa('titularConta')) ?? produtor.nome,
+    chavePixSnapshot: null,
+    tipoChavePixSnapshot: null,
+    bancoSnapshot: null,
+    agenciaSnapshot: null,
+    contaSnapshot: null,
+    tipoContaSnapshot: null,
+  }
+
+  if (forma === 'PIX') {
+    base.chavePixSnapshot = vazioNulo(usa('chavePix'))
+    base.tipoChavePixSnapshot = vazioNulo(usa('tipoChavePix'))
+    if (!base.chavePixSnapshot) {
+      throw new ErroDeNegocio(
+        'Informe a chave Pix de destino',
+        400,
+        'A ordem é emitida para um destino concreto. Preencha a chave, ou troque a forma de pagamento.'
+      )
+    }
+  } else if (forma === 'CONTA_BANCARIA') {
+    base.bancoSnapshot = vazioNulo(usa('banco'))
+    base.agenciaSnapshot = vazioNulo(usa('agencia'))
+    base.contaSnapshot = vazioNulo(usa('conta'))
+    base.tipoContaSnapshot = vazioNulo(usa('tipoConta'))
+    if (!base.bancoSnapshot || !base.contaSnapshot) {
+      throw new ErroDeNegocio(
+        'Informe banco e conta de destino',
+        400,
+        'A ordem é emitida para um destino concreto. Preencha os dados bancários, ou troque a forma de pagamento.'
+      )
+    }
+  }
+
+  return base
+}
+
+const vazioNulo = (v) => (v === undefined || v === null || v === '' ? null : v)
+
+const CAMPOS_DO_CADASTRO = [
+  'formaPagamento', 'titularConta', 'chavePix', 'tipoChavePix',
+  'banco', 'agencia', 'conta', 'tipoConta',
+]
+
+async function gerarOrdem({ produtorId, periodoInicio, periodoFim, precos, destino, atualizarCadastro }) {
   if (!produtorId) throw new ErroDeNegocio('Informe o produtor', 400)
 
   const { inicio, fim } = periodoDe(periodoInicio, periodoFim)
@@ -50,23 +76,12 @@ async function gerarOrdem({ produtorId, periodoInicio, periodoFim, precos }) {
     )
   }
 
-  // É AQUI QUE O PREÇO ENTRA. A conta está em montarItens, mais abaixo, fora
-  // da transação e sem banco — para poder ser testada isoladamente.
   const itens = montarItens(cargas, mapearPrecos(precos))
+
+  const destinoDaOrdem = montarDestino(produtor, destino)
 
   const valorTotal = Number(itens.reduce((soma, i) => soma + i.valor, 0).toFixed(2))
 
-  // A numeração da ordem sofre da mesma corrida do ticket de pesagem: ler o
-  // maior e somar um deixa uma janela entre a leitura e a gravação. Aqui a
-  // colisão é bem menos provável — ordens são emitidas por uma pessoa, no
-  // administrativo, e não por quatro operadores ao mesmo tempo —, mas o custo
-  // dela seria alto: a emissão falharia com um erro incompreensível depois de
-  // o usuário já ter escolhido produtor, período e preços.
-  //
-  // Repare que a transação continua fazendo o trabalho dela: criar a ordem,
-  // marcar as cargas e completar as análises acontecem juntas ou não
-  // acontecem. A tentativa extra envolve a transação inteira, e não parte
-  // dela — uma colisão desfaz tudo e refaz com o número seguinte.
   const MAXIMO_DE_TENTATIVAS = 3
 
   for (let tentativa = 1; tentativa <= MAXIMO_DE_TENTATIVAS; tentativa++) {
@@ -81,40 +96,24 @@ async function gerarOrdem({ produtorId, periodoInicio, periodoFim, precos }) {
             periodoInicio: inicio,
             periodoFim: fim,
             valorTotal,
-            // Cópia da chave no momento da emissão: se o produtor trocar de
-            // chave depois, a ordem antiga continua mostrando para onde o
-            // dinheiro foi.
-            chavePixSnapshot: produtor.chavePix,
+            ...destinoDaOrdem,
             itens: {
               create: itens.map(({ cargaId, pesoLiquidoKg, precoKg, valor }) => ({
                 cargaId, pesoLiquidoKg, precoKg, valor,
               })),
             },
           },
-          include: { itens: true, produtor: { select: { nome: true, cpfCnpj: true, chavePix: true } } },
+          include: {
+            itens: { include: { carga: { select: { numeroTicket: true, dataHora: true, tipoMateriaPrima: true } } } },
+            produtor: { select: { nome: true, cpfCnpj: true, municipio: true, uf: true } },
+          },
         }),
-        // ---------------------------------------------------------------
-        // O PREÇO ACORDADO SUBSTITUI O PREÇO DA BALANÇA
-        // ---------------------------------------------------------------
-        // A carga podia carregar um precoBaseKg antigo — digitado na pesagem,
-        // antes de o preço mudar de lugar, ou combinado no campo. A partir da
-        // emissão ele deixa de valer: quem negociou foi o administrativo,
-        // agora, e é este o preço da carga.
-        //
-        // Sem esta atualização os dois preços conviviam, cada um de um
-        // momento, e as telas que mostram "desconto concedido" liam a
-        // diferença entre eles como se fosse desconto de qualidade — somando
-        // milhares de reais de desconto que nunca existiram.
         ...itens.map((i) =>
           prisma.carga.update({
             where: { id: i.cargaId },
             data: { situacao: 'EM_ORDEM_PAGAMENTO', precoBaseKg: i.precoBaseKg },
           })
         ),
-        // Fecha o histórico da análise com o valor que ela não tinha como
-        // saber na hora. Sem isto, a análise ficaria para sempre sem preço, e
-        // as consultas de valor por carga — Dashboard, Matéria-prima,
-        // Relatórios — não teriam de onde ler.
         ...itens.map((i) =>
           prisma.analiseQualidade.update({
             where: { id: i.analiseId },
@@ -122,6 +121,14 @@ async function gerarOrdem({ produtorId, periodoInicio, periodoFim, precos }) {
           })
         ),
       ])
+
+      if (atualizarCadastro && destino) {
+        try {
+          await sincronizarCadastro(produtorId, destino)
+        } catch (e) {
+          console.error('[pagamentos] ordem emitida, mas o cadastro não pôde ser atualizado:', e.message)
+        }
+      }
 
       return ordem
     } catch (erro) {
@@ -134,13 +141,6 @@ async function gerarOrdem({ produtorId, periodoInicio, periodoFim, precos }) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// CARGAS ELEGÍVEIS · a mesma consulta usada pela prévia e pela emissão
-// ---------------------------------------------------------------------------
-// Uma função só, e não duas consultas parecidas, porque a prévia PRECISA
-// mostrar exatamente o que a emissão vai gravar. Se as duas divergissem, o
-// administrativo veria um total na tela e outro na ordem — e descobriria isso
-// depois de emitir.
 async function cargasElegiveis(produtorId, inicio, fim) {
   return prisma.carga.findMany({
     where: {
@@ -154,7 +154,6 @@ async function cargasElegiveis(produtorId, inicio, fim) {
   })
 }
 
-/** Aceita [{cargaId, precoKg}] e devolve um mapa, recusando preço inválido. */
 function mapearPrecos(precos) {
   const mapa = new Map()
   for (const item of precos ?? []) {
@@ -168,17 +167,6 @@ function mapearPrecos(precos) {
   return mapa
 }
 
-// ---------------------------------------------------------------------------
-// ITENS DA ORDEM · onde o preço acordado encontra o desconto medido
-// ---------------------------------------------------------------------------
-// Pura de propósito: recebe as cargas e o mapa de preços, devolve os itens.
-// Sem banco, sem transação — o que permite testar a conta do valor sem subir
-// o PostgreSQL, que é onde ela costuma passar despercebida.
-//
-// O preço vem POR CARGA, e não uma vez para a ordem inteira, porque é assim
-// que a ervateira negocia: um produtor pode entregar erva-mate e lenha no
-// mesmo período, e elas valem valores muito diferentes. Um preço único
-// produziria um número que não corresponde a nenhum acordo real.
 function montarItens(cargas, precoPorCarga) {
   return cargas.map((c) => {
     const precoKg = precoPorCarga.get(c.id)
@@ -190,48 +178,25 @@ function montarItens(cargas, precoPorCarga) {
       )
     }
 
-    // O desconto já foi medido pelo laboratório e está gravado na análise.
-    // Aqui ele apenas se aplica ao preço que o administrativo acabou de
-    // informar. A regra de qualidade não é recalculada: ela já aconteceu.
-    const desconto = Number(c.analise.descontoPercentual)
-    const precoAjustadoKg = Number((precoKg * (1 - desconto / 100)).toFixed(4))
-    const valor = Number((Number(c.pesoLiquidoKg) * precoAjustadoKg).toFixed(2))
+    const valor = Number((Number(c.pesoLiquidoKg) * precoKg).toFixed(2))
 
     return {
       cargaId: c.id,
       analiseId: c.analise.id,
       pesoLiquidoKg: c.pesoLiquidoKg,
-      // O preço acordado, ANTES do desconto. Não vai para o item da ordem — o
-      // item guarda o preço efetivamente pago —, mas volta para a carga, pelo
-      // motivo explicado na transação da emissão.
       precoBaseKg: precoKg,
-      precoKg: precoAjustadoKg,
+      precoKg,
       valor,
     }
   })
 }
 
-// ---------------------------------------------------------------------------
-// PRÉVIA DA ORDEM
-// ---------------------------------------------------------------------------
-// Mostra o que entraria na ordem ANTES de emitir, com o desconto que cada
-// carga já carrega da análise. É o que permite ao administrativo informar o
-// preço olhando para a carga concreta — peso, tipo e qualidade medida — em vez
-// de digitar um número no escuro.
-//
-// Existe também por um motivo de diagnóstico: quando não há nada a emitir, a
-// prévia diz POR QUE. Antes, a tentativa de gerar simplesmente falhava com
-// "nenhuma carga analisada e em aberto", sem dizer se faltava análise, se o
-// período estava errado, ou se as cargas já tinham sido pagas.
 async function previaDaOrdem({ produtorId, periodoInicio, periodoFim }) {
   if (!produtorId) throw new ErroDeNegocio('Informe o produtor', 400)
   const { inicio, fim } = periodoDe(periodoInicio, periodoFim)
 
   const cargas = await cargasElegiveis(produtorId, inicio, fim)
 
-  // Quando não há nada elegível, contamos o que existe no período para poder
-  // explicar. É a diferença entre "não tem carga" e "tem, mas ainda não foi
-  // analisada" — e só a segunda tem conserto pelo usuário.
   let motivo = null
   if (cargas.length === 0) {
     const [aguardando, jaEmOrdem, reprovadas] = await Promise.all([
@@ -261,13 +226,76 @@ async function previaDaOrdem({ produtorId, periodoInicio, periodoFim }) {
       tipoMateriaPrima: c.tipoMateriaPrima,
       erval: c.erval?.identificacao ?? null,
       pesoLiquidoKg: c.pesoLiquidoKg,
-      // Sugestão de preço, quando existe: o que foi combinado na balança ou no
-      // campo. É só ponto de partida — quem decide é quem emite.
       precoSugeridoKg: c.precoBaseKg,
       palitoPercentual: c.analise.palitoPercentual,
-      limitePalito: c.analise.limitePalito,
-      descontoPercentual: c.analise.descontoPercentual,
     })),
+  }
+}
+
+async function sincronizarCadastro(produtorId, destino) {
+  const dados = {}
+  for (const campo of CAMPOS_DO_CADASTRO) {
+    if (destino && campo in destino) dados[campo] = vazioNulo(destino[campo])
+  }
+  if (Object.keys(dados).length === 0) return
+  await prisma.produtor.update({ where: { id: produtorId }, data: dados })
+}
+
+async function aguardandoOrdem() {
+  const cargas = await prisma.carga.findMany({
+    where: { situacao: 'ANALISADA', itemOrdem: null },
+    orderBy: { dataHora: 'asc' },
+    include: {
+      analise: true,
+      erval: { select: { identificacao: true } },
+      produtor: {
+        select: {
+          id: true, nome: true, cpfCnpj: true, municipio: true, uf: true,
+          formaPagamento: true, titularConta: true, chavePix: true, tipoChavePix: true,
+          banco: true, agencia: true, conta: true, tipoConta: true,
+        },
+      },
+    },
+  })
+
+  const porProdutor = new Map()
+  for (const c of cargas) {
+    const p = c.produtor
+    if (!porProdutor.has(p.id)) porProdutor.set(p.id, { produtor: p, cargas: [], pesoTotal: 0, valorSugerido: 0 })
+    const grupo = porProdutor.get(p.id)
+
+    const peso = Number(c.pesoLiquidoKg)
+    const preco = c.precoBaseKg === null ? null : Number(c.precoBaseKg)
+
+    grupo.cargas.push({
+      id: c.id,
+      numeroTicket: c.numeroTicket,
+      dataHora: c.dataHora,
+      tipoMateriaPrima: c.tipoMateriaPrima,
+      erval: c.erval?.identificacao ?? null,
+      pesoLiquidoKg: peso,
+      precoSugeridoKg: preco,
+      palitoPercentual: c.analise?.palitoPercentual ?? null,
+    })
+    grupo.pesoTotal += peso
+    grupo.valorSugerido += preco === null ? 0 : peso * preco
+  }
+
+  const produtores = [...porProdutor.values()]
+    .map((g) => ({
+      ...g,
+      pesoTotal: Number(g.pesoTotal.toFixed(2)),
+      valorSugerido: Number(g.valorSugerido.toFixed(2)),
+      maisAntiga: g.cargas[0]?.dataHora ?? null,
+    }))
+    .sort((a, b) => new Date(a.maisAntiga) - new Date(b.maisAntiga))
+
+  return {
+    totalCargas: cargas.length,
+    totalProdutores: produtores.length,
+    pesoTotal: Number(produtores.reduce((s, p) => s + p.pesoTotal, 0).toFixed(2)),
+    valorSugerido: Number(produtores.reduce((s, p) => s + p.valorSugerido, 0).toFixed(2)),
+    produtores,
   }
 }
 
@@ -302,7 +330,8 @@ async function listar({ produtorId, situacao }) {
     where,
     orderBy: { emitidaEm: 'desc' },
     include: {
-      produtor: { select: { nome: true, cpfCnpj: true } },
+      produtor: { select: { nome: true, cpfCnpj: true, municipio: true, uf: true } },
+      itens: { include: { carga: { select: { numeroTicket: true, dataHora: true, tipoMateriaPrima: true } } } },
       _count: { select: { itens: true } },
     },
   })
@@ -326,4 +355,7 @@ async function gerarNumeroOrdem() {
   return prefixo + String(proximo).padStart(4, '0')
 }
 
-module.exports = { gerarOrdem, previaDaOrdem, confirmarPagamento, listar, mapearPrecos, montarItens, periodoDe }
+module.exports = {
+  gerarOrdem, previaDaOrdem, aguardandoOrdem, confirmarPagamento, listar,
+  mapearPrecos, montarItens, montarDestino, periodoDe,
+}

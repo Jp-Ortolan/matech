@@ -1,21 +1,3 @@
-// ---------------------------------------------------------------------------
-// MODELO · operação na fila de sincronização
-// ---------------------------------------------------------------------------
-// Uma linha da fila é a INTENÇÃO de enviar alguma coisa. Ela é gravada na
-// mesma transação do SQLite que grava o dado — de modo que nunca existe um
-// instante em que a avaliação está salva e a vontade de enviá-la não está.
-//
-// AS QUATRO SITUAÇÕES E O QUE CADA UMA SIGNIFICA NA PRÁTICA:
-//
-//   PENDENTE  ainda não subiu. É o estado normal no meio do erval.
-//   ENVIADA   o servidor confirmou. A linha fica como histórico.
-//   ERRO      o servidor recusou por regra de negócio (um 4xx). Insistir não
-//             conserta: um CPF duplicado continuará duplicado na décima
-//             tentativa. Precisa aparecer para uma pessoa decidir.
-//   PENDENTE_DEPENDENCIA  o servidor entendeu, mas o registro do qual esta
-//             operação depende ainda não chegou lá. NÃO é erro: a próxima
-//             passada resolve sozinha, depois que o produtor subir.
-
 class OperacaoPendente {
   static const String pendente = 'PENDENTE';
   static const String enviada = 'ENVIADA';

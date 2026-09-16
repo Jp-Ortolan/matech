@@ -3,9 +3,55 @@
 // Rode com: node prisma/seed.js
 
 const { prisma } = require('../src/lib/prisma')
+const { PerfilUsuario } = require('@prisma/client')
 const { gerarHash } = require('../src/modules/auth/auth.service')
 
+/** Os perfis que este seed vai gravar. */
+const PERFIS_USADOS = [
+  'OPERADOR_BALANCA',
+  'ANALISTA_QUALIDADE',
+  'COMPRADOR_AVALIADOR',
+  'ADMINISTRATIVO',
+  'ADMINISTRADOR',
+]
+
+/**
+ * Confere que o Prisma Client conhece os perfis ANTES de apagar qualquer coisa.
+ *
+ * POR QUE ISTO EXISTE, e é a lição mais cara desta etapa: o seed começa
+ * apagando todas as tabelas e só depois recria. Quando o enum ganhou o valor
+ * ADMINISTRADOR, a migração foi aplicada no PostgreSQL mas o Client continuou
+ * com a versão antiga em node_modules — e é o Client, não o banco, que valida
+ * o argumento antes de a query sair. Resultado: o seed apagou o banco inteiro
+ * e falhou na linha seguinte, deixando o sistema sem usuário nenhum e o login
+ * recusando todo mundo com 401.
+ *
+ * O erro do Prisma nesse caso é um PrismaClientValidationError de trinta
+ * linhas que não menciona `prisma generate` em lugar nenhum. Falhar aqui, com
+ * o banco intacto e a instrução escrita, custa dois segundos.
+ *
+ * `migrate dev` NÃO resolve sozinho: ele só regenera o Client quando aplica
+ * uma migração. Com a migração já aplicada, ele responde "Already in sync" e
+ * não faz nada — que foi exatamente o que aconteceu.
+ */
+function conferirClientAtualizado() {
+  const conhecidos = Object.keys(PerfilUsuario ?? {})
+  const faltando = PERFIS_USADOS.filter((p) => !conhecidos.includes(p))
+  if (faltando.length === 0) return
+
+  console.error('\nO Prisma Client está desatualizado — NADA foi apagado.\n')
+  console.error('  Perfis que o seed precisa:', PERFIS_USADOS.join(', '))
+  console.error('  Perfis que o Client conhece:', conhecidos.join(', ') || '(nenhum)')
+  console.error('  Faltando:', faltando.join(', '))
+  console.error('\nRode, nesta ordem:\n')
+  console.error('  npx prisma generate')
+  console.error('  npm run seed\n')
+  process.exit(1)
+}
+
 async function main() {
+  conferirClientAtualizado()
+
   console.log('Limpando as tabelas...')
   // A ordem importa: apaga primeiro quem depende dos outros.
   await prisma.itemOrdemPagamento.deleteMany()
@@ -31,6 +77,9 @@ async function main() {
     prisma.usuario.create({ data: { nome: 'Cristiane Modesto', usuario: 'cristiane.modesto', senhaHash: senhaPadrao, perfil: 'ANALISTA_QUALIDADE' } }),
     prisma.usuario.create({ data: { nome: 'Marcos Ferrari', usuario: 'marcos.ferrari', senhaHash: senhaPadrao, perfil: 'COMPRADOR_AVALIADOR' } }),
     prisma.usuario.create({ data: { nome: 'Solange Petry', usuario: 'solange.petry', senhaHash: senhaPadrao, perfil: 'ADMINISTRATIVO' } }),
+    // Administrador do sistema: é quem abre e fecha as contas dos outros.
+    // Não participa da operação — não pesa, não analisa, não paga.
+    prisma.usuario.create({ data: { nome: 'Administrador MATECH', usuario: 'admin.matech', senhaHash: senhaPadrao, perfil: 'ADMINISTRADOR' } }),
   ])
 
   console.log('Criando produtores e ervais...')
@@ -159,8 +208,7 @@ async function main() {
     },
   })
 
-  // A regra: palito 34%, limite 30% → excedente de 4 p.p. → desconto de 4% no preço.
-  const precoAjustado = 4.85 * 0.96 // 4.6560
+  // A análise mede a amostra e aprova a carga. O valor é peso × preço acordado.
   await prisma.analiseQualidade.create({
     data: {
       cargaId: carga1.id,
@@ -168,11 +216,26 @@ async function main() {
       palitoPercentual: 34,
       umidadePercentual: 41.2,
       folhaPercentual: 66,
-      limitePalito: 30,
-      descontoPercentual: 4,
-      precoAjustadoKg: precoAjustado,
-      valorTotal: 7240 * precoAjustado,
+      precoAjustadoKg: 4.85,
+      valorTotal: 7240 * 4.85,
       observacoes: 'Amostra dentro do padrão de cor.',
+    },
+  })
+
+  // Carga · caminhão na balança, ainda sem a segunda pesagem.
+  // Existe no seed porque a fila "Aguardando tara" é um estado normal da
+  // operação, e uma tela de fila que nasce vazia não se deixa conferir.
+  await prisma.carga.create({
+    data: {
+      numeroTicket: 'PES-2026-01191',
+      produtorId: marlene.id,
+      usuarioId: operador.id,
+      dataHora: new Date('2026-08-29T14:10:00'),
+      tipoMateriaPrima: 'ERVA_MATE_NATIVA',
+      pesoBrutoKg: 9350,
+      taraKg: null,
+      pesoLiquidoKg: null,
+      situacao: 'AGUARDANDO_TARA',
     },
   })
 
@@ -195,7 +258,7 @@ async function main() {
     },
   })
 
-  // Carga 3 — lenha
+  // Carga 3 — lenha, com a metragem que o pátio confere junto do peso
   await prisma.carga.create({
     data: {
       numeroTicket: 'PES-2026-01186',
@@ -206,6 +269,7 @@ async function main() {
       pesoBrutoKg: 4080,
       taraKg: 980,
       pesoLiquidoKg: 3100,
+      metragemM3: 12.5,
       precoBaseKg: 0.32,
       situacao: 'AGUARDANDO_ANALISE',
     },

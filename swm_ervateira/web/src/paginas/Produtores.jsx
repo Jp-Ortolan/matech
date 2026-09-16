@@ -1,22 +1,3 @@
-// ---------------------------------------------------------------------------
-// PÁGINA · produtores e fornecedores  (RF01 e RF02)
-// ---------------------------------------------------------------------------
-// À esquerda a lista com busca; à direita a ficha completa do produtor
-// selecionado: dados cadastrais, dados de pagamento, ervais, últimas ordens e
-// últimas cargas. O mesmo desenho de duas colunas usado em Avaliações — quem
-// já usou uma tela sabe usar a outra.
-//
-// Duas coisas desta tela merecem atenção na apresentação:
-//
-//   · a etiqueta "cadastrado em campo" aparece quando criadoOffline é
-//     verdadeiro. Ou seja: aquele produtor entrou no sistema pelo celular, no
-//     erval, sem conexão, e subiu depois na sincronização. É o diferencial do
-//     trabalho aparecendo como dado, não como discurso;
-//
-//   · os dados de pagamento ficam no cadastro, e não na ordem, porque é o
-//     cadastro que responde "para onde pagar". A ordem só guarda uma cópia da
-//     chave no momento em que foi emitida (chavePixSnapshot).
-
 import { useEffect, useState, useCallback } from 'react'
 import { produtores as apiProdutores, cargas as apiCargas } from '../api/recursos'
 import { consultarCep, consultarCnpj } from '../lib/consultas'
@@ -55,7 +36,6 @@ export default function Produtores() {
       const r = await apiProdutores.listar(termo)
       setLista(r.produtores)
       setTotal(r.total)
-      // Mantém a seleção se o produtor continuar na lista filtrada.
       setSelecionadoId((atual) =>
         r.produtores.some((p) => p.id === atual) ? atual : r.produtores[0]?.id ?? null
       )
@@ -66,8 +46,6 @@ export default function Produtores() {
     }
   }, [])
 
-  // Espera 350 ms depois da última tecla antes de consultar. Sem isso, digitar
-  // "Fontana" dispararia sete requisições — uma por letra.
   useEffect(() => {
     const relogio = setTimeout(() => buscar(busca), 350)
     return () => clearTimeout(relogio)
@@ -93,14 +71,12 @@ export default function Produtores() {
         )}
       </CabecalhoPagina>
 
-      {/* Só busca, e por isso sem botão de painel: um botão "Filtros" que
-          abre um painel vazio é pior do que não ter botão nenhum. */}
       <Filtros
         busca={(
           <Campo
             rotulo="Buscar por nome ou CPF/CNPJ"
             className="min-w-[240px] flex-1 max-w-[360px]"
-            placeholder="digite para filtrar"
+            placeholder="José Fontana ou 012.345.678-90"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -119,11 +95,6 @@ export default function Produtores() {
       {aviso && <div className="mb-3"><Sucesso texto={aviso} /></div>}
       <Erro erro={erro} />
 
-      {/* A lista ocupa a largura toda: a ficha saiu da coluna ao lado e passou
-          a abrir numa janela. Na coluna, a ficha — cadastro, pagamento, ervais
-          e últimas cargas — ficava muito mais alta que uma lista de quatro
-          linhas, e ler até o fim exigia rolar até um ponto em que a metade
-          esquerda estava vazia. */}
       <Painel
           titulo="Produtores"
           acao={carregando ? 'buscando...' : `${lista.length} de ${total}`}
@@ -138,19 +109,12 @@ export default function Produtores() {
                   render: (p) => (
                     <span className="flex items-center gap-2">
                       <span className="min-w-0 max-w-[220px] truncate" title={p.nome}>{p.nome}</span>
-                      {p.criadoOffline && <Etiqueta tom="verde">campo</Etiqueta>}
+                      {p.criadoOffline && <Etiqueta tom="verde">cadastrado em campo</Etiqueta>}
                     </span>
                   ),
                 },
                 {
-                  // Já vem mascarado do servidor. Não passa por
-                  // formatar.documento porque o valor não é mais um documento:
-                  // é a máscara dele, e reformatar embaralharia os asteriscos.
                   chave: 'cpfCnpj', titulo: 'CPF / CNPJ',
-                  // Formatado, como no detalhe ao lado. Sem pontuação, a
-                  // coluna virava um bloco de catorze dígitos que ninguém
-                  // confere de relance — e os dois lugares mostravam o mesmo
-                  // documento escrito de duas formas diferentes.
                   render: (p) => <span className="tabular">{formatar.documento(p.cpfCnpj)}</span>,
                 },
                 { chave: 'municipio', titulo: 'Município', truncar: 150, oculta: 'lg', render: (p) => (p.municipio ? `${p.municipio}${p.uf ? `/${p.uf}` : ''}` : '—') },
@@ -174,9 +138,6 @@ export default function Produtores() {
             key={selecionadoId}
             produtorId={selecionadoId}
             podeEditar={podeCadastrar}
-            // Editar FECHA a janela. O formulário fica na tela de trás, e
-            // deixá-lo abrir escondido atrás da ficha faria a pessoa clicar em
-            // "editar" e não ver nada acontecer.
             aoEditar={(p) => { setAviso(''); setSelecionadoId(null); setFormulario(p) }}
           />
         </Janela>
@@ -184,14 +145,6 @@ export default function Produtores() {
     </>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Ficha do produtor
-// ---------------------------------------------------------------------------
-// Busca o produtor completo e as últimas cargas dele. São duas requisições
-// porque são dois recursos distintos da API — e cargas já tem rota própria,
-// com filtro por produtor. Reaproveitar é melhor que criar uma rota nova que
-// devolveria o mesmo dado.
 
 function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
   const [produtor, setProdutor] = useState(null)
@@ -216,8 +169,6 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
       .catch((e) => { if (ativo) setErro(e) })
       .finally(() => { if (ativo) setCarregando(false) })
 
-    // Se o usuário trocar de produtor antes da resposta chegar, esta limpeza
-    // impede que a resposta antiga sobrescreva a nova.
     return () => { ativo = false }
   }, [produtorId])
 
@@ -255,7 +206,6 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
           <LinhaDado rotulo="Endereço" valor={[produtor.endereco, produtor.bairro].filter(Boolean).join(' · ') || null} className="col-span-2" />
         </div>
 
-        {/* ------------------------- pagamento ------------------------- */}
         <div className="rounded-[3px] border border-borda">
           <p className="border-b border-borda bg-cabecalho px-3 py-2 text-[11px] font-semibold text-cinza-600">
             Dados de pagamento
@@ -284,7 +234,6 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
           </div>
         </div>
 
-        {/* --------------------------- ervais --------------------------- */}
         <div>
           <p className="mb-2 text-[11px] font-semibold text-cinza-600">
             Ervais · {produtor.ervais?.length ?? 0}
@@ -314,7 +263,6 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
           )}
         </div>
 
-        {/* ----------------------- últimas cargas ----------------------- */}
         <div>
           <p className="mb-2 text-[11px] font-semibold text-cinza-600">
             Últimas cargas
@@ -341,12 +289,6 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
           )}
         </div>
 
-        {/* ---------------------- ordens de pagamento ------------------- */}
-        {/* A ficha vem SEM esta lista quando o perfil não pode ver dinheiro —
-            o servidor não a envia. Por isso a verificação é pela ausência da
-            chave, e não por perfil: quem decide continua sendo a rota.
-            Lista vazia (`[]`) é outra coisa, e continua dizendo que não há
-            ordem nenhuma. */}
         {produtor.ordensPagamento && (
         <div>
           <p className="mb-2 text-[11px] font-semibold text-cinza-600">
@@ -379,13 +321,6 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Formulário de cadastro e edição
-// ---------------------------------------------------------------------------
-// O mesmo formulário serve para os dois casos: se receber um produtor, edita;
-// se receber null, cadastra. Duplicar o formulário para criar e para editar é
-// o caminho mais curto para os dois ficarem diferentes com o tempo.
-
 const FORM_VAZIO = {
   nome: '', cpfCnpj: '', telefone: '',
   cep: '', endereco: '', bairro: '', municipio: '', uf: '',
@@ -393,7 +328,6 @@ const FORM_VAZIO = {
   banco: '', agencia: '', conta: '', tipoConta: 'CORRENTE',
 }
 
-/** As três formas, na ordem em que a ervateira as usa. */
 const FORMAS_DE_PAGAMENTO = [
   { valor: 'PIX', rotulo: 'Pix' },
   { valor: 'CONTA_BANCARIA', rotulo: 'Conta bancária' },
@@ -422,25 +356,9 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   const [buscando, setBuscando] = useState(null)   // 'cep' | 'cnpj' | null
   const [achado, setAchado] = useState(null)       // aviso do que foi preenchido
 
-  // A ficha já traz CPF, chave Pix e conta em claro, então o formulário nasce
-  // preenchido a partir dela. Antes era preciso uma segunda requisição para
-  // buscar os valores reais, porque salvar a máscara gravaria "123.***.***-01"
-  // por cima do documento.
-
   function alterar(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor }))
   }
-
-  // -------------------------------------------------------------------------
-  // BUSCAS AUTOMÁTICAS
-  // -------------------------------------------------------------------------
-  // As duas preenchem campos e NUNCA bloqueiam. Se a internet cair ou o
-  // serviço estiver fora, o operador digita à mão — o mesmo princípio do
-  // aplicativo em campo: rede é conveniência, não requisito.
-  //
-  // E os campos continuam editáveis depois de preenchidos: o endereço do
-  // ViaCEP é o do logradouro, não o da propriedade, e no interior a diferença
-  // costuma ser de quilômetros.
 
   async function buscarCep() {
     const digitos = apenasDigitos(form.cep)
@@ -478,8 +396,6 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
     }
     setForm((f) => ({
       ...f,
-      // O nome fantasia vem antes da razão social: numa ervateira o produtor é
-      // conhecido pelo nome da propriedade, não pela razão com "LTDA" no fim.
       nome: f.nome || dados.nome,
       telefone: f.telefone || dados.telefone,
       cep: f.cep || dados.cep,
@@ -499,23 +415,15 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
     setErro(null)
     setEnviando(true)
     try {
-      // O tipo da chave só faz sentido quando a forma é Pix. Mandar os dois
-      // preenchidos deixaria o cadastro dizendo duas coisas ao mesmo tempo.
       const ehPix = form.formaPagamento === 'PIX'
       const ehConta = form.formaPagamento === 'CONTA_BANCARIA'
 
       const dados = {
         ...form,
-        // A máscara é da tela. O banco guarda só dígitos — senão
-        // "529.982.247-25" e "52998224725" seriam dois produtores distintos
-        // para o índice único, que existe justamente para impedir isso.
         cpfCnpj: apenasDigitos(form.cpfCnpj),
         cep: apenasDigitos(form.cep),
         telefone: form.telefone,
         uf: form.uf ? form.uf.toUpperCase().slice(0, 2) : '',
-        // Os campos da forma NÃO escolhida vão vazios. Um produtor que migrou
-        // de conta para Pix não pode continuar carregando agência antiga, que
-        // apareceria na ordem e confundiria quem paga.
         tipoChavePix: ehPix ? form.tipoChavePix : '',
         chavePix: ehPix ? form.chavePix : '',
         banco: ehConta ? form.banco : '',
@@ -543,9 +451,6 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   const ehDinheiro = form.formaPagamento === 'DINHEIRO'
   const ehCnpj = apenasDigitos(form.cpfCnpj).length === 14
 
-  // A mensagem só aparece quando o campo já tem 11 ou 14 dígitos. Acusar
-  // "CPF inválido" no terceiro algarismo digitado é hostil e treina o usuário
-  // a ignorar o aviso.
   const digitos = apenasDigitos(form.cpfCnpj).length
   const erroDocumento = digitos === 11 || digitos === 14 ? erroNoDocumento(form.cpfCnpj) : null
 
@@ -613,8 +518,6 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
 
         <Secao titulo="Como este produtor recebe" />
 
-        {/* Botões e não lista suspensa: são três opções, e vê-las todas de uma
-            vez é mais rápido que abrir um menu para descobrir quais existem. */}
         <div className="flex flex-wrap gap-1.5">
           {FORMAS_DE_PAGAMENTO.map((f) => (
             <button
@@ -632,10 +535,6 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
           ))}
         </div>
 
-        {/* Só os campos da forma escolhida aparecem. Mostrar os três blocos e
-            deixar o usuário adivinhar quais preencher é o que produz cadastro
-            pela metade — e cadastro de pagamento pela metade vira produtor
-            que não recebe. */}
         {ehPix && (
           <div className="flex flex-wrap gap-2 xl:gap-3">
             <Selecao rotulo="Tipo da chave" className="flex-1" value={form.tipoChavePix} onChange={(e) => alterar('tipoChavePix', e.target.value)}>
@@ -685,14 +584,6 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   )
 }
 
-/**
- * Divisória de seção dentro de um formulário longo.
- *
- * Um cadastro com quinze campos seguidos é uma parede. Quebrá-lo em três
- * blocos nomeados — quem é, onde fica, como recebe — dá ao operador um lugar
- * para parar, e permite responder "o que falta preencher?" de relance, sem
- * ler campo por campo.
- */
 function Secao({ titulo }) {
   return (
     <div className="mt-1 flex items-center gap-2">

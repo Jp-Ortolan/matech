@@ -1,12 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · avaliações em campo
-// ---------------------------------------------------------------------------
-// A lista do que este aparelho produziu. Cada linha diz, sem rodeio, se aquela
-// avaliação já está a salvo no escritório ou se ainda existe só aqui.
-//
-// A ordem é por data da avaliação, a mais recente primeiro — no fim do dia o
-// avaliador quer conferir o que fez hoje, não o que fez semana passada.
-
 import 'package:flutter/material.dart';
 
 import '../dados/avaliacao_dao.dart';
@@ -32,8 +23,6 @@ class _TelaAvaliacoesState extends State<TelaAvaliacoes> {
   void initState() {
     super.initState();
     _carregar();
-    // Quando o sincronizador termina uma passada, as etiquetas desta lista
-    // mudam. Escutar evita que o avaliador precise sair e voltar para ver.
     sincronizador.addListener(_carregar);
   }
 
@@ -103,15 +92,6 @@ class _TelaAvaliacoesState extends State<TelaAvaliacoes> {
                       ),
                 ),
               ),
-      // O BOTÃO FLUTUANTE SOME COM A LISTA VAZIA.
-      //
-      // Com a lista vazia havia dois botões para a mesma ação a dez
-      // centímetros um do outro: o "Nova avaliação" no meio da tela e o
-      // "Avaliar" flutuando no canto. Dois convites para a mesma coisa fazem a
-      // pessoa parar para descobrir a diferença — e não há diferença.
-      //
-      // Com a lista cheia o flutuante é necessário: ele acompanha a rolagem, e
-      // é a única forma de começar uma avaliação sem voltar ao topo.
       floatingActionButton:
           _carregando || _lista.isEmpty
               ? null

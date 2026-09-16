@@ -1,27 +1,3 @@
-// ---------------------------------------------------------------------------
-// DAO · avaliações em campo  (RF05, RF17 e RF18)
-// ---------------------------------------------------------------------------
-// É aqui que a ordem da fila é decidida, e ela é o ponto mais delicado do
-// aplicativo inteiro.
-//
-// Uma avaliação pode nascer com até três coisas novas em volta: um produtor
-// que acabou de ser cadastrado, uma área que ainda não existia e as fotos.
-// Nenhuma delas tem id de servidor — todas se referenciam por clientId. Se
-// subirem fora de ordem, o servidor responde DEPENDENCIA_PENDENTE e o dado
-// fica dando voltas até a ordem se resolver por sorte.
-//
-// Por isso tudo é gravado e enfileirado numa TRANSAÇÃO SÓ, nesta ordem:
-//
-//     Erval  →  Avaliacao  →  Foto, Foto, Foto...
-//
-// (o produtor, quando é novo, já foi enfileirado antes, na tela de cadastro —
-// e como a sequencia da fila é AUTOINCREMENT, ele necessariamente tem número
-// menor e sobe primeiro.)
-//
-// A transação também responde à pergunta "e se o aplicativo fechar no meio?":
-// ou a avaliação inteira existe com a fila correspondente, ou não existe nada.
-// Meia avaliação salva seria pior que nenhuma.
-
 import '../modelos/avaliacao.dart';
 import '../modelos/erval.dart';
 import '../modelos/foto.dart';
@@ -31,8 +7,6 @@ import 'fila_dao.dart';
 import 'foto_dao.dart';
 
 class AvaliacaoDao {
-  /// Todas as avaliações do aparelho, mais recente primeiro, já com o nome do
-  /// produtor e a contagem de fotos — a lista da tela inicial.
   static Future<List<ResumoAvaliacao>> listar() async {
     final db = await BancoLocal.instancia;
     final linhas = await db.rawQuery('''
@@ -62,9 +36,6 @@ class AvaliacaoDao {
         .toList();
   }
 
-  /// Uma avaliação com o contexto que a tela de detalhe mostra.
-  /// Mesma consulta da lista, filtrada — para que as duas telas não divirjam
-  /// no que consideram "situação" de uma avaliação.
   static Future<ResumoAvaliacao?> detalhe(String clientId) async {
     final db = await BancoLocal.instancia;
     final linhas = await db.rawQuery(
@@ -107,11 +78,6 @@ class AvaliacaoDao {
     return linhas.isEmpty ? null : Avaliacao.deLinha(linhas.first);
   }
 
-  /// A gravação completa de uma avaliação feita no erval.
-  ///
-  /// [ervalNovo] só vem preenchido quando o avaliador nomeou uma área nova no
-  /// próprio formulário. Se ele escolheu uma área já conhecida, vem nulo e
-  /// nada é enfileirado para o erval — ele já está no servidor.
   static Future<void> criarEmCampo({
     Erval? ervalNovo,
     required Avaliacao avaliacao,
@@ -139,13 +105,6 @@ class AvaliacaoDao {
     });
   }
 
-  /// Edição de uma avaliação já gravada.
-  ///
-  /// alteradoEmOrigem é REESCRITO com o instante da edição — e é justamente
-  /// esse valor novo que vai ganhar o desempate no servidor, mesmo que o envio
-  /// chegue lá depois de outro mais antigo. O payload da fila é substituído
-  /// pelo novo (o enfileirar usa ConflictAlgorithm.replace na chave clientId),
-  /// de modo que nunca sobe uma versão vencida.
   static Future<void> atualizarEmCampo(Avaliacao avaliacao) async {
     final db = await BancoLocal.instancia;
     final editada = avaliacao.copiarComAlteracao(DateTime.now());
@@ -190,8 +149,6 @@ class AvaliacaoDao {
   }
 }
 
-/// A avaliação com o pouco de contexto que a lista precisa mostrar.
-/// Existe para que a tela não faça uma consulta por linha da lista.
 class ResumoAvaliacao {
   final Avaliacao avaliacao;
   final String produtorNome;

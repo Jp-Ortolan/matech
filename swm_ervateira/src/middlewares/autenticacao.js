@@ -1,17 +1,3 @@
-// ---------------------------------------------------------------------------
-// MIDDLEWARE · autenticação (quem é você?)
-// ---------------------------------------------------------------------------
-// Um "middleware" é uma função que roda ANTES do controlador da rota.
-// Ela recebe (req, res, next): se estiver tudo certo chama next() e a
-// requisição segue; se não, responde com erro e a requisição para ali.
-//
-// Este confere o token JWT que o aplicativo ou a web enviam no cabeçalho:
-//     Authorization: Bearer <token>
-//
-// Se o token for válido, guarda os dados do usuário em req.usuario, para que
-// os controladores saibam quem está fazendo a operação — é assim que a carga
-// fica registrada no nome do operador certo.
-
 const jwt = require('jsonwebtoken')
 const { JWT_SECRET } = require('../config/env')
 
@@ -28,8 +14,6 @@ function autenticar(req, res, next) {
   const token = cabecalho.substring(7) // remove o "Bearer "
 
   try {
-    // verify() confere a assinatura e a validade. Se o token foi alterado
-    // ou já expirou, ele lança um erro.
     const dados = jwt.verify(token, JWT_SECRET)
 
     req.usuario = {

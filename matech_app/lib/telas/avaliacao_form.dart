@@ -1,21 +1,3 @@
-// ---------------------------------------------------------------------------
-// TELA · avaliação em campo  (RF05, RF17 e RF18)
-// ---------------------------------------------------------------------------
-// O formulário que este aplicativo existe para ter.
-//
-// A SEQUÊNCIA DOS CAMPOS SEGUE A SEQUÊNCIA DO TRABALHO, não a do banco de
-// dados: chega-se à propriedade (produtor), caminha-se até a área (erval),
-// olha-se a erva (tipo, queima, quantidade), combina-se o preço, fotografa-se
-// e anota-se o que não coube em campo nenhum. Um formulário organizado por
-// tabela obrigaria o avaliador a pular para frente e para trás.
-//
-// A ÁREA PODE SER CRIADA AQUI DENTRO. No mato ninguém volta a uma tela de
-// cadastro para depois avaliar: ou dá para nomear a área na hora, ou o
-// aplicativo não serve. Quando a área é nova, ela entra na fila ANTES da
-// avaliação — ver o comentário no AvaliacaoDao.
-//
-// NADA NESTE ARQUIVO FALA COM A REDE. Salvar grava no SQLite e enfileira.
-
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -61,17 +43,12 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
   String _tipoErva = 'NATIVA';
   String _queima = 'NAO';
 
-  /// Guardada como objeto, e não como dois doubles soltos, para não perder o
-  /// aviso de "aproximada" — uma última posição conhecida não pode chegar ao
-  /// escritório parecendo uma leitura fresca.
   Localizacao? _localizacao;
   bool _lendoGps = false;
 
   final List<FotoCapturada> _fotos = [];
   bool _salvando = false;
 
-  /// Marca que a avaliação foi gravada. Enquanto for false, as fotos copiadas
-  /// para o disco são rascunho — e o dispose as apaga.
   bool _salvou = false;
 
   @override
@@ -86,12 +63,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
       c.dispose();
     }
 
-    // Saiu sem salvar: as fotos já estavam copiadas em disco, mas nenhuma
-    // linha no banco aponta para elas. Apagar aqui é mais limpo que deixar
-    // para a varredura da próxima subida do aplicativo — e é o mesmo efeito.
-    //
-    // Sem await de propósito: o dispose não espera, e apagar arquivo é
-    // manutenção. Se falhar, a varredura de órfãs recolhe depois.
     if (!_salvou) {
       for (final foto in _fotos) {
         unawaited(Arquivos.apagarFoto(foto.caminho));
@@ -100,10 +71,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
 
     super.dispose();
   }
-
-  // -------------------------------------------------------------------------
-  // Produtor e área
-  // -------------------------------------------------------------------------
 
   Future<void> _escolherProdutor() async {
     final escolhido = await showModalBottomSheet<Produtor>(
@@ -119,20 +86,10 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     setState(() {
       _produtor = escolhido;
       _ervais = ervais;
-      // Se o produtor não tem área conhecida, já abre no modo "área nova":
-      // é o caso mais comum de um produtor cadastrado agora, no erval.
       _areaNova = ervais.isEmpty;
       _ervalEscolhido = ervais.isEmpty ? null : ervais.first;
     });
   }
-
-  // -------------------------------------------------------------------------
-  // GPS
-  // -------------------------------------------------------------------------
-  // A coordenada é o que prova ONDE a avaliação foi feita — e é o dado que
-  // mais se perde no processo em papel. Mas ela não é obrigatória: no meio da
-  // mata o sinal de GPS demora ou não vem, e travar o formulário por causa
-  // disso significaria perder a avaliação inteira. Falha, avisa, e segue.
 
   Future<void> _lerLocalizacao() async {
     setState(() => _lendoGps = true);
@@ -145,9 +102,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
       if (resultado.temPosicao) _localizacao = resultado.posicao;
     });
 
-    // Sucesso com ressalva (posição aproximada) também é avisado: o avaliador
-    // precisa saber que aquela coordenada não é uma leitura fresca, porque é
-    // ele quem sabe se andou muito desde a última.
     if (resultado.temPosicao) {
       if (resultado.posicao!.aproximada) {
         avisar(context, resultado.mensagem);
@@ -155,9 +109,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
       return;
     }
 
-    // Falhou. Se for coisa que só as configurações resolvem, o aviso vira
-    // diálogo com atalho — repetir "sem permissão" num rodapé não ajuda
-    // ninguém que já negou duas vezes.
     if (resultado.abreConfiguracoes) {
       await _oferecerConfiguracoes(
         titulo: 'Localização indisponível',
@@ -171,11 +122,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     avisar(context, resultado.mensagem, erro: true);
   }
 
-  /// Diálogo com atalho para as configurações do sistema.
-  ///
-  /// Sempre diz, no corpo, que a avaliação pode ser salva assim mesmo. É a
-  /// informação que evita o pior desfecho possível: alguém abandonar a
-  /// avaliação achando que ela não vale sem foto ou sem coordenada.
   Future<void> _oferecerConfiguracoes({
     required String titulo,
     required String mensagem,
@@ -206,17 +152,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     if (abrir == true) await aoAbrir();
   }
 
-  // -------------------------------------------------------------------------
-  // Fotos
-  // -------------------------------------------------------------------------
-  // A captura, a redução e a cópia para o disco moram em CapturaDeFotos. Aqui
-  // fica só a reação da tela ao que aconteceu — que é onde a decisão de
-  // produto está: NENHUMA falha de foto impede salvar a avaliação.
-  //
-  // Essa é a regra que mais importa neste arquivo. Uma permissão negada, uma
-  // câmera que não abre ou um cartão cheio não podem custar o registro de que
-  // a erva foi vista, porque a alternativa do avaliador é o papel.
-
   Future<void> _adicionarDaCamera() => _adicionar(CapturaDeFotos.daCamera());
 
   Future<void> _adicionarDaGaleria() => _adicionar(CapturaDeFotos.daGaleria());
@@ -225,14 +160,10 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     final resultado = await captura;
     if (!mounted) return;
 
-    // As fotos que deram certo entram MESMO quando houve falha depois. Se o
-    // espaço acabou na quinta, as quatro primeiras são boas e descartá-las
-    // junto seria jogar fora trabalho que já foi feito.
     if (resultado.temFotos) {
       setState(() => _fotos.addAll(resultado.fotos));
     }
 
-    // Voltou sem escolher nada: fechou a câmera de propósito. Não é erro.
     if (resultado.cancelado) return;
 
     if (resultado.falha == null) return;
@@ -249,17 +180,10 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     avisar(context, resultado.mensagem!, erro: true);
   }
 
-  /// Descartar uma foto ANTES de salvar apaga o arquivo na hora. Depois de
-  /// salva, a foto é prova do que foi visto no erval e o aplicativo não a
-  /// apaga por conta própria.
   Future<void> _removerFoto(FotoCapturada foto) async {
     setState(() => _fotos.remove(foto));
     await Arquivos.apagarFoto(foto.caminho);
   }
-
-  // -------------------------------------------------------------------------
-  // Salvar
-  // -------------------------------------------------------------------------
 
   Future<void> _salvar() async {
     if (_produtor == null) {
@@ -268,15 +192,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     }
     if (!_formulario.currentState!.validate()) return;
 
-    // Cinto e suspensório para o nome da área nova.
-    //
-    // O validate() acima já cobre isto agora que o formulário rola num
-    // SingleChildScrollView. A verificação continua aqui porque a consequência
-    // de deixar passar não é um campo em branco: o servidor RECUSA o erval sem
-    // identificação, e a avaliação e as fotos que dependem dele ficam presas na
-    // fila esperando um pai que nunca vai chegar. O aparelho não oferece jeito
-    // de consertar um pai recusado — então o lugar certo de barrar isso é aqui,
-    // antes de a operação entrar na fila.
     if (_areaNova && _identificacaoArea.text.trim().length < 2) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -290,7 +205,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     final produtor = _produtor!;
     setState(() => _salvando = true);
 
-    // A área: ou uma nova, que vai junto na fila, ou uma já conhecida.
     Erval? ervalNovo;
     String ervalClientId;
     String? ervalId;
@@ -306,8 +220,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
         idadeAnos: inteiroDigitado(_idadeErval.text),
         latitude: _localizacao?.latitude,
         longitude: _localizacao?.longitude,
-        // criadoOffline fica no padrão do modelo, que já é true: todo erval
-        // criado por este aplicativo nasce em campo.
       );
       ervalClientId = ervalNovo.clientId;
       ervalId = null;
@@ -333,28 +245,13 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
       longitude: _localizacao?.longitude,
       observacoes:
           _observacoes.text.trim().isEmpty ? null : _observacoes.text.trim(),
-      // O relógio do APARELHO. É este valor que decide o conflito no servidor,
-      // e não a hora em que a operação chegar lá.
       alteradoEmOrigem: agora,
     );
 
-    // ÚLTIMA CONFERÊNCIA ANTES DE ENFILEIRAR.
-    //
-    // Entre tirar a foto e salvar a avaliação pode passar meia hora, e nesse
-    // intervalo o sistema pode ter limpado o arquivo por falta de espaço.
-    // Enfileirar uma foto que já não existe geraria uma operação condenada a
-    // falhar — e, pior, um registro que parece ter foto e não tem.
-    //
-    // As que sumiram são deixadas de fora, e o avaliador é avisado enquanto
-    // ainda está no erval, onde dá para fotografar de novo.
     final fotos = <Foto>[];
     var sumiram = 0;
 
     for (final f in _fotos) {
-      // A conferência passou a ler os bytes em vez de perguntar ao arquivo se
-      // ele existe: no navegador não há arquivo, e a foto é uma linha no banco
-      // local. `lerFoto` devolve nulo tanto para "sumiu" quanto para "está
-      // vazia", que são os dois casos que esta checagem sempre quis pegar.
       final bytes = await Arquivos.lerFoto(f.caminho);
       if (bytes == null) {
         sumiram++;
@@ -367,27 +264,21 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
           caminhoLocal: f.caminho,
           largura: f.largura,
           altura: f.altura,
-          // Os bytes já estão em mãos da conferência acima — o tamanho sai
-          // dali, sem uma segunda ida ao armazenamento.
           tamanhoBytes: bytes.length,
         ),
       );
     }
 
-    // Área, avaliação e fotos: uma transação, na ordem que a fila precisa.
     await AvaliacaoDao.criarEmCampo(
       ervalNovo: ervalNovo,
       avaliacao: avaliacao,
       fotos: fotos,
     );
 
-    // A partir daqui as fotos deixaram de ser rascunho: o dispose não as apaga.
     _salvou = true;
 
     await sincronizador.atualizarContagens();
 
-    // Uma tentativa de subir na hora. Sem sinal, falha em silêncio — a
-    // avaliação já está salva e a fila já sabe que precisa enviá-la.
     unawaited(sincronizador.sincronizar());
 
     if (!mounted) return;
@@ -405,34 +296,12 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
     Navigator.pop(context, true);
   }
 
-  // -------------------------------------------------------------------------
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Avaliação em campo')),
       body: Form(
         key: _formulario,
-        // SingleChildScrollView + Column, e NÃO ListView.
-        //
-        // A ARMADILHA QUE ISTO CONSERTA, e que custou uma fila travada:
-        //
-        // O ListView é preguiçoso — os filhos que saem da tela são desmontados.
-        // Um TextFormField desmontado SE DESREGISTRA do Form, e o validate()
-        // deixa de enxergá-lo. Como o botão de salvar fica no fim de um
-        // formulário longo, os campos obrigatórios do topo já tinham sido
-        // descartados quando o validador rodava: o formulário salvava sem
-        // reclamar, com campo obrigatório vazio, e o erro só aparecia no
-        // servidor — que recusava o registro e deixava os filhos dele
-        // esperando na fila para sempre.
-        //
-        // O SingleChildScrollView constrói tudo de uma vez. Num formulário de
-        // vinte campos isso não custa nada, e devolve ao validate() a única
-        // coisa que se espera dele: ver o formulário inteiro.
-        //
-        // O stretch é obrigatório: o ListView esticava os filhos na largura
-        // por padrão e a Column, não. Sem ele, botões e campos encolheriam
-        // para o tamanho do conteúdo.
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -679,10 +548,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Peças da tela
-// ---------------------------------------------------------------------------
-
 class _GradeDeFotos extends StatelessWidget {
   final List<FotoCapturada> fotos;
   final void Function(FotoCapturada) aoRemover;
@@ -717,17 +582,9 @@ class _GradeDeFotos extends StatelessWidget {
                       borderRadius: raioPadrao,
                       child: _MiniaturaDaCaptura(
                         caminho: f.caminho,
-                        // cacheWidth de 192 para uma miniatura de 96: sem ele o
-                        // Flutter decodifica a foto inteira, de vários
-                        // megapixels, para desenhar um quadrado pequeno.
                         height: 96,
                         width: 96,
                         fit: BoxFit.cover,
-                        // O arquivo pode ter sumido entre a captura e agora — o
-                        // Android limpa armazenamento sem avisar. Sem este
-                        // tratamento a miniatura quebraria a tela inteira; com
-                        // ele, a foto ausente fica visível como tal, e o
-                        // avaliador pode refazê-la ainda no erval.
                         errorBuilder:
                             (context, erro, pilha) => Container(
                               height: 96,
@@ -780,7 +637,6 @@ class _GradeDeFotos extends StatelessWidget {
   }
 }
 
-/// Busca de produtor em folha de baixo. Lê o SQLite, como todo o resto.
 class _SeletorDeProdutor extends StatefulWidget {
   const _SeletorDeProdutor();
 
@@ -891,18 +747,6 @@ class _Secao extends StatelessWidget {
   );
 }
 
-
-// ---------------------------------------------------------------------------
-// Miniatura de uma foto recém-capturada
-// ---------------------------------------------------------------------------
-// Substituiu um `Image.file` direto, e a razão é o navegador: lá a foto não é
-// um arquivo em disco, é uma linha no banco local. Uma porta só para as duas
-// plataformas custa esta leitura assíncrona.
-//
-// O `errorBuilder` continua fazendo o mesmo trabalho de antes: a foto pode ter
-// sumido entre a captura e agora — o Android limpa armazenamento sem avisar —
-// e sem tratamento a miniatura quebraria a tela inteira. Com ele, a foto
-// ausente fica visível como ausente, e o avaliador refaz ainda no erval.
 class _MiniaturaDaCaptura extends StatelessWidget {
   final String caminho;
   final double height;
@@ -945,8 +789,6 @@ class _MiniaturaDaCaptura extends StatelessWidget {
           height: height,
           width: width,
           fit: fit,
-          // Sem isto o Flutter decodifica a foto inteira, de vários
-          // megapixels, para desenhar um quadrado de 96.
           cacheWidth: (width * 2).round(),
           errorBuilder: errorBuilder,
         );
@@ -955,9 +797,6 @@ class _MiniaturaDaCaptura extends StatelessWidget {
   }
 }
 
-/// O "erro" que a miniatura relata quando a foto não está mais lá. Existe
-/// porque o errorBuilder do Flutter pede um objeto de erro, e inventar um
-/// Exception genérico diria menos do que isto diz.
 class _FotoSumiu implements Exception {
   const _FotoSumiu();
   @override
