@@ -29,8 +29,6 @@ class Sincronizador extends ChangeNotifier {
   Timer? _batida;
   bool _emPrimeiroPlano = true;
 
-  bool _pausadoPorSessao = false;
-
   bool get rodando => _rodando;
   String? get ultimaMensagem => _ultimaMensagem;
   DateTime? get ultimaTentativa => _ultimaTentativa;
@@ -60,7 +58,7 @@ class Sincronizador extends ChangeNotifier {
 
   Future<void> aoVoltarParaOPrimeiroPlano() async {
     _emPrimeiroPlano = true;
-    if (!sessao.autenticado) return;
+    if (!sessao.podeSincronizar) return;
     if (await FilaDao.temAlgoPronto()) {
       await sincronizar();
     } else {
@@ -78,8 +76,7 @@ class Sincronizador extends ChangeNotifier {
   Future<void> _reavaliarBatida() async {
     final deveBater =
         _emPrimeiroPlano &&
-        sessao.autenticado &&
-        !_pausadoPorSessao &&
+        sessao.podeSincronizar &&
         (await FilaDao.temAlgoPronto());
 
     if (!deveBater) {
@@ -102,7 +99,7 @@ class Sincronizador extends ChangeNotifier {
     _despertador = null;
     _proximoDespertar = null;
 
-    if (!sessao.autenticado || _pausadoPorSessao) {
+    if (!sessao.podeSincronizar) {
       notifyListeners();
       return;
     }
@@ -150,15 +147,16 @@ class Sincronizador extends ChangeNotifier {
 
   Future<void> sincronizar() async {
     if (_rodando) return; // duas passadas ao mesmo tempo brigariam pela fila
-    if (!sessao.autenticado) {
-      _ultimaMensagem = 'Faça login para sincronizar';
+    if (!sessao.podeSincronizar) {
+      _ultimaMensagem =
+          'Sessão expirada. Entre de novo para enviar — os dados '
+          'continuam salvos no aparelho.';
       notifyListeners();
       return;
     }
 
     _rodando = true;
     _ultimaMensagem = null;
-    _pausadoPorSessao = false;
     notifyListeners();
 
     try {
@@ -178,7 +176,7 @@ class Sincronizador extends ChangeNotifier {
           '${e.mensagem}. Nada foi perdido: a fila continua no aparelho.';
     } on ErroDaApi catch (e) {
       if (e.status == 401) {
-        _pausadoPorSessao = true;
+        sessao.marcarVencida();
         _ultimaMensagem =
             'Sessão expirada. Entre de novo para sincronizar — os dados '
             'continuam salvos no aparelho.';
@@ -425,7 +423,7 @@ class Sincronizador extends ChangeNotifier {
   }
 
   Future<int> baixarProdutores() async {
-    if (!sessao.autenticado) return 0;
+    if (!sessao.podeSincronizar) return 0;
 
     final lista = await Api.listarProdutores(sessao.usuario!.token);
 
