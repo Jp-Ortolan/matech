@@ -208,6 +208,10 @@ async function main() {
     },
   })
 
+  // Preço acordado na análise da carga 1. A ordem de pagamento mais abaixo
+  // usa o mesmo valor, senão ordem e análise discordam.
+  const precoAjustado = 4.85
+
   // A análise mede a amostra e aprova a carga. O valor é peso × preço acordado.
   await prisma.analiseQualidade.create({
     data: {
@@ -216,8 +220,8 @@ async function main() {
       palitoPercentual: 34,
       umidadePercentual: 41.2,
       folhaPercentual: 66,
-      precoAjustadoKg: 4.85,
-      valorTotal: 7240 * 4.85,
+      precoAjustadoKg: precoAjustado,
+      valorTotal: 7240 * precoAjustado,
       observacoes: 'Amostra dentro do padrão de cor.',
     },
   })
