@@ -34,7 +34,9 @@ const _dicasDeChave = {
 };
 
 class FormularioProdutor extends StatefulWidget {
-  const FormularioProdutor({super.key});
+  // Com produtor: edição. Sem: cadastro novo.
+  final Produtor? produtor;
+  const FormularioProdutor({super.key, this.produtor});
 
   @override
   State<FormularioProdutor> createState() => _FormularioProdutorState();
@@ -58,6 +60,28 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
   String _tipoChave = 'CPF';
   String _tipoConta = 'CORRENTE';
   bool _salvando = false;
+
+  bool get _editando => widget.produtor != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.produtor;
+    if (p == null) return;
+    _nome.text = p.nome;
+    _documento.text = p.cpfCnpj;
+    _telefone.text = p.telefone ?? '';
+    _municipio.text = p.municipio ?? '';
+    _uf.text = p.uf ?? '';
+    _chavePix.text = p.chavePix ?? '';
+    _titular.text = p.titularConta ?? '';
+    _banco.text = p.banco ?? '';
+    _agencia.text = p.agencia ?? '';
+    _conta.text = p.conta ?? '';
+    _forma = p.formaPagamento;
+    _tipoChave = p.tipoChavePix ?? 'CPF';
+    _tipoConta = p.tipoConta ?? 'CORRENTE';
+  }
 
   @override
   void dispose() {
@@ -83,7 +107,8 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
 
     final documento = apenasDigitos(_documento.text);
 
-    final jaExiste = await ProdutorDao.porDocumento(documento);
+    final jaExiste =
+        _editando ? null : await ProdutorDao.porDocumento(documento);
     if (jaExiste != null) {
       if (mounted) {
         avisar(
@@ -101,10 +126,14 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
     final ehConta = _forma == 'CONTA_BANCARIA';
     final ehDinheiro = _forma == 'DINHEIRO';
 
+    final antigo = widget.produtor;
     final produtor = Produtor(
-      clientId: novoClientId(),
+      clientId: antigo?.clientId ?? novoClientId(),
+      id: antigo?.id,
+      endereco: antigo?.endereco,
+      sincronizadoEm: antigo?.sincronizadoEm,
       nome: _nome.text.trim(),
-      cpfCnpj: documento,
+      cpfCnpj: antigo?.cpfCnpj ?? documento,
       telefone: _vazioVirauNulo(_telefone.text),
       municipio: _vazioVirauNulo(_municipio.text),
       uf: _vazioVirauNulo(_uf.text)?.toUpperCase(),
@@ -117,10 +146,14 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
       agencia: ehConta ? _vazioVirauNulo(_agencia.text) : null,
       conta: ehConta ? _vazioVirauNulo(_conta.text) : null,
       tipoConta: ehConta ? _tipoConta : null,
-      criadoOffline: true,
+      criadoOffline: antigo?.criadoOffline ?? true,
     );
 
-    await ProdutorDao.criarEmCampo(produtor);
+    if (_editando) {
+      await ProdutorDao.atualizarEmCampo(produtor);
+    } else {
+      await ProdutorDao.criarEmCampo(produtor);
+    }
     await sincronizador.atualizarContagens();
 
     unawaited(sincronizador.sincronizar(agora: true));
@@ -245,7 +278,9 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cadastrar produtor')),
+      appBar: AppBar(
+        title: Text(_editando ? 'Editar produtor' : 'Cadastrar produtor'),
+      ),
       body: Form(
         key: _formulario,
         child: SingleChildScrollView(
@@ -271,6 +306,8 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _documento,
+                // O documento não muda: é ele que evita produtor duplicado.
+                enabled: !_editando,
                 keyboardType: TextInputType.number,
                 maxLength: kMaxDocumento,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -349,7 +386,13 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
               FilledButton.icon(
                 onPressed: _salvando ? null : _salvar,
                 icon: const Icon(Icons.save_outlined),
-                label: Text(_salvando ? 'Salvando...' : 'Salvar no aparelho'),
+                label: Text(
+                  _salvando
+                      ? 'Salvando...'
+                      : _editando
+                      ? 'Salvar alterações'
+                      : 'Salvar no aparelho',
+                ),
               ),
               const SizedBox(height: 12),
               const Text(

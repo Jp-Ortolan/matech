@@ -11,6 +11,7 @@ import { resumirFiltros, nomeNaLista } from '../lib/filtros'
 
 const ROTULO_ENTIDADE = {
   Produtor: 'Produtor',
+  ProdutorAlteracao: 'Alteração de produtor',
   Erval: 'Área de colheita',
   Avaliacao: 'Avaliação',
   FotoErval: 'Foto',

@@ -65,10 +65,13 @@ class _TelaProdutoresState extends State<TelaProdutores> {
     }
   }
 
-  Future<void> _abrirCadastro() async {
+  // Sem produtor abre cadastro novo; com produtor abre a edição.
+  Future<void> _abrirCadastro([Produtor? produtor]) async {
     final criou = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const FormularioProdutor()),
+      MaterialPageRoute(
+        builder: (_) => FormularioProdutor(produtor: produtor),
+      ),
     );
     if (criou == true) {
       await _carregar();
@@ -149,7 +152,10 @@ class _TelaProdutoresState extends State<TelaProdutores> {
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                       itemCount: _lista.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, i) => _CartaoProdutor(_lista[i]),
+                      itemBuilder: (context, i) => _CartaoProdutor(
+                        _lista[i],
+                        aoEditar: () => _abrirCadastro(_lista[i]),
+                      ),
                     ),
           ),
         ],
@@ -165,12 +171,16 @@ class _TelaProdutoresState extends State<TelaProdutores> {
 
 class _CartaoProdutor extends StatelessWidget {
   final Produtor produtor;
-  const _CartaoProdutor(this.produtor);
+  final VoidCallback aoEditar;
+  const _CartaoProdutor(this.produtor, {required this.aoEditar});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: aoEditar,
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,6 +200,11 @@ class _CartaoProdutor extends StatelessWidget {
                   EtiquetaSincronizacao(
                     produtor.sincronizado ? 'ENVIADA' : 'PENDENTE',
                   ),
+                IconButton(
+                  tooltip: 'Editar',
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  onPressed: aoEditar,
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -227,6 +242,7 @@ class _CartaoProdutor extends StatelessWidget {
             ],
           ],
         ),
+      ),
       ),
     );
   }

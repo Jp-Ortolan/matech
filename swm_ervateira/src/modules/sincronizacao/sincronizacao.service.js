@@ -5,7 +5,7 @@ const { erroDeTamanho } = require('../../lib/textos')
 const { erroNoDocumento } = require('../../lib/documentos')
 const { ajustarPagamento } = require('../../lib/pagamento')
 
-const ENTIDADES = ['Produtor', 'Erval', 'Avaliacao']
+const ENTIDADES = ['Produtor', 'ProdutorAlteracao', 'Erval', 'Avaliacao']
 
 async function receberLote({ dispositivoId, operacoes }, usuarioId) {
   if (!dispositivoId) throw new ErroDeNegocio('Informe o identificador do dispositivo', 400)
@@ -106,6 +106,52 @@ const APLICADORES = {
 
     const criado = await prisma.produtor.create({ data: dados })
     return { situacao: 'ACEITO', id: criado.id }
+  },
+
+  // Edição feita no app. Vale a mais recente pelo relógio de quem editou,
+  // igual à avaliação. O CPF/CNPJ não muda: é ele que evita duplicidade.
+  async ProdutorAlteracao(clientId, p) {
+    const jaAplicada = await prisma.registroSincronizacao.findUnique({ where: { clientId } })
+    if (jaAplicada?.situacao === 'ENVIADO') return { situacao: 'DUPLICADO', id: p.produtorId ?? null }
+
+    const alteradoEmOrigem = new Date(p.alteradoEmOrigem)
+    if (!p.alteradoEmOrigem || isNaN(alteradoEmOrigem)) {
+      throw new ErroDeNegocio('A alteração precisa de alteradoEmOrigem', 400)
+    }
+
+    const produtorId = await resolverProdutor(p)
+    if (!produtorId) {
+      return { situacao: 'DEPENDENCIA_PENDENTE', erro: `Produtor ${p.produtorClientId || p.produtorId} ainda não chegou ao servidor` }
+    }
+
+    if (!p.nome || String(p.nome).trim().length < 3) throw new ErroDeNegocio('Informe o nome do produtor', 400)
+    const erroLongo = erroDeTamanho(p)
+    if (erroLongo) throw new ErroDeNegocio(erroLongo, 400)
+
+    const atual = await prisma.produtor.findUnique({ where: { id: produtorId } })
+    if (atual.atualizadoEm > alteradoEmOrigem) {
+      return { situacao: 'ACEITO', id: produtorId, houveConflito: true, versaoVencedora: 'servidor' }
+    }
+
+    const dados = ajustarPagamento({
+      nome: String(p.nome).trim(),
+      telefone: vazioVirauNulo(p.telefone),
+      endereco: vazioVirauNulo(p.endereco),
+      municipio: vazioVirauNulo(p.municipio),
+      uf: p.uf ? String(p.uf).toUpperCase().slice(0, 2) : null,
+      formaPagamento: p.formaPagamento || 'PIX',
+      tipoChavePix: vazioVirauNulo(p.tipoChavePix),
+      chavePix: vazioVirauNulo(p.chavePix),
+      titularConta: vazioVirauNulo(p.titularConta),
+      banco: vazioVirauNulo(p.banco),
+      agencia: vazioVirauNulo(p.agencia),
+      conta: vazioVirauNulo(p.conta),
+      tipoConta: vazioVirauNulo(p.tipoConta),
+      sincronizadoEm: new Date(),
+    })
+
+    await prisma.produtor.update({ where: { id: produtorId }, data: dados })
+    return { situacao: 'ACEITO', id: produtorId }
   },
 
   async Erval(clientId, p) {

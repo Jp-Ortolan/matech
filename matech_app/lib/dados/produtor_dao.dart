@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../modelos/erval.dart';
 import '../modelos/produtor.dart';
+import '../servicos/identificadores.dart';
 import 'banco_local.dart';
 import 'erval_dao.dart';
 import 'fila_dao.dart';
@@ -57,6 +58,47 @@ class ProdutorDao {
         clientId: produtor.clientId,
         entidade: 'Produtor',
         payload: produtor.paraPayload(),
+      );
+    });
+  }
+
+  // Edição feita no aparelho. Se o cadastro ainda nem subiu, a própria
+  // criação na fila leva os dados novos; se já subiu, vai uma alteração.
+  static Future<void> atualizarEmCampo(Produtor produtor) async {
+    final db = await BancoLocal.instancia;
+    final agora = DateTime.now();
+
+    await db.transaction((txn) async {
+      await txn.update(
+        'produtores',
+        produtor.paraLinha(),
+        where: 'client_id = ?',
+        whereArgs: [produtor.clientId],
+      );
+
+      if (produtor.id == null) {
+        await FilaDao.enfileirarNaTransacao(
+          txn,
+          clientId: produtor.clientId,
+          entidade: 'Produtor',
+          payload: produtor.paraPayload(),
+        );
+        return;
+      }
+
+      final ehDoServidor = produtor.clientId.startsWith('servidor:');
+      await FilaDao.enfileirarNaTransacao(
+        txn,
+        clientId: novoClientId(),
+        entidade: 'ProdutorAlteracao',
+        operacao: 'UPDATE',
+        criadoEmOrigem: agora,
+        payload: {
+          ...produtor.paraPayload(),
+          'produtorId': produtor.id,
+          if (!ehDoServidor) 'produtorClientId': produtor.clientId,
+          'alteradoEmOrigem': agora.toUtc().toIso8601String(),
+        },
       );
     });
   }
