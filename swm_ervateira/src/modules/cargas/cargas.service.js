@@ -1,18 +1,19 @@
 const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
+const { lerNumero, estaVazio, DICA_FORMATO } = require('../../lib/numeros')
 
 function calcularPesoLiquido(pesoBrutoKg, taraKg) {
-  const bruto = Number(pesoBrutoKg)
+  const bruto = lerNumero(pesoBrutoKg)
 
   if (!Number.isFinite(bruto) || !(bruto > 0)) {
     throw new ErroDeNegocio('O peso bruto deve ser maior que zero', 400)
   }
 
-  if (taraKg === undefined || taraKg === null || taraKg === '') {
+  if (estaVazio(taraKg)) {
     throw new ErroDeNegocio('Informe a tara', 400, 'É o peso do caminhão vazio, medido na segunda pesagem.')
   }
-  const tara = Number(taraKg)
-  if (!Number.isFinite(tara)) throw new ErroDeNegocio('A tara precisa ser um número', 400)
+  const tara = lerNumero(taraKg)
+  if (!Number.isFinite(tara)) throw new ErroDeNegocio('A tara precisa ser um número', 400, DICA_FORMATO)
   if (!(tara > 0)) {
     throw new ErroDeNegocio('A tara deve ser maior que zero', 400, 'Um caminhão vazio pesa alguma coisa.')
   }
@@ -22,8 +23,7 @@ function calcularPesoLiquido(pesoBrutoKg, taraKg) {
 }
 
 function validarMetragem(metragemM3, tipoMateriaPrima) {
-  const vazio = metragemM3 === undefined || metragemM3 === null || metragemM3 === ''
-  if (vazio) return null
+  if (estaVazio(metragemM3)) return null
 
   if (tipoMateriaPrima !== 'LENHA') {
     throw new ErroDeNegocio(
@@ -33,8 +33,8 @@ function validarMetragem(metragemM3, tipoMateriaPrima) {
     )
   }
 
-  const m = Number(metragemM3)
-  if (!Number.isFinite(m)) throw new ErroDeNegocio('A metragem precisa ser um número', 400)
+  const m = lerNumero(metragemM3)
+  if (!Number.isFinite(m)) throw new ErroDeNegocio('A metragem precisa ser um número', 400, DICA_FORMATO)
   if (!(m > 0)) throw new ErroDeNegocio('A metragem deve ser maior que zero', 400)
   if (m > 500) {
     throw new ErroDeNegocio(
@@ -47,13 +47,13 @@ function validarMetragem(metragemM3, tipoMateriaPrima) {
 }
 
 function validarPrecoBase(precoBaseKg, { obrigatorio = false } = {}) {
-  if (precoBaseKg === undefined || precoBaseKg === null || precoBaseKg === '') {
+  if (estaVazio(precoBaseKg)) {
     if (obrigatorio) throw new ErroDeNegocio('Informe o preço por quilograma', 400)
     return null
   }
-  const preco = Number(precoBaseKg)
+  const preco = lerNumero(precoBaseKg)
   if (!Number.isFinite(preco)) {
-    throw new ErroDeNegocio('O preço por quilograma precisa ser um número', 400)
+    throw new ErroDeNegocio('O preço por quilograma precisa ser um número', 400, DICA_FORMATO)
   }
   if (!(preco > 0)) {
     throw new ErroDeNegocio('O preço por quilograma deve ser maior que zero', 400)
@@ -136,15 +136,16 @@ async function registrarEntrada(dados, usuarioId) {
   if (!produtorId) throw new ErroDeNegocio('Informe o produtor', 400)
   if (!tipoMateriaPrima) throw new ErroDeNegocio('Informe o tipo de matéria-prima', 400)
 
-  const bruto = Number(pesoBrutoKg)
+  const bruto = lerNumero(pesoBrutoKg)
+  if (!Number.isFinite(bruto)) throw new ErroDeNegocio('O peso bruto precisa ser um número', 400, DICA_FORMATO)
   if (!(bruto > 0)) throw new ErroDeNegocio('O peso bruto deve ser maior que zero', 400)
 
   const metragem = validarMetragem(metragemM3, tipoMateriaPrima)
   const precoValidado = validarPrecoBase(precoBaseKg)
 
   let estimadoCampo = null
-  if (pesoEstimadoCampoKg !== undefined && pesoEstimadoCampoKg !== null && pesoEstimadoCampoKg !== '') {
-    estimadoCampo = Number(pesoEstimadoCampoKg)
+  if (!estaVazio(pesoEstimadoCampoKg)) {
+    estimadoCampo = lerNumero(pesoEstimadoCampoKg)
     if (!Number.isFinite(estimadoCampo) || estimadoCampo <= 0) {
       throw new ErroDeNegocio('O peso estimado em campo deve ser maior que zero', 400)
     }
@@ -193,7 +194,7 @@ async function fecharPesagem(cargaId, dados, usuarioId) {
   return prisma.carga.update({
     where: { id: cargaId },
     data: {
-      taraKg: Number(dados.taraKg),
+      taraKg: lerNumero(dados.taraKg),
       pesoLiquidoKg,
       situacao: 'AGUARDANDO_ANALISE',
       usuarioId,

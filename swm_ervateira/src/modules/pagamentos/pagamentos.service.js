@@ -1,5 +1,6 @@
 const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
+const { lerNumero, DICA_FORMATO } = require('../../lib/numeros')
 
 function periodoDe(periodoInicio, periodoFim) {
   const inicio = new Date(periodoInicio)
@@ -158,8 +159,11 @@ function mapearPrecos(precos) {
   const mapa = new Map()
   for (const item of precos ?? []) {
     if (!item || !item.cargaId) continue
-    const preco = Number(item.precoKg)
-    if (!Number.isFinite(preco) || !(preco > 0)) {
+    const preco = lerNumero(item.precoKg)
+    if (!Number.isFinite(preco)) {
+      throw new ErroDeNegocio('O preço por quilo precisa ser um número', 400, DICA_FORMATO)
+    }
+    if (!(preco > 0)) {
       throw new ErroDeNegocio('O preço por quilo deve ser maior que zero', 400)
     }
     mapa.set(item.cargaId, Number(preco.toFixed(4)))

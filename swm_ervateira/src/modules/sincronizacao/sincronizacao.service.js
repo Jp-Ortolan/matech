@@ -1,5 +1,6 @@
 const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
+const { lerNumero, estaVazio, DICA_FORMATO } = require('../../lib/numeros')
 const { erroDeTamanho } = require('../../lib/textos')
 const { erroNoDocumento } = require('../../lib/documentos')
 const { ajustarPagamento } = require('../../lib/pagamento')
@@ -123,7 +124,7 @@ const APLICADORES = {
         produtorId,
         identificacao: String(p.identificacao).trim(),
         tipoErva: p.tipoErva || 'NATIVA',
-        quantidadeEstimadaKg: numeroOuNulo(p.quantidadeEstimadaKg),
+        quantidadeEstimadaKg: numeroDoAparelho(p.quantidadeEstimadaKg, 'A quantidade estimada'),
         idadeAnos: inteiroOuNulo(p.idadeAnos),
         latitude: numeroOuNulo(p.latitude),
         longitude: numeroOuNulo(p.longitude),
@@ -153,11 +154,11 @@ const APLICADORES = {
       tipoErva: p.tipoErva || 'NATIVA',
       ervaQueimada: p.ervaQueimada || 'NAO',
       idadeErvalAnos: inteiroOuNulo(p.idadeErvalAnos),
-      quantidadeEstimadaKg: numeroOuNulo(p.quantidadeEstimadaKg),
+      quantidadeEstimadaKg: numeroDoAparelho(p.quantidadeEstimadaKg, 'A quantidade estimada'),
       classificacao: vazioVirauNulo(p.classificacao),
-      umidadeEstimada: numeroOuNulo(p.umidadeEstimada),
+      umidadeEstimada: numeroDoAparelho(p.umidadeEstimada, 'A umidade estimada'),
       taloAparente: vazioVirauNulo(p.taloAparente),
-      valorCombinadoKg: numeroOuNulo(p.valorCombinadoKg),
+      valorCombinadoKg: numeroDoAparelho(p.valorCombinadoKg, 'O valor combinado'),
       latitude: numeroOuNulo(p.latitude),
       longitude: numeroOuNulo(p.longitude),
       observacoes: vazioVirauNulo(p.observacoes),
@@ -308,6 +309,14 @@ function traduzirErroDoPrisma(e) {
 
 const vazioVirauNulo = (v) => (v === undefined || v === null || v === '' ? null : v)
 const numeroOuNulo = (v) => (v === undefined || v === null || v === '' || isNaN(Number(v)) ? null : Number(v))
+// Valor digitado no app: vazio vira nulo; formato errado é recusado
+// (antes virava nulo calado e o dado se perdia).
+function numeroDoAparelho(valor, rotulo) {
+  if (estaVazio(valor)) return null
+  const n = lerNumero(valor)
+  if (!Number.isFinite(n)) throw new ErroDeNegocio(`${rotulo} precisa ser um número`, 400, DICA_FORMATO)
+  return n
+}
 const inteiroOuNulo = (v) => (v === undefined || v === null || v === '' || isNaN(Number(v)) ? null : parseInt(v, 10))
 
 module.exports = { receberLote, registrarFoto, resumo, listarRegistros }

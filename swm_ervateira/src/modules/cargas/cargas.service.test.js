@@ -122,7 +122,15 @@ describe('calcularPagamento sem preço', () => {
 describe('validarPrecoBase', () => {
   test('aceita um preço positivo e arredonda para quatro casas', () => {
     assert.equal(validarPrecoBase(4.85), 4.85)
-    assert.equal(validarPrecoBase('4.856789'), 4.8568)
+    assert.equal(validarPrecoBase('4,856789'), 4.8568)
+  })
+
+  test('texto com ponto decimal é recusado: 4.850 pode ser 4,85 ou 4.850', () => {
+    assert.throws(() => validarPrecoBase('4.85'), /número/i)
+  })
+
+  test('texto com milhar e vírgula é lido no padrão brasileiro', () => {
+    assert.equal(validarPrecoBase('1.250,5'), 1250.5)
   })
 
   test('recusa preço zero', () => {
