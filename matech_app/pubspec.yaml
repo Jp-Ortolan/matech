@@ -72,3 +72,5 @@ flutter:
     # mesmo arquivo, para que a marca não divirja entre os dois programas com
     # o tempo.
     - assets/marca/
+    # Municípios do IBGE por UF, para sugerir o nome sem internet.
+    - assets/municipios.json

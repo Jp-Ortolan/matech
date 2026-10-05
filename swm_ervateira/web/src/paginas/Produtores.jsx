@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { produtores as apiProdutores, cargas as apiCargas } from '../api/recursos'
 import { consultarCep, consultarCnpj } from '../lib/consultas'
 import { LIMITES } from '../lib/textos'
+import { UFS, municipiosDa } from '../lib/municipios'
 import {
   apenasDigitos, erroNoDocumento,
   mascararDocumento, mascararCep, mascararTelefone,
@@ -343,6 +344,7 @@ const TIPOS_DE_CHAVE = [
 
 function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   const editando = Boolean(produtor)
+  const [municipiosDaUf, setMunicipiosDaUf] = useState([])
 
   const [form, setForm] = useState(() =>
     produtor
@@ -355,6 +357,13 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   const [enviando, setEnviando] = useState(false)
   const [buscando, setBuscando] = useState(null)   // 'cep' | 'cnpj' | null
   const [achado, setAchado] = useState(null)       // aviso do que foi preenchido
+
+  // Sugestões de município da UF escolhida.
+  useEffect(() => {
+    let vivo = true
+    municipiosDa(form.uf).then((lista) => { if (vivo) setMunicipiosDaUf(lista) })
+    return () => { vivo = false }
+  }, [form.uf])
 
   function alterar(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor }))
@@ -510,8 +519,22 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
           </Botao>
           <Campo rotulo="Endereço" className="flex-[2]" maxLength={LIMITES.endereco} value={form.endereco} onChange={(e) => alterar('endereco', e.target.value)} />
           <Campo rotulo="Bairro" className="flex-1" maxLength={LIMITES.bairro} value={form.bairro} onChange={(e) => alterar('bairro', e.target.value)} />
-          <Campo rotulo="Município" className="flex-1" maxLength={LIMITES.municipio} value={form.municipio} onChange={(e) => alterar('municipio', e.target.value)} />
-          <Campo rotulo="UF" className="min-w-[76px] max-w-[96px] flex-1" maxLength={2} value={form.uf} onChange={(e) => alterar('uf', e.target.value)} />
+          <Selecao rotulo="UF" className="min-w-[84px] max-w-[110px] flex-1" value={form.uf} onChange={(e) => alterar('uf', e.target.value)}>
+            <option value="">—</option>
+            {UFS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+          </Selecao>
+          <Campo
+            rotulo="Município"
+            className="flex-1"
+            maxLength={LIMITES.municipio}
+            list="municipios-da-uf"
+            placeholder={form.uf ? 'Comece a digitar' : 'Escolha a UF antes'}
+            value={form.municipio}
+            onChange={(e) => alterar('municipio', e.target.value)}
+          />
+          <datalist id="municipios-da-uf">
+            {municipiosDaUf.map((m) => <option key={m} value={m} />)}
+          </datalist>
         </div>
 
         {achado && <Aviso tom={achado.tom}>{achado.texto}</Aviso>}

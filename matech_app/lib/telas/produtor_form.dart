@@ -8,6 +8,7 @@ import '../modelos/produtor.dart';
 import '../servicos/documentos.dart';
 import '../servicos/faixas.dart';
 import '../servicos/identificadores.dart';
+import '../servicos/municipios.dart';
 import '../servicos/sincronizador.dart';
 import '../widgets/comuns.dart';
 import '../widgets/tema.dart';
@@ -49,7 +50,9 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
   final _documento = TextEditingController();
   final _telefone = TextEditingController();
   final _municipio = TextEditingController();
-  final _uf = TextEditingController();
+  final _focoMunicipio = FocusNode();
+  String? _ufEscolhida;
+  List<String> _municipiosDaUf = const [];
   final _chavePix = TextEditingController();
   final _titular = TextEditingController();
   final _banco = TextEditingController();
@@ -72,7 +75,8 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
     _documento.text = p.cpfCnpj;
     _telefone.text = p.telefone ?? '';
     _municipio.text = p.municipio ?? '';
-    _uf.text = p.uf ?? '';
+    _ufEscolhida = ufs.contains(p.uf) ? p.uf : null;
+    _carregarMunicipios();
     _chavePix.text = p.chavePix ?? '';
     _titular.text = p.titularConta ?? '';
     _banco.text = p.banco ?? '';
@@ -83,14 +87,19 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
     _tipoConta = p.tipoConta ?? 'CORRENTE';
   }
 
+  Future<void> _carregarMunicipios() async {
+    final lista = await municipiosDa(_ufEscolhida);
+    if (mounted) setState(() => _municipiosDaUf = lista);
+  }
+
   @override
   void dispose() {
+    _focoMunicipio.dispose();
     for (final c in [
       _nome,
       _documento,
       _telefone,
       _municipio,
-      _uf,
       _chavePix,
       _titular,
       _banco,
@@ -136,7 +145,7 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
       cpfCnpj: antigo?.cpfCnpj ?? documento,
       telefone: _vazioVirauNulo(_telefone.text),
       municipio: _vazioVirauNulo(_municipio.text),
-      uf: _vazioVirauNulo(_uf.text)?.toUpperCase(),
+      uf: _ufEscolhida,
       formaPagamento: _forma,
       // Só vai o que vale para a forma escolhida, como na web.
       tipoChavePix: ehPix ? _tipoChave : null,
@@ -331,37 +340,68 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
 
               const SizedBox(height: 24),
               const _Secao('Localização'),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: TextFormField(
-                      controller: _municipio,
+              DropdownButtonFormField<String>(
+                initialValue: _ufEscolhida,
+                decoration: const InputDecoration(labelText: 'UF'),
+                menuMaxHeight: 320,
+                items:
+                    ufs
+                        .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                        .toList(),
+                onChanged: (v) {
+                  setState(() => _ufEscolhida = v);
+                  _carregarMunicipios();
+                },
+              ),
+              const SizedBox(height: 12),
+              RawAutocomplete<String>(
+                textEditingController: _municipio,
+                focusNode: _focoMunicipio,
+                optionsBuilder:
+                    (valor) => filtrarMunicipios(_municipiosDaUf, valor.text),
+                fieldViewBuilder:
+                    (context, controller, foco, aoConfirmar) => TextFormField(
+                      controller: controller,
+                      focusNode: foco,
                       textCapitalization: TextCapitalization.words,
                       maxLength: kMaxMunicipio,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Município',
+                        helperText:
+                            _ufEscolhida == null
+                                ? 'Escolha a UF para ver sugestões'
+                                : 'Comece a digitar',
                         counterText: '',
                       ),
+                      onFieldSubmitted: (_) => aoConfirmar(),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _uf,
-                      textCapitalization: TextCapitalization.characters,
-                      maxLength: 2,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp('[A-Za-z]')),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'UF',
-                        counterText: '',
+                optionsViewBuilder:
+                    (context, aoEscolher, opcoes) => Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxHeight: 260,
+                            maxWidth: 360,
+                          ),
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            children:
+                                opcoes
+                                    .map(
+                                      (m) => ListTile(
+                                        dense: true,
+                                        title: Text(m),
+                                        onTap: () => aoEscolher(m),
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
               ),
 
               const SizedBox(height: 24),
