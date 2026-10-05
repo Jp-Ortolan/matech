@@ -64,6 +64,7 @@ class Sincronizador extends ChangeNotifier {
     } else {
       await _remarcarDespertador();
       await _reavaliarBatida();
+      await _informarServidor();
     }
   }
 
@@ -187,7 +188,22 @@ class Sincronizador extends ChangeNotifier {
       _rodando = false;
       await atualizarContagens();
       await _remarcarDespertador();
+      await _informarServidor();
     }
+  }
+
+  // A web mostra quem tem dado parado; só o aparelho sabe o tamanho da fila.
+  // Falha aqui não atrapalha nada: tenta de novo no próximo contato.
+  Future<void> _informarServidor() async {
+    if (!sessao.podeSincronizar) return;
+    try {
+      await Api.informarContato(
+        token: sessao.usuario!.token,
+        dispositivoId: sessao.dispositivoId,
+        naFila: pendentes,
+        comErro: comErro,
+      );
+    } catch (_) {}
   }
 
   Future<int> _subirLotes() async {

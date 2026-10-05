@@ -127,6 +127,7 @@ model Usuario {
   avaliacoes Avaliacao[]
   pesagens   Carga[]
   analises   AnaliseQualidade[]
+  aparelhos  Aparelho[]
 
   @@map("usuarios")
 }
@@ -511,6 +512,20 @@ model RegistroSincronizacao {
   @@index([dispositivoId])
   @@index([situacao])
   @@map("registros_sincronizacao")
+}
+
+/// Aparelho de campo e o que ainda está na fila dele.
+/// O servidor não enxerga a fila do celular: o app informa a cada contato,
+/// e a web mostra quem está com dado parado e há quanto tempo não aparece.
+model Aparelho {
+  id            String   @id            // gerado no aparelho (dispositivoId)
+  usuarioId     String?
+  usuario       Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  naFila        Int      @default(0)    // pendentes + aguardando dependência
+  comErro       Int      @default(0)
+  ultimoContato DateTime @default(now())
+
+  @@map("aparelhos")
 }
 
 // ---------------------------------------------------------------------------

@@ -14,6 +14,7 @@ const avaliacoesRoutes = require('./modules/avaliacoes/avaliacoes.routes')
 const qualidadeRoutes = require('./modules/qualidade/qualidade.routes')
 const pagamentosRoutes = require('./modules/pagamentos/pagamentos.routes')
 const sincronizacaoRoutes = require('./modules/sincronizacao/sincronizacao.routes')
+const aparelhosRoutes = require('./modules/aparelhos/aparelhos.routes')
 const auditoriaRoutes = require('./modules/auditoria/auditoria.routes')
 
 const app = express()
@@ -35,6 +36,7 @@ app.use('/api/avaliacoes', avaliacoesRoutes)
 app.use('/api/qualidade', qualidadeRoutes)
 app.use('/api/pagamentos', pagamentosRoutes)
 app.use('/api/sincronizacao', sincronizacaoRoutes)
+app.use('/api/aparelhos', aparelhosRoutes)
 app.use('/api/auditoria', auditoriaRoutes)
 
 app.use(

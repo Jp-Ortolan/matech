@@ -62,6 +62,10 @@ export const sincronizacao = {
   registros: (filtros = {}) => api.get('/api/sincronizacao/registros' + montarQuery(filtros)),
 }
 
+export const aparelhos = {
+  listar: () => api.get('/api/aparelhos'),
+}
+
 export const auditoria = {
   listar: (filtros = {}) => api.get('/api/auditoria' + montarQuery(filtros)),
   autores: () => api.get('/api/auditoria/autores'),

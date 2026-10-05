@@ -132,6 +132,29 @@ class Api {
     });
   }
 
+  // Conta ao servidor quanto ainda está na fila deste aparelho.
+  static Future<void> informarContato({
+    required String token,
+    required String dispositivoId,
+    required int naFila,
+    required int comErro,
+  }) {
+    return _tentar(() async {
+      final r = await http
+          .post(
+            _url('/api/aparelhos/contato'),
+            headers: _cabecalhos(token),
+            body: jsonEncode({
+              'dispositivoId': dispositivoId,
+              'naFila': naFila,
+              'comErro': comErro,
+            }),
+          )
+          .timeout(_tempoLimite);
+      _corpo(r);
+    });
+  }
+
   static Future<Map<String, dynamic>> resumo({
     required String token,
     required String dispositivoId,

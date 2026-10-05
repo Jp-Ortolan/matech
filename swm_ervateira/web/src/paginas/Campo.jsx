@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { avaliacoesCampo, produtores as apiProdutores, sincronizacao } from '../api/recursos'
+import { avaliacoesCampo, produtores as apiProdutores, sincronizacao, aparelhos as apiAparelhos } from '../api/recursos'
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
   FaixaDeIndicadores, Painel, Filtros, Tabela, Janela, Indicador, Campo, Selecao, Botao, Etiqueta, LinhaDado,
@@ -25,6 +25,7 @@ export default function CampoPagina() {
   const [listaProdutores, setListaProdutores] = useState([])
   const [selecionada, setSelecionada] = useState(null)
   const [sincronia, setSincronia] = useState(null)
+  const [aparelhos, setAparelhos] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
 
@@ -48,6 +49,7 @@ export default function CampoPagina() {
 
   useEffect(() => {
     sincronizacao.resumo().then(setSincronia).catch(() => setSincronia(null))
+    apiAparelhos.listar().then(setAparelhos).catch(() => setAparelhos(null))
   }, [])
 
   async function abrir(linha) {
@@ -124,6 +126,8 @@ export default function CampoPagina() {
       </FaixaDeIndicadores>
 
       <ResumoDaSincronizacao sincronia={sincronia} />
+
+      <Aparelhos dados={aparelhos} />
 
       <Painel titulo="Coletadas" acao={`${dados?.avaliacoes.length ?? 0} na lista`}>
           {carregando ? (
@@ -321,6 +325,59 @@ function ResumoDaSincronizacao({ sincronia }) {
           </p>
         )}
       </div>
+    </Painel>
+  )
+}
+
+// Mais de um dia sem contato com dado na fila merece atenção.
+const UM_DIA_MS = 24 * 60 * 60 * 1000
+
+function haQuanto(data) {
+  const minutos = Math.floor((Date.now() - new Date(data).getTime()) / 60000)
+  if (minutos < 1) return 'agora'
+  if (minutos < 60) return `há ${minutos} min`
+  const horas = Math.floor(minutos / 60)
+  if (horas < 24) return `há ${horas} h`
+  const dias = Math.floor(horas / 24)
+  return `há ${dias} ${dias === 1 ? 'dia' : 'dias'}`
+}
+
+// A fila fica no celular; cada aparelho conta ao servidor quanto falta enviar.
+function Aparelhos({ dados }) {
+  if (!dados || dados.aparelhos.length === 0) return null
+
+  return (
+    <Painel
+      className="mb-6"
+      titulo="Aparelhos de campo"
+      acao={dados.totalNaFila > 0 ? `${dados.totalNaFila} na fila dos aparelhos` : 'Nada parado nos aparelhos'}
+    >
+      <Tabela
+        colunas={[
+          { chave: 'usuario', titulo: 'Usuário', forte: true, render: (a) => a.usuario?.nome ?? '—' },
+          { chave: 'id', titulo: 'Aparelho', render: (a) => `…${a.id.slice(-6)}` },
+          {
+            chave: 'ultimoContato',
+            titulo: 'Último contato',
+            render: (a) => `${formatar.dataHora(a.ultimoContato)} · ${haQuanto(a.ultimoContato)}`,
+          },
+          {
+            chave: 'situacao',
+            titulo: 'Na fila',
+            alinhar: 'direita',
+            render: (a) => {
+              if (a.comErro > 0) return <Etiqueta tom="perigo">{a.naFila} na fila · {a.comErro} com erro</Etiqueta>
+              if (a.naFila === 0) return <Etiqueta tom="verde">em dia</Etiqueta>
+              const antigo = Date.now() - new Date(a.ultimoContato).getTime() > UM_DIA_MS
+              return <Etiqueta tom={antigo ? 'perigo' : 'alerta'}>{a.naFila} na fila</Etiqueta>
+            },
+          },
+        ]}
+        dados={dados.aparelhos}
+      />
+      <p className="border-t border-borda px-3 py-2 text-[10px] text-cinza-400">
+        O número é o que o aparelho informou no último contato. Sem sinal, ele guarda os registros e envia depois.
+      </p>
     </Painel>
   )
 }
