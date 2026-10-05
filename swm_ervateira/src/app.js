@@ -31,6 +31,12 @@ app.get('/health', async (req, res) => {
   res.json({ status: 'ok', banco: 'conectado', horario: new Date() })
 })
 
+// Documentação da API (Swagger): /api/docs
+const documentacao = require('./docs/openapi')
+const especificacao = documentacao.montar()
+app.get('/api/docs/openapi.json', (req, res) => res.json(especificacao))
+app.get('/api/docs', (req, res) => res.type('html').send(documentacao.PAGINA))
+
 app.use('/api/auth', authRoutes)
 app.use('/api/usuarios', usuariosRoutes)
 app.use('/api/produtores', produtoresRoutes)
