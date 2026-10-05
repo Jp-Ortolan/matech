@@ -67,7 +67,7 @@ export default function Relatorios() {
   const nomeProdutor = listaProdutores.find((p) => p.id === filtros.produtorId)?.nome
   const periodo = filtros.de || filtros.ate
     ? `${filtros.de ? formatar.data(filtros.de) : 'início'} a ${filtros.ate ? formatar.data(filtros.ate) : 'hoje'}`
-    : 'todo o histórico'
+    : 'Todo o histórico'
 
   return (
     <>
@@ -126,7 +126,7 @@ function Recebimento({ lista, veDinheiro }) {
   const peso = somar(lista, (c) => c.pesoLiquidoKg)
   const bruto = somar(lista, (c) => c.pesoBrutoKg)
   const tara = somar(lista, (c) => c.taraKg)
-  const porProdutor = agrupar(lista, (c) => c.produtor?.nome || 'sem produtor')
+  const porProdutor = agrupar(lista, (c) => c.produtor?.nome || 'Sem produtor')
   const porTipo = agrupar(lista, (c) => formatar.materiaPrima(c.tipoMateriaPrima))
   const porDia = agrupar(lista, (c) => formatar.chaveDoDia(c.dataHora))
   const maiorProdutor = Math.max(1, ...porProdutor.map((g) => g.peso))
@@ -167,11 +167,11 @@ function Recebimento({ lista, veDinheiro }) {
         <Indicador rotulo="Peso líquido recebido" icone={ICONE_DA_GRANDEZA.peso} valor={formatar.numero(peso)} unidade="kg"
                    apoio={`${lista.length} cargas`} />
         <Indicador rotulo="Média por carga" icone={ICONE_DA_GRANDEZA.cargas} valor={formatar.numero(peso / lista.length)} unidade="kg"
-                   apoio="peso líquido médio" />
+                   apoio="Peso líquido médio" />
         <Indicador rotulo="Tara descontada" icone={ICONE_DA_GRANDEZA.peso} valor={formatar.numero(tara)} unidade="kg"
                    apoio={`${formatar.porcento((tara / bruto) * 100)} do peso bruto`} />
         <Indicador rotulo="Produtores atendidos" icone={ICONE_DA_GRANDEZA.produtores} valor={porProdutor.length} unidade="produtores"
-                   apoio="com entrega no período" />
+                   apoio="Com entrega no período" />
       </FaixaDeIndicadores>
 
       <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
@@ -282,12 +282,12 @@ function Qualidade({ lista, veDinheiro }) {
         <Indicador rotulo="Cargas analisadas" icone={ICONE_DA_GRANDEZA.qualidade} valor={analisadas.length} unidade={`de ${lista.length}`}
                    apoio={`${pendentes.length} aguardando`} />
         <Indicador rotulo="Palito médio" icone={ICONE_DA_GRANDEZA.qualidade} valor={formatar.porcento(palitoMedio)}
-                   apoio="medido nas amostras do período" />
+                   apoio="Medido nas amostras do período" />
         <Indicador rotulo="Reprovadas" icone={ICONE_DA_GRANDEZA.alerta} valor={reprovadas.length} unidade="cargas"
                    apoio={`${formatar.porcento((reprovadas.length / analisadas.length) * 100)} das analisadas`}
                    cor={reprovadas.length ? 'text-perigo' : 'text-tinta'} />
         {veDinheiro && <Indicador rotulo="Valor analisado" icone={ICONE_DA_GRANDEZA.dinheiro} valor={formatar.reais(valorAnalisado)}
-                   apoio="cargas com preço já acordado" />}
+                   apoio="Cargas com preço já acordado" />}
       </FaixaDeIndicadores>
 
       <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
@@ -313,8 +313,8 @@ function Qualidade({ lista, veDinheiro }) {
               {
                 chave: 'aprovada', titulo: 'Resultado', fixar: 'direita',
                 render: (c) => c.analise.aprovada === false
-                  ? <Etiqueta tom="perigo">reprovada</Etiqueta>
-                  : <Etiqueta tom="verde">aprovada</Etiqueta>,
+                  ? <Etiqueta tom="perigo">Reprovada</Etiqueta>
+                  : <Etiqueta tom="verde">Aprovada</Etiqueta>,
               },
             ]}
             dados={analisadas}
@@ -350,7 +350,7 @@ function Qualidade({ lista, veDinheiro }) {
                 ['Reprovadas', String(reprovadas.length)],
               ].map(([r, v]) => (
                 <div key={r}>
-                  <p className="text-[11px] font-semibold text-cinza-600">{r}</p>
+                  <p className="text-[0.8125rem] font-semibold text-cinza-600">{r}</p>
                   <p className="mt-0.5 text-base font-bold tabular text-tinta">{v}</p>
                 </div>
               ))}
@@ -403,10 +403,10 @@ function MateriaPrima({ lista, veDinheiro }) {
         {veDinheiro && (
           <>
             <Indicador rotulo="Valor já analisado" icone={ICONE_DA_GRANDEZA.dinheiro} valor={formatar.reais(valorGeral)}
-                       apoio="cargas com análise lançada" />
+                       apoio="Cargas com análise lançada" />
             <Indicador rotulo="Preço médio praticado" icone={ICONE_DA_GRANDEZA.preco}
                        valor={formatar.precoKgCurto(mediaPonderada(lista, (c) => c.precoBaseKg))}
-                       apoio="ponderado pelo peso" />
+                       apoio="Ponderado pelo peso" />
           </>
         )}
         <Indicador rotulo="Peso recebido" icone={ICONE_DA_GRANDEZA.peso} valor={formatar.numero(pesoGeral)} unidade="kg"
@@ -484,7 +484,7 @@ function Financeiro({ ordens }) {
 
   const porProdutor = Object.values(
     ordens.reduce((acc, o) => {
-      const nome = o.produtor?.nome || 'sem produtor'
+      const nome = o.produtor?.nome || 'Sem produtor'
       acc[nome] = acc[nome] || { chave: nome, ordens: 0, total: 0, pago: 0, aberto: 0 }
       acc[nome].ordens += 1
       acc[nome].total += Number(o.valorTotal)
@@ -525,7 +525,7 @@ function Financeiro({ ordens }) {
         <Indicador rotulo="Em aberto" icone={ICONE_DA_GRANDEZA.espera} valor={formatar.reais(valorAberto)}
                    apoio={`${pendentes.length} ordens aguardando`} cor="text-alerta" />
         <Indicador rotulo="Ordem média" icone={ICONE_DA_GRANDEZA.preco} valor={formatar.reais(total / ordens.length)}
-                   apoio="valor médio por ordem emitida" />
+                   apoio="Valor médio por ordem emitida" />
       </FaixaDeIndicadores>
 
       <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
@@ -597,10 +597,10 @@ function recortarPorPeriodo(ordens, { de, ate }) {
 
 function faixasDePalito(analisadas) {
   const faixas = [
-    { rotulo: 'até 20%', teste: (v) => v <= 20 },
+    { rotulo: 'Até 20%', teste: (v) => v <= 20 },
     { rotulo: '20% a 30%', teste: (v) => v > 20 && v <= 30 },
     { rotulo: '30% a 40%', teste: (v) => v > 30 && v <= 40 },
-    { rotulo: 'acima de 40%', teste: (v) => v > 40 },
+    { rotulo: 'Acima de 40%', teste: (v) => v > 40 },
   ]
   return faixas.map((f) => ({
     ...f,

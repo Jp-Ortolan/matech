@@ -35,7 +35,7 @@ export default function FichaDaCarga({ cargaId, veDinheiro, aoImprimirTicket }) 
       titulo={carga.numeroTicket}
       acao={
         aguardandoTara
-          ? 'pesagem em aberto'
+          ? 'Pesagem em aberto'
           : <Botao onClick={() => aoImprimirTicket(carga)}>Imprimir ticket</Botao>
       }
     >
@@ -59,7 +59,7 @@ export default function FichaDaCarga({ cargaId, veDinheiro, aoImprimirTicket }) 
         </div>
 
         <div className="rounded-[3px] bg-cabecalho px-3 py-3">
-          <p className="mb-2 text-[11px] font-semibold text-cinza-600">Pesagem</p>
+          <p className="mb-2 text-[0.8125rem] font-semibold text-cinza-600">Pesagem</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
             <LinhaDado rotulo="Peso bruto" valor={formatar.kg(carga.pesoBrutoKg)} />
             <LinhaDado rotulo="Tara" valor={formatar.kg(carga.taraKg)} />
@@ -67,14 +67,14 @@ export default function FichaDaCarga({ cargaId, veDinheiro, aoImprimirTicket }) 
             <LinhaDado rotulo="Estimado em campo" valor={formatar.kg(carga.pesoEstimadoCampoKg)} />
           </div>
           {aguardandoTara && (
-            <p className="mt-2 text-[10.5px] text-cinza-600">
+            <p className="mt-2 text-[0.8125rem] text-cinza-600">
               O caminhão ainda não voltou vazio à balança. O peso líquido fecha lá.
             </p>
           )}
         </div>
 
         <div className="rounded-[3px] border border-borda px-3 py-3">
-          <p className="mb-2 text-[11px] font-semibold text-cinza-600">Análise de qualidade</p>
+          <p className="mb-2 text-[0.8125rem] font-semibold text-cinza-600">Análise de qualidade</p>
           {analise ? (
             <>
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
@@ -84,16 +84,16 @@ export default function FichaDaCarga({ cargaId, veDinheiro, aoImprimirTicket }) 
                 <LinhaDado rotulo="Lançada em" valor={formatar.dataHora(analise.dataHora)} />
               </div>
               {analise.observacoes && (
-                <p className="mt-2 text-[11px] text-cinza-600">{analise.observacoes}</p>
+                <p className="mt-2 text-[0.8125rem] text-cinza-600">{analise.observacoes}</p>
               )}
               {reprovada && (
-                <p className="mt-2 rounded-[3px] bg-perigo-bg px-3 py-2 text-[11px] font-medium text-perigo">
+                <p className="mt-2 rounded-[3px] bg-perigo-bg px-3 py-2 text-[0.8125rem] font-medium text-perigo">
                   Reprovada · {motivoResumido(analise)}
                 </p>
               )}
             </>
           ) : (
-            <p className="text-[11px] text-cinza-400">
+            <p className="text-[0.8125rem] text-cinza-400">
               {aguardandoTara
                 ? 'A carga entra na fila do laboratório quando a pesagem fechar.'
                 : 'Ainda na fila do laboratório.'}
@@ -111,8 +111,8 @@ export default function FichaDaCarga({ cargaId, veDinheiro, aoImprimirTicket }) 
 
         {carga.observacoes && (
           <div>
-            <p className="text-[11px] font-medium text-cinza-600">Observações da balança</p>
-            <p className="mt-0.5 text-[12px] text-tinta">{carga.observacoes}</p>
+            <p className="text-[0.8125rem] font-medium text-cinza-600">Observações da balança</p>
+            <p className="mt-0.5 text-[0.875rem] text-tinta">{carga.observacoes}</p>
           </div>
         )}
       </div>

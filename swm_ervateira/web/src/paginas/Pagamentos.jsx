@@ -100,7 +100,7 @@ export default function Pagamentos() {
       <FaixaDeIndicadores className="max-w-[280px]">
         <Indicador rotulo="Em aberto" icone={ICONE_DA_GRANDEZA.dinheiro}
                    valor={formatar.reais(dados?.totalEmAberto ?? 0)}
-                   vazio={Number(dados?.totalEmAberto ?? 0) === 0 ? 'nenhuma ordem em aberto' : null}
+                   vazio={Number(dados?.totalEmAberto ?? 0) === 0 ? 'Nenhuma ordem em aberto' : null}
                    apoio={pendentes.length ? contagem(pendentes.length, 'ordem aguardando', 'ordens aguardando') : null}
                    cor="text-alerta" />
       </FaixaDeIndicadores>
@@ -180,9 +180,9 @@ export default function Pagamentos() {
                     ? (
                       <button
                         onClick={(e) => { e.stopPropagation(); confirmar(o.id) }}
-                        className="whitespace-nowrap text-[11px] font-semibold text-mate-700 hover:underline"
+                        className="whitespace-nowrap text-[0.8125rem] font-semibold text-mate-700 hover:underline"
                       >
-                        dar baixa
+                        Dar baixa
                       </button>
                     )
                     : null
@@ -238,12 +238,12 @@ function FichaDaOrdem({ ordem, podeMovimentar, aoImprimir, aoConfirmar }) {
         </div>
 
         <div className="rounded-[3px] bg-cabecalho px-3 py-3">
-          <p className="mb-2 text-[11px] font-semibold text-cinza-600">
+          <p className="mb-2 text-[0.8125rem] font-semibold text-cinza-600">
             Cargas na ordem · {contagem(itens.length, 'carga', 'cargas')}
           </p>
           <div className="flex flex-col gap-1.5">
             {itens.map((i) => (
-              <div key={i.id} className="flex items-baseline gap-2 text-[11.5px]">
+              <div key={i.id} className="flex items-baseline gap-2 text-[0.875rem]">
                 <span className="font-semibold tabular text-tinta">{i.carga?.numeroTicket}</span>
                 <span className="flex-1 truncate text-cinza-600">
                   {formatar.materiaPrima(i.carga?.tipoMateriaPrima)}
@@ -259,7 +259,7 @@ function FichaDaOrdem({ ordem, podeMovimentar, aoImprimir, aoConfirmar }) {
 
         <div className="flex items-center gap-4 rounded-[3px] bg-mate-100 px-3 py-3">
           <div className="flex-1">
-            <p className="text-[11px] font-semibold text-mate-700">Total da ordem</p>
+            <p className="text-[0.8125rem] font-semibold text-mate-700">Total da ordem</p>
             <p className="text-xl font-bold tabular text-mate-700">{formatar.reais(ordem.valorTotal)}</p>
           </div>
           <LinhaDado rotulo="Peso somado" valor={formatar.kg(pesoTotal)} />
@@ -431,11 +431,11 @@ function FormularioOrdem({ produtores, inicial, aoGerar }) {
                 rotulo="Preço por quilo para todas (R$)"
                 className="min-w-[220px] flex-1"
                 type="number" step="0.0001" min="0.0001"
-                placeholder="preencha as cargas de uma vez"
+                placeholder="Preencha as cargas de uma vez"
                 value={precoParaTodas}
                 onChange={(e) => aplicarATodas(e.target.value)}
               />
-              <span className="flex-[2] pb-2 text-[10.5px] text-cinza-400">
+              <span className="flex-[2] pb-2 text-[0.8125rem] text-cinza-400">
                 Atalho para o caso comum, em que a entrega inteira foi acordada pelo mesmo
                 valor. Ajuste carga a carga abaixo quando o acordo tiver sido diferente.
               </span>
@@ -458,7 +458,7 @@ function FormularioOrdem({ produtores, inicial, aoGerar }) {
                       type="number" step="0.0001" min="0.0001"
                       value={precos[c.id] ?? ''}
                       onChange={(e) => setPrecos((p) => ({ ...p, [c.id]: e.target.value }))}
-                      className="w-[128px] rounded-[3px] border border-borda bg-white px-2 py-1 text-right text-[11.5px] tabular text-tinta outline-none focus:border-mate-500"
+                      className="w-[128px] rounded-[3px] border border-borda bg-white px-2 py-1 text-right text-[0.875rem] tabular text-tinta outline-none focus:border-mate-500"
                     />
                   ),
                 },
@@ -467,7 +467,7 @@ function FormularioOrdem({ produtores, inicial, aoGerar }) {
                   render: (c) => {
                     const v = valorDa(c)
                     return v === null
-                      ? <span className="text-cinza-400">informe o preço</span>
+                      ? <span className="text-cinza-400">Informe o preço</span>
                       : formatar.reais(v)
                   },
                 },
@@ -476,7 +476,7 @@ function FormularioOrdem({ produtores, inicial, aoGerar }) {
               rodape={
                 <>
                   <span>{contagem(cargas.length, 'carga', 'cargas')} no período</span>
-                  <span className="text-[13px] font-bold tabular text-mate-700">
+                  <span className="text-[0.9375rem] font-bold tabular text-mate-700">
                     {formatar.reais(total)}
                   </span>
                 </>
@@ -493,7 +493,7 @@ function FormularioOrdem({ produtores, inicial, aoGerar }) {
 
             <div className="flex flex-wrap items-center justify-end gap-3 border-t border-borda pt-3">
               {faltaPreco && (
-                <span className="flex-1 text-[10.5px] font-medium text-alerta">
+                <span className="flex-1 text-[0.8125rem] font-medium text-alerta">
                   Toda carga precisa de preço — é ele que define o valor final.
                 </span>
               )}
@@ -548,16 +548,16 @@ function FilaDePrecificacao({ fila, erro, carregando, aoPrecificar }) {
           { chave: 'peso', titulo: 'Peso líquido', alinhar: 'direita', render: (g) => formatar.kg(g.pesoTotal) },
           {
             chave: 'sugerido', titulo: 'Valor sugerido', alinhar: 'direita', forte: true,
-            render: (g) => (g.valorSugerido ? formatar.reais(g.valorSugerido) : <span className="text-cinza-400">sem preço</span>),
+            render: (g) => (g.valorSugerido ? formatar.reais(g.valorSugerido) : <span className="text-cinza-400">Sem preço</span>),
           },
           {
             chave: 'acao', titulo: '', alinhar: 'direita',
             render: (g) => (
               <button
                 onClick={() => aoPrecificar(g)}
-                className="whitespace-nowrap text-[11px] font-semibold text-mate-700 hover:underline"
+                className="whitespace-nowrap text-[0.8125rem] font-semibold text-mate-700 hover:underline"
               >
-                precificar e emitir
+                Precificar e emitir
               </button>
             ),
           },
@@ -566,7 +566,7 @@ function FilaDePrecificacao({ fila, erro, carregando, aoPrecificar }) {
         vazio="Nenhuma carga esperando."
       />
       <div className="border-t border-borda px-4 py-2.5">
-        <p className="text-[10px] text-cinza-400">
+        <p className="text-[0.75rem] text-cinza-400">
           Entram aqui as cargas com análise lançada que ainda não estão em nenhuma ordem.
           Carga reprovada não gera pagamento e não aparece.
         </p>
@@ -583,10 +583,10 @@ function DestinoDoPagamento({ destino, aoAlterar, atualizarCadastro, aoMarcar, m
   return (
     <div className="rounded-[3px] border border-borda">
       <div className="flex items-center gap-2 border-b border-borda bg-cabecalho px-3 py-2">
-        <p className="flex-1 text-[11px] font-semibold text-cinza-600">
+        <p className="flex-1 text-[0.8125rem] font-semibold text-cinza-600">
           Para onde vai o pagamento
         </p>
-        {mudou && <Etiqueta tom="alerta">diferente do cadastro</Etiqueta>}
+        {mudou && <Etiqueta tom="alerta">Diferente do cadastro</Etiqueta>}
       </div>
 
       <div className="flex flex-col gap-3 px-3 py-3">
@@ -648,7 +648,7 @@ function DestinoDoPagamento({ destino, aoAlterar, atualizarCadastro, aoMarcar, m
         )}
 
         {destino.formaPagamento === 'DINHEIRO' && (
-          <p className="text-[10.5px] text-cinza-600">
+          <p className="text-[0.8125rem] text-cinza-600">
             Pagamento em espécie, no balcão. A ordem sai sem destino bancário e serve de
             recibo do que foi apurado.
           </p>
@@ -662,7 +662,7 @@ function DestinoDoPagamento({ destino, aoAlterar, atualizarCadastro, aoMarcar, m
               checked={atualizarCadastro}
               onChange={(e) => aoMarcar(e.target.checked)}
             />
-            <span className="text-[10.5px] leading-relaxed text-alerta">
+            <span className="text-[0.8125rem] leading-relaxed text-alerta">
               Atualizar também o cadastro do produtor.
               Deixe desmarcado se a mudança vale só para esta ordem — a ordem guarda o
               destino de qualquer forma, e o cadastro fica como está.

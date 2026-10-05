@@ -111,17 +111,17 @@ export default function CampoPagina() {
       </Filtros>
 
       <FaixaDeIndicadores>
-        <Indicador rotulo="Avaliações" icone={ICONE_DA_GRANDEZA.qualidade} valor={dados?.total ?? '—'} apoio="no período" />
+        <Indicador rotulo="Avaliações" icone={ICONE_DA_GRANDEZA.qualidade} valor={dados?.total ?? '—'} apoio="No período" />
         <Indicador
           rotulo="Coletadas offline" icone={ICONE_DA_GRANDEZA.offline}
           valor={dados?.coletadasEmCampo ?? '—'}
-          apoio="sem conexão no erval"
+          apoio="Sem conexão no erval"
         />
-        <Indicador rotulo="Com foto" icone={ICONE_DA_GRANDEZA.foto} valor={dados?.comFotos ?? '—'} apoio="prova visual" />
+        <Indicador rotulo="Com foto" icone={ICONE_DA_GRANDEZA.foto} valor={dados?.comFotos ?? '—'} apoio="Prova visual" />
         <Indicador
           rotulo="Sincronização" icone={ICONE_DA_GRANDEZA.sincronia}
           valor={sincronia?.taxaSincronizacao != null ? `${formatar.numero(sincronia.taxaSincronizacao, 1)}%` : '—'}
-          apoio="confirmados ÷ total coletado"
+          apoio="Confirmados ÷ total coletado"
         />
       </FaixaDeIndicadores>
 
@@ -146,7 +146,7 @@ export default function CampoPagina() {
                     <span className="flex gap-1">
                       {a.fotos?.length > 0 && <Etiqueta tom="verde">{a.fotos.length} foto{a.fotos.length > 1 ? 's' : ''}</Etiqueta>}
                       {a.latitude != null && <Etiqueta>GPS</Etiqueta>}
-                      {a.criadoOffline && <Etiqueta tom="alerta">offline</Etiqueta>}
+                      {a.criadoOffline && <Etiqueta tom="alerta">Offline</Etiqueta>}
                     </span>
                   ),
                 },
@@ -162,7 +162,7 @@ export default function CampoPagina() {
       {selecionada && (
         <Janela
           titulo={selecionada.erval?.produtor?.nome || 'Avaliação de campo'}
-          subtitulo={`${selecionada.erval?.identificacao ?? 'sem área'} · ${formatar.dataHora(selecionada.dataAvaliacao)}`}
+          subtitulo={`${selecionada.erval?.identificacao ?? 'Sem área'} · ${formatar.dataHora(selecionada.dataAvaliacao)}`}
           aoFechar={() => setSelecionada(null)}
         >
           <Detalhe avaliacao={selecionada} />
@@ -200,8 +200,8 @@ function Detalhe({ avaliacao: a }) {
 
         {a.observacoes && (
           <div className="border-t border-borda px-4 py-3">
-            <p className="text-[11px] font-semibold text-cinza-600">Observações</p>
-            <p className="mt-1 text-[11.5px] leading-relaxed text-tinta">{a.observacoes}</p>
+            <p className="text-[0.8125rem] font-semibold text-cinza-600">Observações</p>
+            <p className="mt-1 text-[0.875rem] leading-relaxed text-tinta">{a.observacoes}</p>
           </div>
         )}
       </Painel>
@@ -220,7 +220,7 @@ function Detalhe({ avaliacao: a }) {
           <LinhaDado rotulo="Tentativas de envio" valor={s?.tentativas} />
           <LinhaDado
             rotulo="Houve conflito"
-            valor={s ? (s.houveConflito ? `sim · venceu o ${s.versaoVencedora}` : 'não') : null}
+            valor={s ? (s.houveConflito ? `Sim · venceu o ${s.versaoVencedora}` : 'Não') : null}
           />
         </div>
       </Painel>
@@ -319,7 +319,7 @@ function ResumoDaSincronizacao({ sincronia }) {
         ))}
 
         {sincronia.conflitos > 0 && (
-          <p className="text-[10px] text-cinza-400">
+          <p className="text-[0.75rem] text-cinza-400">
             {sincronia.conflitos} {sincronia.conflitos === 1 ? 'conflito resolvido' : 'conflitos resolvidos'} pela
             última edição feita no aparelho — o relógio que vale é o de quem estava no erval.
           </p>
@@ -367,7 +367,7 @@ function Aparelhos({ dados }) {
             alinhar: 'direita',
             render: (a) => {
               if (a.comErro > 0) return <Etiqueta tom="perigo">{a.naFila} na fila · {a.comErro} com erro</Etiqueta>
-              if (a.naFila === 0) return <Etiqueta tom="verde">em dia</Etiqueta>
+              if (a.naFila === 0) return <Etiqueta tom="verde">Em dia</Etiqueta>
               const antigo = Date.now() - new Date(a.ultimoContato).getTime() > UM_DIA_MS
               return <Etiqueta tom={antigo ? 'perigo' : 'alerta'}>{a.naFila} na fila</Etiqueta>
             },
@@ -375,7 +375,7 @@ function Aparelhos({ dados }) {
         ]}
         dados={dados.aparelhos}
       />
-      <p className="border-t border-borda px-3 py-2 text-[10px] text-cinza-400">
+      <p className="border-t border-borda px-3 py-2 text-[0.75rem] text-cinza-400">
         O número é o que o aparelho informou no último contato. Sem sinal, ele guarda os registros e envia depois.
       </p>
     </Painel>

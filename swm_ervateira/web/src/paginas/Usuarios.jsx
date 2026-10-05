@@ -81,7 +81,7 @@ export default function Usuarios() {
           <Campo
             rotulo="Buscar por nome ou usuário"
             className="min-w-[220px] flex-1 max-w-[340px]"
-            placeholder="digite para filtrar"
+            placeholder="Digite para filtrar"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -134,19 +134,19 @@ export default function Usuarios() {
                 render: (u) => (
                   <span className="flex items-center gap-2">
                     <span className="min-w-0 truncate" title={u.nome}>{u.nome}</span>
-                    {u.id === eu?.id && <Etiqueta tom="verde">você</Etiqueta>}
+                    {u.id === eu?.id && <Etiqueta tom="verde">Você</Etiqueta>}
                   </span>
                 ),
               },
               { chave: 'perfil', titulo: 'Perfil', render: (u) => rotuloDoPerfil(u.perfil) },
               {
                 chave: 'acesso', titulo: 'Último acesso', oculta: 'lg',
-                render: (u) => (u.ultimoAcesso ? formatar.dataHora(u.ultimoAcesso) : 'nunca entrou'),
+                render: (u) => (u.ultimoAcesso ? formatar.dataHora(u.ultimoAcesso) : 'Nunca entrou'),
               },
               {
                 chave: 'ativo', titulo: 'Status',
                 render: (u) => (
-                  <span className="inline-flex items-center gap-2 text-[11px] font-medium text-cinza-600">
+                  <span className="inline-flex items-center gap-2 text-[0.8125rem] font-medium text-cinza-600">
                     <span className={`h-[7px] w-[7px] rounded-[1px] ${u.ativo ? 'bg-mate-500' : 'bg-cinza-400'}`} />
                     {u.ativo ? 'Ativo' : 'Inativo'}
                   </span>
@@ -184,7 +184,7 @@ function FichaDoUsuario({ usuario, ehVoceMesmo, aoEditar, aoTrocarSenha, aoAlter
   if (!usuario) return null
 
   return (
-    <Painel titulo={usuario.usuario} acao={ehVoceMesmo ? <Etiqueta tom="verde">você</Etiqueta> : null}>
+    <Painel titulo={usuario.usuario} acao={ehVoceMesmo ? <Etiqueta tom="verde">Você</Etiqueta> : null}>
       <div className="flex flex-col gap-4 px-4 py-4">
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
           <LinhaDado rotulo="Nome" valor={usuario.nome} />
@@ -193,7 +193,7 @@ function FichaDoUsuario({ usuario, ehVoceMesmo, aoEditar, aoTrocarSenha, aoAlter
           <LinhaDado rotulo="Situação" valor={usuario.ativo ? 'Ativa' : 'Inativa'} />
           <LinhaDado
             rotulo="Último acesso"
-            valor={usuario.ultimoAcesso ? formatar.dataHora(usuario.ultimoAcesso) : 'nunca entrou'}
+            valor={usuario.ultimoAcesso ? formatar.dataHora(usuario.ultimoAcesso) : 'Nunca entrou'}
           />
           <LinhaDado rotulo="Criada em" valor={formatar.data(usuario.criadoEm)} />
         </div>
@@ -329,15 +329,15 @@ function FormularioUsuario({ usuario, souEu, aoConcluir, aoCancelar }) {
         </div>
 
         {loginInvalido && (
-          <p className="text-[10.5px] font-medium text-perigo">
+          <p className="text-[0.8125rem] font-medium text-perigo">
             O usuário aceita apenas letras, números, ponto, hífen e sublinhado, com ao menos 3 caracteres.
           </p>
         )}
         {!editando && form.senha !== '' && form.senha.length < 6 && (
-          <p className="text-[10.5px] text-cinza-400">A senha precisa ter ao menos 6 caracteres.</p>
+          <p className="text-[0.8125rem] text-cinza-400">A senha precisa ter ao menos 6 caracteres.</p>
         )}
         {editando && (
-          <p className="text-[10.5px] text-cinza-400">
+          <p className="text-[0.8125rem] text-cinza-400">
             O usuário não muda: ele identifica quem pesou e quem analisou no histórico.
             {souEu && ' Perfil e status da própria conta não se alteram aqui.'}
           </p>
@@ -406,9 +406,9 @@ function FormularioSenha({ usuario, aoConcluir, aoCancelar }) {
         </div>
 
         {naoConfere && (
-          <p className="text-[10.5px] font-medium text-perigo">As duas senhas não conferem.</p>
+          <p className="text-[0.8125rem] font-medium text-perigo">As duas senhas não conferem.</p>
         )}
-        <p className="text-[10.5px] text-cinza-400">
+        <p className="text-[0.8125rem] text-cinza-400">
           A senha atual não é exibida em lugar nenhum: o banco guarda apenas o hash.
         </p>
       </form>

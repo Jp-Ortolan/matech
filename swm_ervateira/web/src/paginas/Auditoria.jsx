@@ -148,14 +148,14 @@ export default function Auditoria() {
         <Indicador
           rotulo="Alterações registradas" icone={ICONE_DA_GRANDEZA.sincronia}
           valor={dados?.total ?? '—'}
-          apoio={dados && dados.exibindo < dados.total ? `mostrando as ${dados.exibindo} mais recentes` : 'no filtro atual'}
+          apoio={dados && dados.exibindo < dados.total ? `Mostrando as ${dados.exibindo} mais recentes` : 'No filtro atual'}
         />
-        <Indicador rotulo="Contas criadas" icone={ICONE_DA_GRANDEZA.produtores} valor={contarAcao('USUARIO_CRIADO')} apoio="novos acessos ao sistema" />
-        <Indicador rotulo="Contas alteradas" icone={ICONE_DA_GRANDEZA.produtores} valor={contarAcao('USUARIO_ALTERADO')} apoio="nome, perfil ou situação" />
+        <Indicador rotulo="Contas criadas" icone={ICONE_DA_GRANDEZA.produtores} valor={contarAcao('USUARIO_CRIADO')} apoio="Novos acessos ao sistema" />
+        <Indicador rotulo="Contas alteradas" icone={ICONE_DA_GRANDEZA.produtores} valor={contarAcao('USUARIO_ALTERADO')} apoio="Nome, perfil ou situação" />
         <Indicador
           rotulo="Senhas redefinidas" icone={ICONE_DA_GRANDEZA.limite}
           valor={contarAcao('SENHA_REDEFINIDA')}
-          apoio="redefinidas por um administrador"
+          apoio="Redefinidas por um administrador"
           cor={contarAcao('SENHA_REDEFINIDA') > 0 ? 'text-alerta' : 'text-tinta'}
         />
       </FaixaDeIndicadores>
@@ -183,7 +183,7 @@ export default function Auditoria() {
                 render: (r) => (
                   <span className="flex flex-col">
                     <span>{r.usuarioNome}</span>
-                    <span className="text-[10px] font-normal text-cinza-400">
+                    <span className="text-[0.75rem] font-normal text-cinza-400">
                       {NOME_PERFIL[r.usuarioPerfil] ?? r.usuarioPerfil}
                     </span>
                   </span>
@@ -208,7 +208,7 @@ export default function Auditoria() {
         )}
       </Painel>
 
-      <p className="mt-3 max-w-[760px] text-[10px] leading-relaxed text-cinza-400">
+      <p className="mt-3 max-w-[760px] text-[0.75rem] leading-relaxed text-cinza-400">
         O registro é somente leitura: não há como editar nem apagar uma linha pelo sistema.
         Senha nunca aparece aqui — o que fica gravado é que ela foi redefinida, por quem e
         para qual conta, jamais qual era ou qual passou a ser. Pesagem e análise não entram

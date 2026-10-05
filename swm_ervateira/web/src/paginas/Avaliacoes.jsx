@@ -57,7 +57,7 @@ export default function Avaliacoes() {
                   chave: 'acao', titulo: '', render: (c) => (
                     <button
                       onClick={() => setSelecionada(c)}
-                      className={`text-[11px] font-semibold ${
+                      className={`text-[0.8125rem] font-semibold ${
                         selecionada?.id === c.id ? 'text-mate-700' : 'text-cinza-400 hover:text-mate-700'
                       }`}
                     >
@@ -80,7 +80,7 @@ export default function Avaliacoes() {
           />
         ) : (
           <Painel titulo="Análise">
-            <p className="px-4 py-10 text-center text-xs text-cinza-400">
+            <p className="px-4 py-10 text-center text-sm text-cinza-400">
               Selecione uma amostra na fila.
             </p>
           </Painel>
@@ -147,14 +147,14 @@ function FormularioAnalise({ carga, podeLancar, aoConcluir }) {
             ['Chegada', formatar.dataHora(carga.dataHora)],
           ].map(([r, v]) => (
             <div key={r}>
-              <p className="text-[11px] font-semibold text-cinza-600">{r}</p>
-              <p className="text-[11.5px] font-semibold text-tinta">{v}</p>
+              <p className="text-[0.8125rem] font-semibold text-cinza-600">{r}</p>
+              <p className="text-[0.875rem] font-semibold text-tinta">{v}</p>
             </div>
           ))}
         </div>
 
         {carga.avaliacao && (
-          <p className="rounded-[3px] bg-mate-100 px-3 py-2 text-[10.5px] text-mate-700">
+          <p className="rounded-[3px] bg-mate-100 px-3 py-2 text-[0.8125rem] text-mate-700">
             Avaliação de campo: classificação {carga.avaliacao.classificacao || '—'} ·
             umidade estimada {carga.avaliacao.umidadeEstimada ?? '—'}% ·
             queima {carga.avaliacao.ervaQueimada?.toLowerCase().replace('_', ' ')}
@@ -190,7 +190,7 @@ function FormularioAnalise({ carga, podeLancar, aoConcluir }) {
         {podeLancar && (
           <Campo
             rotulo="Motivo da reprovação"
-            placeholder="ex.: amostra com cheiro de mofo"
+            placeholder="Ex.: amostra com cheiro de mofo"
             value={form.motivoReprovacao}
             onChange={(e) => alterar('motivoReprovacao', e.target.value)}
           />
@@ -204,13 +204,13 @@ function FormularioAnalise({ carga, podeLancar, aoConcluir }) {
             ['Folha medida', form.folhaPercentual === '' ? '—' : `${form.folhaPercentual}%`],
           ].map(([r, v], i) => (
             <div key={r} className={`flex items-center gap-2 px-3 py-2 ${i < 3 ? 'border-b border-borda' : ''}`}>
-              <span className="flex-1 text-[11px] text-cinza-600">{r}</span>
-              <span className="text-[11.5px] font-semibold tabular text-tinta">{v}</span>
+              <span className="flex-1 text-[0.8125rem] text-cinza-600">{r}</span>
+              <span className="text-[0.875rem] font-semibold tabular text-tinta">{v}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-[10.5px] text-cinza-400">
+        <p className="text-[0.8125rem] text-cinza-400">
           O valor a pagar é definido na emissão da ordem, onde o preço por quilo é
           acordado com o produtor.
         </p>
@@ -233,7 +233,7 @@ function FormularioAnalise({ carga, podeLancar, aoConcluir }) {
             </Botao>
           </div>
         ) : (
-          <p className="rounded-[3px] bg-cabecalho px-3 py-2 text-[11px] text-cinza-600">
+          <p className="rounded-[3px] bg-cabecalho px-3 py-2 text-[0.8125rem] text-cinza-600">
             Somente o Analista de Qualidade lança análises. Modo leitura.
           </p>
         )}

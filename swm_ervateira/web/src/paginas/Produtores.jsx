@@ -109,7 +109,7 @@ export default function Produtores() {
                   render: (p) => (
                     <span className="flex items-center gap-2">
                       <span className="min-w-0 max-w-[220px] truncate" title={p.nome}>{p.nome}</span>
-                      {p.criadoOffline && <Etiqueta tom="verde">cadastrado em campo</Etiqueta>}
+                      {p.criadoOffline && <Etiqueta tom="verde">Cadastrado em campo</Etiqueta>}
                     </span>
                   ),
                 },
@@ -184,15 +184,15 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
       titulo={produtor.nome}
       acao={podeEditar ? (
         <button onClick={() => aoEditar(produtor)} className="font-semibold hover:underline">
-          editar cadastro
+          Editar cadastro
         </button>
-      ) : 'somente leitura'}
+      ) : 'Somente leitura'}
     >
       <div className="flex flex-col gap-4 px-4 py-4">
         {produtor.criadoOffline && (
           <div className="flex items-center gap-2 rounded-[3px] bg-mate-100 px-3 py-2">
-            <Etiqueta tom="verde">cadastrado em campo</Etiqueta>
-            <span className="text-[10.5px] text-mate-700">
+            <Etiqueta tom="verde">Cadastrado em campo</Etiqueta>
+            <span className="text-[0.8125rem] text-mate-700">
               enviado pelo aplicativo em {formatar.dataHora(produtor.sincronizadoEm)}
             </span>
           </div>
@@ -207,7 +207,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
         </div>
 
         <div className="rounded-[3px] border border-borda">
-          <p className="border-b border-borda bg-cabecalho px-3 py-2 text-[11px] font-semibold text-cinza-600">
+          <p className="border-b border-borda bg-cabecalho px-3 py-2 text-[0.8125rem] font-semibold text-cinza-600">
             Dados de pagamento
           </p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-3 py-3">
@@ -227,7 +227,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
               </>
             )}
             {!pix && !conta && (
-              <p className="col-span-2 text-[10.5px] text-cinza-600">
+              <p className="col-span-2 text-[0.8125rem] text-cinza-600">
                 Sem destino bancário guardado.
               </p>
             )}
@@ -235,7 +235,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
         </div>
 
         <div>
-          <p className="mb-2 text-[11px] font-semibold text-cinza-600">
+          <p className="mb-2 text-[0.8125rem] font-semibold text-cinza-600">
             Ervais · {produtor.ervais?.length ?? 0}
           </p>
           {produtor.ervais?.length ? (
@@ -243,10 +243,10 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
               {produtor.ervais.map((e) => (
                 <div key={e.id} className="rounded-[3px] border border-borda px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <span className="flex-1 text-[11.5px] font-semibold text-tinta">{e.identificacao}</span>
+                    <span className="flex-1 text-[0.875rem] font-semibold text-tinta">{e.identificacao}</span>
                     <Etiqueta>{formatar.tipoErva(e.tipoErva)}</Etiqueta>
                   </div>
-                  <p className="mt-1 text-[10.5px] text-cinza-600">
+                  <p className="mt-1 text-[0.8125rem] text-cinza-600">
                     {formatar.kg(e.quantidadeEstimadaKg)} estimados
                     {e.idadeAnos ? ` · erval de ${e.idadeAnos} anos` : ''}
                     {e.latitude && e.longitude
@@ -257,25 +257,25 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
               ))}
             </div>
           ) : (
-            <p className="rounded-[3px] border border-dashed border-borda px-3 py-3 text-center text-[11px] text-cinza-400">
+            <p className="rounded-[3px] border border-dashed border-borda px-3 py-3 text-center text-[0.8125rem] text-cinza-400">
               Nenhum erval vinculado.
             </p>
           )}
         </div>
 
         <div>
-          <p className="mb-2 text-[11px] font-semibold text-cinza-600">
+          <p className="mb-2 text-[0.8125rem] font-semibold text-cinza-600">
             Últimas cargas
           </p>
           {cargas.length ? (
             <div className="rounded-[3px] border border-borda">
               {cargas.map((c, i) => (
                 <div key={c.id} className={`flex items-center gap-2 px-3 py-2 ${i ? 'border-t border-borda' : ''}`}>
-                  <span className="w-[92px] shrink-0 text-[11px] font-semibold text-tinta">{c.numeroTicket}</span>
-                  <span className="min-w-0 flex-1 truncate text-[10.5px] text-cinza-600">
+                  <span className="w-[92px] shrink-0 text-[0.8125rem] font-semibold text-tinta">{c.numeroTicket}</span>
+                  <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-cinza-600">
                     {formatar.data(c.dataHora)} · {formatar.materiaPrima(c.tipoMateriaPrima)}
                   </span>
-                  <span className="shrink-0 text-[11px] font-semibold tabular text-tinta">
+                  <span className="shrink-0 text-[0.8125rem] font-semibold tabular text-tinta">
                     {formatar.kg(c.pesoLiquidoKg)}
                   </span>
                   <span className="w-[104px] shrink-0 text-right"><Situacao valor={c.situacao} /></span>
@@ -283,7 +283,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
               ))}
             </div>
           ) : (
-            <p className="rounded-[3px] border border-dashed border-borda px-3 py-4 text-center text-[11px] text-cinza-400">
+            <p className="rounded-[3px] border border-dashed border-borda px-3 py-4 text-center text-[0.8125rem] text-cinza-400">
               Nenhuma carga entregue.
             </p>
           )}
@@ -291,18 +291,18 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
 
         {produtor.ordensPagamento && (
         <div>
-          <p className="mb-2 text-[11px] font-semibold text-cinza-600">
+          <p className="mb-2 text-[0.8125rem] font-semibold text-cinza-600">
             Últimas ordens de pagamento
           </p>
           {produtor.ordensPagamento.length ? (
             <div className="rounded-[3px] border border-borda">
               {produtor.ordensPagamento.map((o, i) => (
                 <div key={o.id} className={`flex items-center gap-2 px-3 py-2 ${i ? 'border-t border-borda' : ''}`}>
-                  <span className="w-[92px] shrink-0 text-[11px] font-semibold text-tinta">{o.numero}</span>
-                  <span className="min-w-0 flex-1 truncate text-[10.5px] text-cinza-600">
+                  <span className="w-[92px] shrink-0 text-[0.8125rem] font-semibold text-tinta">{o.numero}</span>
+                  <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-cinza-600">
                     {formatar.data(o.periodoInicio)} a {formatar.data(o.periodoFim)}
                   </span>
-                  <span className="shrink-0 text-[11px] font-semibold tabular text-tinta">
+                  <span className="shrink-0 text-[0.8125rem] font-semibold tabular text-tinta">
                     {formatar.reais(o.valorTotal)}
                   </span>
                   <span className="w-[104px] shrink-0 text-right"><Situacao valor={o.situacao} /></span>
@@ -310,7 +310,7 @@ function FichaDoProdutor({ produtorId, podeEditar, aoEditar }) {
               ))}
             </div>
           ) : (
-            <p className="rounded-[3px] border border-dashed border-borda px-3 py-4 text-center text-[11px] text-cinza-400">
+            <p className="rounded-[3px] border border-dashed border-borda px-3 py-4 text-center text-[0.8125rem] text-cinza-400">
               Nenhuma ordem emitida.
             </p>
           )}
@@ -491,7 +491,7 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
         </div>
 
         {erroDocumento && (
-          <p className="text-[10.5px] font-medium text-perigo">{erroDocumento}</p>
+          <p className="text-[0.8125rem] font-medium text-perigo">{erroDocumento}</p>
         )}
 
         <Secao titulo="Endereço" />
@@ -524,7 +524,7 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
               key={f.valor}
               type="button"
               onClick={() => alterar('formaPagamento', f.valor)}
-              className={`rounded-[2px] border px-3 py-1.5 text-[11px] font-semibold ${
+              className={`rounded-[2px] border px-3 py-1.5 text-[0.8125rem] font-semibold ${
                 form.formaPagamento === f.valor
                   ? 'border-mate-700 bg-mate-700 text-white'
                   : 'border-borda bg-white text-cinza-600 hover:border-mate-500'
@@ -587,7 +587,7 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
 function Secao({ titulo }) {
   return (
     <div className="mt-1 flex items-center gap-2">
-      <span className="text-[11px] font-semiboldr text-cinza-400">
+      <span className="text-[0.8125rem] font-semiboldr text-cinza-400">
         {titulo}
       </span>
       <span className="h-px flex-1 bg-borda" />

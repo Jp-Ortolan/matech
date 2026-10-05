@@ -10,7 +10,7 @@ export function colunasDeCargas({ veDinheiro, compacta = false } = {}) {
         <span className="block leading-tight">
           <span className="block tabular">{c.numeroTicket}</span>
           {!compacta && (
-            <span className="block text-[10px] font-normal text-cinza-400 tabular">
+            <span className="block text-[0.75rem] font-normal text-cinza-400 tabular">
               {formatar.dataHora(c.dataHora)}
             </span>
           )}
@@ -23,7 +23,7 @@ export function colunasDeCargas({ veDinheiro, compacta = false } = {}) {
         <span className="block leading-tight">
           <span className="block truncate">{c.produtor?.nome ?? '—'}</span>
           {!compacta && (
-            <span className="block truncate text-[10px] font-normal text-cinza-400">
+            <span className="block truncate text-[0.75rem] font-normal text-cinza-400">
               {formatar.materiaPrima(c.tipoMateriaPrima)}
               {c.analise?.aprovada === false && (
                 <span className="text-perigo" title={motivoResumido(c.analise)}>

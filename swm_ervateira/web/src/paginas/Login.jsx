@@ -33,7 +33,7 @@ export default function Login() {
       <aside className="hidden w-[46%] max-w-[620px] shrink-0 flex-col justify-center gap-5 border-r border-barra-borda bg-barra-900 px-10 lg:flex xl:px-16">
         <MarcaEscrita tamanho={104} girando className="text-barra-tinta" />
 
-        <p className="max-w-[470px] text-[15px] leading-relaxed text-barra-tenue">
+        <p className="max-w-[470px] text-[1.0625rem] leading-relaxed text-barra-tenue">
           Sistema de controle de recebimento, avaliação em campo e pagamento de
           matéria-prima em indústrias ervateiras.
         </p>
@@ -44,7 +44,7 @@ export default function Login() {
             'Avaliação em campo mesmo sem internet',
             'Cálculo de pagamento com desconto por qualidade',
           ].map((t) => (
-            <li key={t} className="flex items-center gap-3 text-[13px] text-barra-tenue">
+            <li key={t} className="flex items-center gap-3 text-[0.9375rem] text-barra-tenue">
               <span className="h-[7px] w-[7px] rounded-[1px] bg-mate-700" />
               {t}
             </li>
@@ -56,7 +56,7 @@ export default function Login() {
         <form onSubmit={aoEnviar} className="flex w-full max-w-[360px] flex-col gap-4">
           <div>
             <h1 className="text-2xl font-bold text-tinta">Acessar o sistema</h1>
-            <p className="mt-1 text-xs text-cinza-600">
+            <p className="mt-1 text-sm text-cinza-600">
               Use o usuário fornecido pelo setor administrativo.
             </p>
           </div>

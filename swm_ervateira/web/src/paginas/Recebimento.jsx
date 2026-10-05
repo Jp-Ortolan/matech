@@ -111,18 +111,18 @@ export default function Recebimento() {
                   onClick={() => setTicket(confirmacao)}
                   className="font-semibold text-mate-700 hover:underline"
                 >
-                  imprimir ticket
+                  Imprimir ticket
                 </button>
               )}
               <button onClick={() => setConfirmacao(null)} className="font-semibold hover:underline">
-                fechar
+                Fechar
               </button>
             </span>
           }
         >
           <div className="flex flex-wrap items-center gap-5 bg-mate-100 px-4 py-3">
             <div>
-              <p className="text-[11px] font-semibold text-mate-700">
+              <p className="text-[0.8125rem] font-semibold text-mate-700">
                 {confirmacao.pesoLiquidoKg == null ? 'Carga' : 'Número do ticket'}
               </p>
               <p className="text-2xl font-bold tabular text-mate-700">{confirmacao.numeroTicket}</p>
@@ -297,7 +297,7 @@ function FilaDeTara({ cargas, erro, podeFechar, aoFechar }) {
             render: (c) => (
               <>
                 {c.produtor?.nome}
-                <span className="block text-[10.5px] font-normal text-cinza-600">
+                <span className="block text-[0.8125rem] font-normal text-cinza-600">
                   {formatar.materiaPrima(c.tipoMateriaPrima)}
                   {c.veiculo?.placa ? ` · ${c.veiculo.placa}` : ''}
                 </span>
@@ -318,8 +318,8 @@ function FilaDeTara({ cargas, erro, podeFechar, aoFechar }) {
                   value={taras[c.id] ?? ''}
                   onChange={(e) => setTaras((t) => ({ ...t, [c.id]: e.target.value }))}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-[130px] rounded-[3px] border border-borda bg-white px-2 py-1 text-right text-[11.5px] tabular text-tinta outline-none focus:border-mate-500"
-                  placeholder="caminhão vazio"
+                  className="w-[130px] rounded-[3px] border border-borda bg-white px-2 py-1 text-right text-[0.875rem] tabular text-tinta outline-none focus:border-mate-500"
+                  placeholder="Caminhão vazio"
                 />
               ) : <span className="text-cinza-400">—</span>
             ),
@@ -462,7 +462,7 @@ function FormularioEntrada({ produtores, motoristas, aoCadastrarMotorista, aoReg
               <button
                 type="button"
                 onClick={() => setFichaMotorista(motorista)}
-                className="whitespace-nowrap rounded-[2px] border border-borda px-2.5 py-2 text-[11px] font-semibold text-cinza-600 hover:border-mate-500 hover:text-mate-700"
+                className="whitespace-nowrap rounded-[2px] border border-borda px-2.5 py-2 text-[0.8125rem] font-semibold text-cinza-600 hover:border-mate-500 hover:text-mate-700"
               >
                 Ver ficha
               </button>
@@ -470,7 +470,7 @@ function FormularioEntrada({ produtores, motoristas, aoCadastrarMotorista, aoReg
             <button
               type="button"
               onClick={() => setCadastrandoMotorista((v) => !v)}
-              className="whitespace-nowrap rounded-[2px] border border-borda px-2.5 py-2 text-[11px] font-semibold text-cinza-600 hover:border-mate-500 hover:text-mate-700"
+              className="whitespace-nowrap rounded-[2px] border border-borda px-2.5 py-2 text-[0.8125rem] font-semibold text-cinza-600 hover:border-mate-500 hover:text-mate-700"
             >
               {cadastrandoMotorista ? 'Cancelar' : '+ Motorista'}
             </button>
@@ -503,11 +503,11 @@ function FormularioEntrada({ produtores, motoristas, aoCadastrarMotorista, aoReg
 
         <div className="flex items-center gap-4 rounded-[3px] bg-mate-100 px-4 py-3">
           <div className="flex-1">
-            <p className="text-[11px] font-semibold text-mate-700">Peso bruto na balança</p>
+            <p className="text-[0.8125rem] font-semibold text-mate-700">Peso bruto na balança</p>
             <p className="text-xl font-bold tabular text-mate-700">
               {bruto > 0 ? formatar.kg(bruto) : '—'}
             </p>
-            <p className="mt-0.5 text-[10.5px] text-mate-700">
+            <p className="mt-0.5 text-[0.8125rem] text-mate-700">
               A tara é pesada quando o caminhão voltar vazio. O ticket sai lá.
             </p>
           </div>
@@ -543,18 +543,18 @@ function FichaDoMotorista({ motorista }) {
         </div>
 
         <div>
-          <p className="mb-2 text-[11px] font-semibold text-cinza-600">Veículos</p>
+          <p className="mb-2 text-[0.8125rem] font-semibold text-cinza-600">Veículos</p>
           {veiculos.length ? (
             <div className="flex flex-col gap-1.5">
               {veiculos.map((v) => (
                 <div key={v.id} className="flex items-baseline gap-3 rounded-[3px] border border-borda px-3 py-2">
-                  <span className="text-[12.5px] font-bold tabular text-tinta">{v.placa}</span>
-                  <span className="flex-1 text-[11px] text-cinza-600">{v.tipo || 'tipo não informado'}</span>
+                  <span className="text-[0.9375rem] font-bold tabular text-tinta">{v.placa}</span>
+                  <span className="flex-1 text-[0.8125rem] text-cinza-600">{v.tipo || 'Tipo não informado'}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-cinza-400">
+            <p className="text-[0.8125rem] text-cinza-400">
               Nenhum veículo cadastrado para este motorista.
             </p>
           )}
@@ -596,7 +596,7 @@ function NovoMotorista({ aoCriar, aoCancelar }) {
 
   return (
     <div className="rounded-[3px] border border-mate-300 bg-mate-100 px-3 py-3">
-      <p className="mb-2 text-[11px] font-semibold text-mate-700">
+      <p className="mb-2 text-[0.8125rem] font-semibold text-mate-700">
         Motorista novo
       </p>
 
@@ -625,7 +625,7 @@ function NovoMotorista({ aoCriar, aoCancelar }) {
       </div>
 
       {(erroCpf || erroPlaca) && (
-        <p className="mt-2 text-[10.5px] font-medium text-perigo">{erroCpf || erroPlaca}</p>
+        <p className="mt-2 text-[0.8125rem] font-medium text-perigo">{erroCpf || erroPlaca}</p>
       )}
 
       <div className="mt-3 flex items-center gap-2">

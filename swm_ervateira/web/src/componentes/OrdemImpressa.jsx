@@ -36,7 +36,7 @@ export default function OrdemImpressa({ ordem, aoFechar }) {
               <Marca paraImpressao className="h-10 w-10 shrink-0" />
               <div>
                 <p className="text-[15px] font-bold tracking-wider text-tinta">MATECH</p>
-                <p className="text-[9px] text-cinza-600">gestão de matéria-prima</p>
+                <p className="text-[9px] text-cinza-600">Gestão de matéria-prima</p>
               </div>
             </div>
             <div className="text-right">

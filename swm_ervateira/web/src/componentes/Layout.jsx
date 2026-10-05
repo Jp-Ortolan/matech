@@ -33,7 +33,7 @@ function ItemMenu({ rotulo, para, recolhido }) {
               className={isActive ? 'text-white' : 'text-barra-tenue'}
             />
             {!recolhido && (
-              <span className={`truncate text-[13px] ${isActive ? 'font-semibold text-white' : 'text-barra-tinta'}`}>
+              <span className={`truncate text-[0.9375rem] ${isActive ? 'font-semibold text-white' : 'text-barra-tinta'}`}>
                 {rotulo}
               </span>
             )}
@@ -116,8 +116,8 @@ export default function Layout() {
           <Marca className="h-[34px] w-[34px]" />
           {!recolhido && (
             <span className="leading-tight">
-              <span className="block text-[15px] font-bold tracking-wider text-barra-tinta">MATECH</span>
-              <span className="block text-[8px] font-medium text-barra-tenue">gestão de matéria-prima</span>
+              <span className="block text-[1.0625rem] font-bold tracking-wider text-barra-tinta">MATECH</span>
+              <span className="block text-[0.6875rem] font-medium text-barra-tenue">Gestão de matéria-prima</span>
             </span>
           )}
         </div>
@@ -143,8 +143,8 @@ export default function Layout() {
           />
 
           <div className="hidden shrink-0 items-center gap-2 rounded-[3px] border border-borda bg-cabecalho px-2.5 py-1.5 xl:flex print:flex print:border-0 print:bg-transparent print:px-0">
-            <span className="text-[9px] font-semibold uppercase tracking-wide text-cinza-400">Período</span>
-            <span className="whitespace-nowrap text-xs font-semibold text-tinta">{hoje}</span>
+            <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-cinza-400">Período</span>
+            <span className="whitespace-nowrap text-sm font-semibold text-tinta">{hoje}</span>
           </div>
 
           <button
@@ -153,14 +153,14 @@ export default function Layout() {
             className="flex shrink-0 items-center gap-2.5 border-l border-borda pl-3 md:pl-4"
             title="Sair do sistema"
           >
-            <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[3px] bg-mate-100 text-[11px] font-bold text-mate-700">
+            <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[3px] bg-mate-100 text-[0.8125rem] font-bold text-mate-700">
               {iniciais}
             </span>
             <span className="hidden text-left leading-tight md:block">
-              <span className="block max-w-[160px] truncate text-xs font-semibold text-tinta">
+              <span className="block max-w-[160px] truncate text-sm font-semibold text-tinta">
                 {usuario?.nome}
               </span>
-              <span className="block text-[10px] text-cinza-400">
+              <span className="block text-[0.75rem] text-cinza-400">
                 {NOME_PERFIL[usuario?.perfil] || usuario?.perfil}
               </span>
             </span>
@@ -178,7 +178,7 @@ export default function Layout() {
               {recolhido ? (
                 <div className="mx-auto my-2 h-px w-5 bg-barra-borda" />
               ) : (
-                <p className="px-4 pb-1.5 pt-4 text-[9px] font-semibold tracking-wider text-barra-tenue">
+                <p className="px-4 pb-1.5 pt-4 text-[0.6875rem] font-semibold tracking-wider text-barra-tenue">
                   {grupo.secao}
                 </p>
               )}
@@ -208,8 +208,8 @@ export function CabecalhoPagina({ titulo, subtitulo, children }) {
   const conteudo = (
     <>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[15px] font-bold leading-tight text-tinta xl:text-base">{titulo}</h1>
-        {subtitulo && <p className="truncate text-[11px] leading-tight text-cinza-600">{subtitulo}</p>}
+        <h1 className="truncate text-[1.0625rem] font-bold leading-tight text-tinta xl:text-base">{titulo}</h1>
+        {subtitulo && <p className="truncate text-[0.8125rem] leading-tight text-cinza-600">{subtitulo}</p>}
       </div>
       {children && (
         <div data-fora-da-impressao className="flex shrink-0 flex-wrap items-center gap-2">{children}</div>

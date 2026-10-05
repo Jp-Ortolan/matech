@@ -3,6 +3,7 @@ import { auth } from '../api/recursos'
 import { useAutenticacao, NOME_PERFIL } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
 import { Painel, Campo, Botao, LinhaDado, Erro, Sucesso } from '../componentes/ui'
+import { TAMANHOS, lerTamanho, aplicarTamanho } from '../lib/tamanhoTexto'
 
 export default function Configuracoes() {
   const { usuario, sair } = useAutenticacao()
@@ -12,7 +13,10 @@ export default function Configuracoes() {
       <CabecalhoPagina titulo="Configurações" />
 
       <div className="mx-auto grid max-w-[760px] grid-cols-1 items-start gap-3 md:grid-cols-2">
-        <MinhaConta usuario={usuario} />
+        <div className="flex flex-col gap-3">
+          <MinhaConta usuario={usuario} />
+          <Tela />
+        </div>
         <div className="flex flex-col gap-3">
           <Seguranca />
           <Sessao aoSair={sair} />
@@ -30,12 +34,12 @@ function MinhaConta({ usuario }) {
     <Painel titulo="Minha conta">
       <div className="flex flex-col gap-3 px-3 py-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[3px] bg-mate-100 text-sm font-bold text-mate-700">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[3px] bg-mate-100 text-[0.9375rem] font-bold text-mate-700">
             {iniciais}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-bold text-tinta">{usuario?.nome}</p>
-            <p className="truncate text-[10.5px] text-cinza-600">
+            <p className="truncate text-[0.9375rem] font-bold text-tinta">{usuario?.nome}</p>
+            <p className="truncate text-[0.8125rem] text-cinza-600">
               {NOME_PERFIL[usuario?.perfil] || usuario?.perfil}
             </p>
           </div>
@@ -45,6 +49,36 @@ function MinhaConta({ usuario }) {
           <LinhaDado rotulo="Usuário" valor={usuario?.usuario} />
           <LinhaDado rotulo="Perfil" valor={NOME_PERFIL[usuario?.perfil] || usuario?.perfil} />
         </div>
+      </div>
+    </Painel>
+  )
+}
+
+// Vale só para este navegador: cada computador escolhe o seu.
+function Tela() {
+  const [tamanho, setTamanho] = useState(lerTamanho)
+
+  return (
+    <Painel titulo="Tela">
+      <div className="flex flex-col gap-2 px-3 py-3">
+        <span className="text-[0.8125rem] font-medium text-cinza-600">Tamanho do texto</span>
+        <div className="flex flex-wrap gap-1.5">
+          {TAMANHOS.map((t) => (
+            <button
+              key={t.valor}
+              type="button"
+              onClick={() => setTamanho(aplicarTamanho(t.valor))}
+              className={`rounded-[2px] border px-3 py-1.5 text-[0.8125rem] font-semibold ${
+                tamanho === t.valor
+                  ? 'border-mate-700 bg-mate-700 text-white'
+                  : 'border-borda bg-white text-cinza-600 hover:border-mate-500'
+              }`}
+            >
+              {t.rotulo}
+            </button>
+          ))}
+        </div>
+        <p className="text-[0.75rem] text-cinza-400">Vale para este navegador. Na apresentação, use Grande.</p>
       </div>
     </Painel>
   )
@@ -110,10 +144,10 @@ function Seguranca() {
         />
 
         {naoConfere && (
-          <p className="text-[10.5px] font-medium text-perigo">As duas senhas não conferem.</p>
+          <p className="text-[0.8125rem] font-medium text-perigo">As duas senhas não conferem.</p>
         )}
         {form.senhaNova !== '' && form.senhaNova.length < 6 && (
-          <p className="text-[10.5px] text-cinza-400">Ao menos 6 caracteres.</p>
+          <p className="text-[0.8125rem] text-cinza-400">Ao menos 6 caracteres.</p>
         )}
 
         <Botao variante="primario" type="submit" disabled={!podeEnviar || enviando} className="justify-center">
