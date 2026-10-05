@@ -230,7 +230,7 @@ class Sincronizador extends ChangeNotifier {
                 (o) => {
                   'clientId': o.clientId,
                   'entidade': o.entidade,
-                  'criadoEmOrigem': o.criadoEmOrigem.toIso8601String(),
+                  'criadoEmOrigem': o.criadoEmOrigem.toUtc().toIso8601String(),
                   'payload': jsonDecode(o.payloadJson),
                 },
               )

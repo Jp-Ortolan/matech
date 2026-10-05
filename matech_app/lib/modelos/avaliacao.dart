@@ -133,7 +133,7 @@ class Avaliacao {
   Map<String, dynamic> paraPayload() => {
     'ervalId': ervalId,
     'ervalClientId': ervalClientId,
-    'dataAvaliacao': dataAvaliacao.toIso8601String(),
+    'dataAvaliacao': dataAvaliacao.toUtc().toIso8601String(),
     'tipoErva': tipoErva,
     'ervaQueimada': ervaQueimada,
     'idadeErvalAnos': idadeErvalAnos,
@@ -145,6 +145,6 @@ class Avaliacao {
     'latitude': latitude,
     'longitude': longitude,
     'observacoes': observacoes,
-    'alteradoEmOrigem': alteradoEmOrigem.toIso8601String(),
+    'alteradoEmOrigem': alteradoEmOrigem.toUtc().toIso8601String(),
   };
 }
