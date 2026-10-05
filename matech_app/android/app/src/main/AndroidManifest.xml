@@ -27,12 +27,12 @@
         android:label="MATECH"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
-        <!-- usesCleartextTraffic: SÓ PARA DESENVOLVIMENTO.
-             A API local roda em http://, e desde o Android 9 o sistema recusa
-             tráfego sem TLS por padrão — o login falharia com erro de rede
-             sem nenhuma pista do motivo. Em produção esta linha SAI e a API
-             passa a ter certificado. -->
+        android:networkSecurityConfig="@xml/seguranca_de_rede">
+        <!-- A API publicada usa https. O http sem criptografia só é aceito
+             para o emulador (10.0.2.2) e para o próprio aparelho, que é onde
+             a API local roda; ver res/xml/seguranca_de_rede.xml.
+             A versão de depuração libera http para a rede local inteira
+             (src/debug/AndroidManifest.xml), para testar no celular pelo Wi-Fi. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

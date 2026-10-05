@@ -2,7 +2,9 @@ const express = require('express')
 const cors = require('cors')
 
 const { prisma } = require('./lib/prisma')
-const { PASTA_UPLOADS } = require('./config/env')
+const fs = require('node:fs')
+const path = require('node:path')
+const { PASTA_UPLOADS, PRODUCAO, CORS_ORIGENS } = require('./config/env')
 const { naoEncontrado, tratarErros } = require('./middlewares/erros')
 
 const authRoutes = require('./modules/auth/auth.routes')
@@ -19,7 +21,9 @@ const auditoriaRoutes = require('./modules/auditoria/auditoria.routes')
 
 const app = express()
 
-app.use(cors())            // libera o React (que roda em outra porta) a chamar esta API
+// Em desenvolvimento libera tudo (o React roda em outra porta).
+// Em produção só os endereços de CORS_ORIGENS.
+app.use(cors({ origin: PRODUCAO ? CORS_ORIGENS : true }))
 app.use(express.json())    // ensina o Express a ler corpo de requisição em JSON
 
 app.get('/health', async (req, res) => {
@@ -61,6 +65,18 @@ app.use(
     setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
   }),
 )
+
+// Web publicada: a API serve o build do React (web/dist), no mesmo endereço.
+// Assim a web chama /api sem precisar saber onde a API está.
+const PASTA_WEB = path.join(__dirname, '..', 'web', 'dist')
+if (fs.existsSync(PASTA_WEB)) {
+  app.use(express.static(PASTA_WEB, { index: false }))
+  app.use((req, res, next) => {
+    const ehDaApi = req.path.startsWith('/api') || req.path.startsWith('/uploads')
+    if (req.method !== 'GET' || ehDaApi) return next()
+    res.sendFile(path.join(PASTA_WEB, 'index.html'))
+  })
+}
 
 app.use(naoEncontrado)
 app.use(tratarErros)

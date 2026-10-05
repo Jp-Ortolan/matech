@@ -1,0 +1,29 @@
+# Publicação no Render (render.com). A API e a web sobem juntas num serviço
+# só: o Express serve o build do React. O banco fica no Neon (neon.tech).
+services:
+  - type: web
+    name: matech
+    runtime: node
+    plan: free
+    rootDir: swm_ervateira
+    buildCommand: >-
+      npm ci --include=dev &&
+      npx prisma generate &&
+      npm --prefix web ci --include=dev &&
+      npm --prefix web run build &&
+      npx prisma migrate deploy
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "24"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRA_EM
+        value: 8h
+      - key: DATABASE_URL
+        sync: false
+      - key: SENHA_SEED
+        sync: false

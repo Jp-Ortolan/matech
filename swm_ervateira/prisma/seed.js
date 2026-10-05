@@ -71,7 +71,8 @@ async function main() {
   // Todos entram com a senha "matech123" — só para desenvolvimento.
   // O que vai para o banco é o HASH dela, nunca a senha em si: mesmo com
   // acesso ao PostgreSQL, ninguém consegue ler a senha de volta.
-  const senhaPadrao = await gerarHash('matech123')
+  // Na versão publicada, SENHA_SEED troca a senha de todos os usuários de teste.
+  const senhaPadrao = await gerarHash(process.env.SENHA_SEED || 'matech123')
   const [operador, analista, avaliador, admin] = await Promise.all([
     prisma.usuario.create({ data: { nome: 'Rogério Anselmo', usuario: 'rogerio.anselmo', senhaHash: senhaPadrao, perfil: 'OPERADOR_BALANCA' } }),
     prisma.usuario.create({ data: { nome: 'Cristiane Modesto', usuario: 'cristiane.modesto', senhaHash: senhaPadrao, perfil: 'ANALISTA_QUALIDADE' } }),
