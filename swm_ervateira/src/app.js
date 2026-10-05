@@ -39,6 +39,21 @@ app.use('/api/sincronizacao', sincronizacaoRoutes)
 app.use('/api/aparelhos', aparelhosRoutes)
 app.use('/api/auditoria', auditoriaRoutes)
 
+// Foto guardada no banco. As antigas, gravadas em disco, seguem pelo static abaixo.
+app.get('/uploads/fotos/:arquivo', async (req, res, next) => {
+  const foto = await prisma.fotoErval.findFirst({
+    where: { caminho: `fotos/${req.params.arquivo}` },
+    select: { dados: true, tipoMime: true },
+  })
+  if (!foto?.dados) return next()
+  res.set({
+    'Content-Type': foto.tipoMime || 'application/octet-stream',
+    'Cache-Control': 'private, max-age=86400',
+    'X-Content-Type-Options': 'nosniff',
+  })
+  res.send(Buffer.from(foto.dados))
+})
+
 app.use(
   '/uploads',
   express.static(PASTA_UPLOADS, {

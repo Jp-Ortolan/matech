@@ -295,6 +295,9 @@ model FotoErval {
   avaliacaoId String
 
   caminho      String
+  /// A imagem fica no banco: hospedagem grátis apaga o disco a cada reinício.
+  dados        Bytes?
+  tipoMime     String?
   tamanhoBytes Int?
   largura      Int?
   altura       Int?

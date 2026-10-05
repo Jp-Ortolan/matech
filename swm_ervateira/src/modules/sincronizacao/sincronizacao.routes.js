@@ -1,10 +1,8 @@
 const { Router } = require('express')
 const express = require('express')
-const fs = require('node:fs/promises')
 const path = require('node:path')
 
 const servico = require('./sincronizacao.service')
-const { PASTA_UPLOADS } = require('../../config/env')
 const { autenticar } = require('../../middlewares/autenticacao')
 const { permitir } = require('../../middlewares/autorizacao')
 const { tipoDaImagem, EXTENSOES } = require('../../lib/imagens')
@@ -58,17 +56,16 @@ router.post(
     const seguro = String(clientId).replace(/[^a-zA-Z0-9-]/g, '')
     if (seguro.length < 8) return res.status(400).json({ erro: 'clientId inválido' })
 
+    // O caminho continua o mesmo de antes; a imagem é que passa a ir para o banco.
     const relativo = path.posix.join('fotos', `${seguro}.${extensao}`)
-    const destino = path.join(PASTA_UPLOADS, 'fotos', `${seguro}.${extensao}`)
-
-    await fs.mkdir(path.dirname(destino), { recursive: true })
-    await fs.writeFile(destino, req.body)
 
     const resultado = await servico.registrarFoto(
       {
         clientId: seguro,
         avaliacaoClientId,
         caminho: relativo,
+        dados: req.body,
+        tipoMime: tipoReal,
         tamanhoBytes: req.body.length,
         largura: req.get('x-largura'),
         altura: req.get('x-altura'),

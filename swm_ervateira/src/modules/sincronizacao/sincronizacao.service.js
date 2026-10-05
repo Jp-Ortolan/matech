@@ -232,10 +232,10 @@ const APLICADORES = {
   },
 }
 
-async function registrarFoto({ clientId, avaliacaoClientId, caminho, tamanhoBytes, largura, altura }, dispositivoId, usuarioId) {
+async function registrarFoto({ clientId, avaliacaoClientId, caminho, dados, tipoMime, tamanhoBytes, largura, altura }, dispositivoId, usuarioId) {
   if (!clientId) throw new ErroDeNegocio('Informe o clientId da foto', 400)
 
-  const jaExiste = await prisma.fotoErval.findUnique({ where: { clientId } })
+  const jaExiste = await prisma.fotoErval.findUnique({ where: { clientId }, select: { id: true, caminho: true } })
   if (jaExiste) return { situacao: 'DUPLICADO', id: jaExiste.id, caminho: jaExiste.caminho }
 
   const avaliacao = await prisma.avaliacao.findUnique({ where: { clientId: avaliacaoClientId } })
@@ -248,6 +248,8 @@ async function registrarFoto({ clientId, avaliacaoClientId, caminho, tamanhoByte
       clientId,
       avaliacaoId: avaliacao.id,
       caminho,
+      dados,
+      tipoMime,
       tamanhoBytes: inteiroOuNulo(tamanhoBytes),
       largura: inteiroOuNulo(largura),
       altura: inteiroOuNulo(altura),
