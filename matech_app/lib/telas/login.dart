@@ -67,7 +67,7 @@ class _TelaLoginState extends State<TelaLogin> {
     try {
       await sessao.entrar(_usuario.text, _senha.text);
 
-      unawaited(sincronizador.sincronizar());
+      unawaited(sincronizador.sincronizar(agora: true));
     } on ErroDeRede catch (e) {
       setState(
         () =>

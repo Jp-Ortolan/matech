@@ -42,7 +42,7 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
       builder:
           (context, _) => RefreshIndicator(
             onRefresh: () async {
-              await sincronizador.sincronizar();
+              await sincronizador.sincronizar(agora: true);
               await _carregar();
             },
             child: ListView(
@@ -55,7 +55,7 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                   onPressed:
                       sincronizador.rodando
                           ? null
-                          : () => sincronizador.sincronizar(),
+                          : () => sincronizador.sincronizar(agora: true),
                   icon:
                       sincronizador.rodando
                           ? const SizedBox(
@@ -187,7 +187,7 @@ class _TelaSincronizacaoState extends State<TelaSincronizacao> {
                       operacao: o,
                       aoReativar: () async {
                         await FilaDao.reativar(o.clientId);
-                        await sincronizador.sincronizar();
+                        await sincronizador.sincronizar(agora: true);
                       },
                     ),
                   ),

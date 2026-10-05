@@ -200,6 +200,38 @@ class FilaDao {
     );
   }
 
+  // Falta de rede não é culpa do registro: anota o motivo e tenta de novo
+  // logo, sem contar tentativa nem esticar a espera.
+  static Future<void> anotarFalhaDeRede(
+    List<String> clientIds,
+    String motivo, {
+    Duration espera = const Duration(seconds: 30),
+  }) async {
+    if (clientIds.isEmpty) return;
+    final db = await BancoLocal.instancia;
+    final marcadores = List.filled(clientIds.length, '?').join(', ');
+    await db.update(
+      'fila_sincronizacao',
+      {
+        'ultimo_erro': motivo,
+        'proxima_tentativa_em': DateTime.now().add(espera).toIso8601String(),
+      },
+      where: 'client_id IN ($marcadores)',
+      whereArgs: clientIds,
+    );
+  }
+
+  // Quem pediu para sincronizar agora não quer esperar a vez de ninguém.
+  static Future<void> antecipar() async {
+    final db = await BancoLocal.instancia;
+    await db.update(
+      'fila_sincronizacao',
+      {'proxima_tentativa_em': null},
+      where: 'situacao IN (?, ?)',
+      whereArgs: [OperacaoPendente.pendente, OperacaoPendente.dependencia],
+    );
+  }
+
   static Future<void> reativar(String clientId) async {
     final db = await BancoLocal.instancia;
     await db.update(

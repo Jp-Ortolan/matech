@@ -37,7 +37,7 @@ class _TelaInicioState extends State<TelaInicio> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      unawaited(sincronizador.sincronizar());
+      unawaited(sincronizador.sincronizar(agora: true));
 
       await _oferecerPreparoNaPrimeiraVez();
     });
@@ -242,7 +242,7 @@ class _AvisoDeSessao extends StatelessWidget {
       context: context,
       builder: (_) => const _DialogoDeSenha(),
     );
-    if (renovou == true) unawaited(sincronizador.sincronizar());
+    if (renovou == true) unawaited(sincronizador.sincronizar(agora: true));
   }
 }
 

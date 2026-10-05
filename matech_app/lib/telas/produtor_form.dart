@@ -123,7 +123,7 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
     await ProdutorDao.criarEmCampo(produtor);
     await sincronizador.atualizarContagens();
 
-    unawaited(sincronizador.sincronizar());
+    unawaited(sincronizador.sincronizar(agora: true));
 
     if (mounted) Navigator.pop(context, true);
   }

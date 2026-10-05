@@ -154,7 +154,7 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
 
     _salvou = true;
     await sincronizador.atualizarContagens();
-    unawaited(sincronizador.sincronizar());
+    unawaited(sincronizador.sincronizar(agora: true));
 
     if (mounted) Navigator.pop(context, true);
   }

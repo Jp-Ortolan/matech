@@ -78,7 +78,7 @@ class _TelaAvaliacoesState extends State<TelaAvaliacoes> {
               )
               : RefreshIndicator(
                 onRefresh: () async {
-                  await sincronizador.sincronizar();
+                  await sincronizador.sincronizar(agora: true);
                   await _carregar();
                 },
                 child: ListView.separated(

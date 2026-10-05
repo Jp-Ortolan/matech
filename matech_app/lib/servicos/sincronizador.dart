@@ -59,8 +59,10 @@ class Sincronizador extends ChangeNotifier {
   Future<void> aoVoltarParaOPrimeiroPlano() async {
     _emPrimeiroPlano = true;
     if (!sessao.podeSincronizar) return;
-    if (await FilaDao.temAlgoPronto()) {
-      await sincronizar();
+    await atualizarContagens();
+    // Quem volta ao app pode ter acabado de achar sinal: tenta tudo já.
+    if (pendentes > 0) {
+      await sincronizar(agora: true);
     } else {
       await _remarcarDespertador();
       await _reavaliarBatida();
@@ -146,7 +148,9 @@ class Sincronizador extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> sincronizar() async {
+  // agora: true ignora a espera entre tentativas (botão, puxar a tela,
+  // voltar ao app). Os temporizadores chamam sem ele e respeitam a espera.
+  Future<void> sincronizar({bool agora = false}) async {
     if (_rodando) return; // duas passadas ao mesmo tempo brigariam pela fila
     if (!sessao.podeSincronizar) {
       _ultimaMensagem =
@@ -159,6 +163,8 @@ class Sincronizador extends ChangeNotifier {
     _rodando = true;
     _ultimaMensagem = null;
     notifyListeners();
+
+    if (agora) await FilaDao.antecipar();
 
     try {
       final enviadasAgora = await _subirLotes();
@@ -238,7 +244,10 @@ class Sincronizador extends ChangeNotifier {
           operacoes: operacoes,
         );
       } on ErroDeRede catch (e) {
-        await _reagendarTodas(pendentes, e.mensagem);
+        await FilaDao.anotarFalhaDeRede(
+          pendentes.map((o) => o.clientId).toList(),
+          e.mensagem,
+        );
         rethrow;
       } on ErroDaApi catch (e) {
         if (e.definitivo && e.status != 401) {
@@ -394,7 +403,7 @@ class Sincronizador extends ChangeNotifier {
             await _reagendar(operacao, e.toString());
           }
         } on ErroDeRede catch (e) {
-          await _reagendar(operacao, e.mensagem);
+          await FilaDao.anotarFalhaDeRede([operacao.clientId], e.mensagem);
           rethrow; // sem rede, não adianta tentar as próximas fotos
         }
       }

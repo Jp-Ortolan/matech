@@ -279,7 +279,7 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
 
     await sincronizador.atualizarContagens();
 
-    unawaited(sincronizador.sincronizar());
+    unawaited(sincronizador.sincronizar(agora: true));
 
     if (!mounted) return;
 
