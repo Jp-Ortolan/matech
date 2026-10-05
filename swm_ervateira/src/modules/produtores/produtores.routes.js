@@ -5,6 +5,7 @@ const { permitir, podeNegocio } = require('../../middlewares/autorizacao')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { apenasDigitos, erroNoDocumento } = require('../../lib/documentos')
 const { erroDeTamanho } = require('../../lib/textos')
+const { ajustarPagamento } = require('../../lib/pagamento')
 
 const router = Router()
 router.use(autenticar)
@@ -31,40 +32,6 @@ function extrairCampos(corpo = {}) {
   if (dados.cpfCnpj) dados.cpfCnpj = apenasDigitos(dados.cpfCnpj)
   if (dados.cep) dados.cep = apenasDigitos(dados.cep).slice(0, 8) || null
   if (dados.uf) dados.uf = String(dados.uf).toUpperCase().slice(0, 2)
-
-  return dados
-}
-
-function ajustarPagamento(dados) {
-  const forma = dados.formaPagamento
-  if (!forma) return dados
-
-  if (forma === 'PIX') {
-    if (!dados.chavePix) {
-      throw new ErroDeNegocio('Informe a chave Pix para quem recebe por Pix', 400)
-    }
-    if (!dados.tipoChavePix) {
-      throw new ErroDeNegocio('Informe o tipo da chave Pix', 400)
-    }
-    Object.assign(dados, { banco: null, agencia: null, conta: null, tipoConta: null })
-  }
-
-  if (forma === 'CONTA_BANCARIA') {
-    for (const [campo, rotulo] of [['banco', 'o banco'], ['agencia', 'a agência'], ['conta', 'a conta']]) {
-      if (!dados[campo]) throw new ErroDeNegocio(`Informe ${rotulo}`, 400)
-    }
-    if (!dados.tipoConta) {
-      throw new ErroDeNegocio('Informe se a conta é corrente ou poupança', 400)
-    }
-    Object.assign(dados, { tipoChavePix: null, chavePix: null })
-  }
-
-  if (forma === 'DINHEIRO') {
-    Object.assign(dados, {
-      tipoChavePix: null, chavePix: null,
-      banco: null, agencia: null, conta: null, tipoConta: null,
-    })
-  }
 
   return dados
 }

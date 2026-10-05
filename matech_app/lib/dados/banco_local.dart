@@ -35,7 +35,7 @@ class BancoLocal {
     );
   }
 
-  static const int _versao = 2;
+  static const int _versao = 3;
 
   static Future<void> _configurar(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -43,6 +43,14 @@ class BancoLocal {
 
   static Future<void> _atualizar(Database db, int de, int para) async {
     if (de < 2) await _criarTabelaDeFotos(db);
+    if (de < 3) await _adicionarDadosDeConta(db);
+  }
+
+  // Versão 3: conta bancária, como na web.
+  static Future<void> _adicionarDadosDeConta(Database db) async {
+    for (final coluna in ['banco', 'agencia', 'conta', 'tipo_conta']) {
+      await db.execute('ALTER TABLE produtores ADD COLUMN $coluna TEXT');
+    }
   }
 
   static Future<void> _criarTabelaDeFotos(Database db) async {
@@ -82,6 +90,10 @@ class BancoLocal {
         tipo_chave_pix   TEXT,
         chave_pix        TEXT,
         titular_conta    TEXT,
+        banco            TEXT,
+        agencia          TEXT,
+        conta            TEXT,
+        tipo_conta       TEXT,
         criado_offline   INTEGER NOT NULL DEFAULT 0,
         sincronizado_em  TEXT
       )

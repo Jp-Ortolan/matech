@@ -202,15 +202,19 @@ class _CartaoProdutor extends StatelessWidget {
                 '${produtor.municipio}${produtor.uf != null ? " · ${produtor.uf}" : ""}',
                 style: const TextStyle(color: Cores.cinza600, fontSize: 13),
               ),
-            if (produtor.chavePix != null && produtor.chavePix!.isNotEmpty) ...[
+            if (_resumoDoPagamento(produtor) != null) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.pix, size: 14, color: Cores.cinza400),
+                  Icon(
+                    _iconeDoPagamento(produtor.formaPagamento),
+                    size: 14,
+                    color: Cores.cinza400,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      produtor.chavePix!,
+                      _resumoDoPagamento(produtor)!,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Cores.cinza600,
@@ -225,5 +229,25 @@ class _CartaoProdutor extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+IconData _iconeDoPagamento(String forma) => switch (forma) {
+  'CONTA_BANCARIA' => Icons.account_balance_outlined,
+  'DINHEIRO' => Icons.payments_outlined,
+  _ => Icons.pix,
+};
+
+// Uma linha com o destino do pagamento, igual ao que a web mostra.
+String? _resumoDoPagamento(Produtor p) {
+  switch (p.formaPagamento) {
+    case 'CONTA_BANCARIA':
+      if (p.banco == null) return 'Conta bancária';
+      return '${p.banco} · ag. ${p.agencia ?? "—"} · conta ${p.conta ?? "—"}';
+    case 'DINHEIRO':
+      return 'Dinheiro';
+    default:
+      final chave = p.chavePix;
+      return (chave == null || chave.isEmpty) ? null : chave;
   }
 }

@@ -6,6 +6,15 @@ const int kMaxMunicipio = 60;
 
 const int kMaxChavePix = 77;
 
+// Mesmos limites da API (src/lib/textos.js).
+const int kMaxTitular = 120;
+
+const int kMaxBanco = 60;
+
+const int kMaxAgencia = 10;
+
+const int kMaxConta = 20;
+
 const int kMaxDocumento = 14;
 
 const int kMaxIdentificacao = 80;

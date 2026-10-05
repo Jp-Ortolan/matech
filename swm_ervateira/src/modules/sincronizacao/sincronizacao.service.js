@@ -2,6 +2,7 @@ const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { erroDeTamanho } = require('../../lib/textos')
 const { erroNoDocumento } = require('../../lib/documentos')
+const { ajustarPagamento } = require('../../lib/pagamento')
 
 const ENTIDADES = ['Produtor', 'Erval', 'Avaliacao']
 
@@ -91,9 +92,16 @@ const APLICADORES = {
       tipoChavePix: vazioVirauNulo(p.tipoChavePix),
       chavePix: vazioVirauNulo(p.chavePix),
       titularConta: vazioVirauNulo(p.titularConta),
+      banco: vazioVirauNulo(p.banco),
+      agencia: vazioVirauNulo(p.agencia),
+      conta: vazioVirauNulo(p.conta),
+      tipoConta: vazioVirauNulo(p.tipoConta),
       criadoOffline: true,
       sincronizadoEm: new Date(),
     }
+
+    // Mesmas regras de pagamento da web.
+    ajustarPagamento(dados)
 
     const criado = await prisma.produtor.create({ data: dados })
     return { situacao: 'ACEITO', id: criado.id }

@@ -19,6 +19,20 @@ const _tiposDeChave = {
   'ALEATORIA': 'Chave aleatória',
 };
 
+// Mesmas três formas da web.
+const _formasDePagamento = {
+  'PIX': 'Pix',
+  'CONTA_BANCARIA': 'Conta bancária',
+  'DINHEIRO': 'Dinheiro',
+};
+
+const _dicasDeChave = {
+  'CPF': 'Só os números do CPF',
+  'TELEFONE': 'Com DDD',
+  'EMAIL': 'nome@dominio.com',
+  'ALEATORIA': 'A chave gerada pelo banco',
+};
+
 class FormularioProdutor extends StatefulWidget {
   const FormularioProdutor({super.key});
 
@@ -35,8 +49,14 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
   final _municipio = TextEditingController();
   final _uf = TextEditingController();
   final _chavePix = TextEditingController();
+  final _titular = TextEditingController();
+  final _banco = TextEditingController();
+  final _agencia = TextEditingController();
+  final _conta = TextEditingController();
 
+  String _forma = 'PIX';
   String _tipoChave = 'CPF';
+  String _tipoConta = 'CORRENTE';
   bool _salvando = false;
 
   @override
@@ -48,6 +68,10 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
       _municipio,
       _uf,
       _chavePix,
+      _titular,
+      _banco,
+      _agencia,
+      _conta,
     ]) {
       c.dispose();
     }
@@ -73,6 +97,10 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
 
     setState(() => _salvando = true);
 
+    final ehPix = _forma == 'PIX';
+    final ehConta = _forma == 'CONTA_BANCARIA';
+    final ehDinheiro = _forma == 'DINHEIRO';
+
     final produtor = Produtor(
       clientId: novoClientId(),
       nome: _nome.text.trim(),
@@ -80,8 +108,15 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
       telefone: _vazioVirauNulo(_telefone.text),
       municipio: _vazioVirauNulo(_municipio.text),
       uf: _vazioVirauNulo(_uf.text)?.toUpperCase(),
-      tipoChavePix: _chavePix.text.trim().isEmpty ? null : _tipoChave,
-      chavePix: _vazioVirauNulo(_chavePix.text),
+      formaPagamento: _forma,
+      // Só vai o que vale para a forma escolhida, como na web.
+      tipoChavePix: ehPix ? _tipoChave : null,
+      chavePix: ehPix ? _vazioVirauNulo(_chavePix.text) : null,
+      titularConta: ehDinheiro ? null : _vazioVirauNulo(_titular.text),
+      banco: ehConta ? _vazioVirauNulo(_banco.text) : null,
+      agencia: ehConta ? _vazioVirauNulo(_agencia.text) : null,
+      conta: ehConta ? _vazioVirauNulo(_conta.text) : null,
+      tipoConta: ehConta ? _tipoConta : null,
       criadoOffline: true,
     );
 
@@ -91,6 +126,120 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
     unawaited(sincronizador.sincronizar());
 
     if (mounted) Navigator.pop(context, true);
+  }
+
+  // Campos que mudam conforme a forma de pagamento.
+  List<Widget> _camposDePagamento() {
+    String? obrigatorio(String? v, String rotulo) =>
+        (v == null || v.trim().isEmpty) ? 'Informe $rotulo' : null;
+
+    final titular = TextFormField(
+      controller: _titular,
+      textCapitalization: TextCapitalization.words,
+      maxLength: kMaxTitular,
+      decoration: InputDecoration(
+        labelText: _forma == 'PIX' ? 'Titular da chave' : 'Titular da conta',
+        counterText: '',
+      ),
+    );
+
+    switch (_forma) {
+      case 'PIX':
+        return [
+          DropdownButtonFormField<String>(
+            initialValue: _tipoChave,
+            decoration: const InputDecoration(labelText: 'Tipo da chave'),
+            items:
+                _tiposDeChave.entries
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    )
+                    .toList(),
+            onChanged: (v) => setState(() => _tipoChave = v ?? 'CPF'),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _chavePix,
+            maxLength: kMaxChavePix,
+            decoration: InputDecoration(
+              labelText: 'Chave Pix *',
+              helperText: _dicasDeChave[_tipoChave],
+              counterText: '',
+            ),
+            validator: (v) => obrigatorio(v, 'a chave Pix'),
+          ),
+          const SizedBox(height: 12),
+          titular,
+        ];
+      case 'CONTA_BANCARIA':
+        return [
+          TextFormField(
+            controller: _banco,
+            maxLength: kMaxBanco,
+            decoration: const InputDecoration(
+              labelText: 'Banco *',
+              counterText: '',
+            ),
+            validator: (v) => obrigatorio(v, 'o banco'),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _agencia,
+                  keyboardType: TextInputType.number,
+                  maxLength: kMaxAgencia,
+                  decoration: const InputDecoration(
+                    labelText: 'Agência *',
+                    counterText: '',
+                  ),
+                  validator: (v) => obrigatorio(v, 'a agência'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  controller: _conta,
+                  keyboardType: TextInputType.number,
+                  maxLength: kMaxConta,
+                  decoration: const InputDecoration(
+                    labelText: 'Conta *',
+                    counterText: '',
+                  ),
+                  validator: (v) => obrigatorio(v, 'a conta'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _tipoConta,
+            decoration: const InputDecoration(labelText: 'Tipo de conta *'),
+            items: const [
+              DropdownMenuItem(value: 'CORRENTE', child: Text('Corrente')),
+              DropdownMenuItem(value: 'POUPANCA', child: Text('Poupança')),
+            ],
+            onChanged: (v) => setState(() => _tipoConta = v ?? 'CORRENTE'),
+          ),
+          const SizedBox(height: 12),
+          titular,
+        ];
+      default:
+        return [
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: Cores.alertaFundo,
+            child: const Text(
+              'Pagamento em espécie: a ordem sai sem destino bancário.',
+              style: TextStyle(fontSize: 13, color: Cores.tinta),
+            ),
+          ),
+        ];
+    }
   }
 
   @override
@@ -179,31 +328,22 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
               ),
 
               const SizedBox(height: 24),
-              const _Secao('Pagamento'),
-              const SizedBox(height: 4),
-              DropdownButtonFormField<String>(
-                initialValue: _tipoChave,
-                decoration: const InputDecoration(labelText: 'Tipo de chave Pix'),
-                items:
-                    _tiposDeChave.entries
+              const _Secao('Como este produtor recebe'),
+              SegmentedButton<String>(
+                segments:
+                    _formasDePagamento.entries
                         .map(
-                          (e) => DropdownMenuItem(
+                          (e) => ButtonSegment(
                             value: e.key,
-                            child: Text(e.value),
+                            label: Text(e.value),
                           ),
                         )
                         .toList(),
-                onChanged: (v) => setState(() => _tipoChave = v ?? 'CPF'),
+                selected: {_forma},
+                onSelectionChanged: (s) => setState(() => _forma = s.first),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _chavePix,
-                maxLength: kMaxChavePix,
-                decoration: const InputDecoration(
-                  labelText: 'Chave Pix',
-                  counterText: '',
-                ),
-              ),
+              ..._camposDePagamento(),
 
               const SizedBox(height: 32),
               FilledButton.icon(

@@ -11,6 +11,10 @@ class Produtor {
   final String? tipoChavePix;
   final String? chavePix;
   final String? titularConta;
+  final String? banco;
+  final String? agencia;
+  final String? conta;
+  final String? tipoConta;
   final bool criadoOffline;
   final DateTime? sincronizadoEm;
 
@@ -27,6 +31,10 @@ class Produtor {
     this.tipoChavePix,
     this.chavePix,
     this.titularConta,
+    this.banco,
+    this.agencia,
+    this.conta,
+    this.tipoConta,
     this.criadoOffline = false,
     this.sincronizadoEm,
   });
@@ -46,6 +54,10 @@ class Produtor {
     tipoChavePix: tipoChavePix,
     chavePix: chavePix,
     titularConta: titularConta,
+    banco: banco,
+    agencia: agencia,
+    conta: conta,
+    tipoConta: tipoConta,
     criadoOffline: criadoOffline,
     sincronizadoEm: sincronizadoEm ?? this.sincronizadoEm,
   );
@@ -63,6 +75,10 @@ class Produtor {
     'tipo_chave_pix': tipoChavePix,
     'chave_pix': chavePix,
     'titular_conta': titularConta,
+    'banco': banco,
+    'agencia': agencia,
+    'conta': conta,
+    'tipo_conta': tipoConta,
     'criado_offline': criadoOffline ? 1 : 0,
     'sincronizado_em': sincronizadoEm?.toIso8601String(),
   };
@@ -80,6 +96,10 @@ class Produtor {
     tipoChavePix: l['tipo_chave_pix'] as String?,
     chavePix: l['chave_pix'] as String?,
     titularConta: l['titular_conta'] as String?,
+    banco: l['banco'] as String?,
+    agencia: l['agencia'] as String?,
+    conta: l['conta'] as String?,
+    tipoConta: l['tipo_conta'] as String?,
     criadoOffline: (l['criado_offline'] as int? ?? 0) == 1,
     sincronizadoEm: _data(l['sincronizado_em']),
   );
@@ -97,6 +117,10 @@ class Produtor {
     tipoChavePix: j['tipoChavePix'] as String?,
     chavePix: j['chavePix'] as String?,
     titularConta: j['titularConta'] as String?,
+    banco: j['banco'] as String?,
+    agencia: j['agencia'] as String?,
+    conta: j['conta'] as String?,
+    tipoConta: j['tipoConta'] as String?,
     criadoOffline: (j['criadoOffline'] as bool?) ?? false,
     sincronizadoEm: DateTime.now(),
   );
@@ -112,6 +136,10 @@ class Produtor {
     'tipoChavePix': tipoChavePix,
     'chavePix': chavePix,
     'titularConta': titularConta,
+    'banco': banco,
+    'agencia': agencia,
+    'conta': conta,
+    'tipoConta': tipoConta,
   };
 }
 
