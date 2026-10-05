@@ -5,6 +5,8 @@ services:
     name: matech
     runtime: node
     plan: free
+    # Ohio: mesma região do banco no Neon (us-east-2), menos atraso por consulta.
+    region: ohio
     rootDir: swm_ervateira
     buildCommand: >-
       npm ci --include=dev &&

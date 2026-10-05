@@ -13,17 +13,17 @@ git push
 
 ## 2. Banco no Neon
 
-1. Crie a conta em neon.tech e um projeto chamado `matech`.
-   Região: **AWS São Paulo (sa-east-1)**, a mais perto de Guarapuava.
-2. Em **Connection string**, desligue a opção *Pooled connection* e copie o
-   endereço. Ele começa com `postgresql://` e termina com `?sslmode=require`.
+Já feito pelo CLI (`neon link` dentro de `swm_ervateira`). O projeto está em
+`us-east-2` e o `neon link` gravou no `.env` o `DATABASE_URL` (pooled) e o
+`DATABASE_URL_UNPOOLED` (direto). No Render, use o valor do
+`DATABASE_URL_UNPOOLED` como `DATABASE_URL`.
 
 ## 3. Serviço no Render
 
 1. Crie a conta em render.com entrando com o GitHub.
 2. **New → Blueprint** e escolha o repositório `matech`. O Render lê o
    `render.yaml` e pede dois valores:
-   - `DATABASE_URL`: o endereço copiado do Neon.
+   - `DATABASE_URL`: o valor do `DATABASE_URL_UNPOOLED` do `.env`.
    - `SENHA_SEED`: a senha que os usuários de teste vão usar na versão
      publicada. Não use `matech123`.
 3. Clique em **Apply**. A primeira publicação leva uns 5 minutos. Ela instala
