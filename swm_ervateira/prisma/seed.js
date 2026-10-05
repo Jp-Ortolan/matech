@@ -297,6 +297,9 @@ async function main() {
     },
   })
 
+  console.log('Criando histórico para os relatórios...')
+  await criarHistorico({ produtores: [jose, marlene, otavio], motorista: valdir, operador, analista })
+
   console.log('Registrando eventos de sincronização...')
   await prisma.registroSincronizacao.createMany({
     data: [
@@ -322,6 +325,128 @@ async function main() {
   }
   console.log('\nPronto. Registros criados:')
   console.table(totais)
+}
+
+// ---------------------------------------------------------------------------
+// HISTÓRICO · dois meses e meio de recebimento, para os relatórios terem o
+// que mostrar. Os números saem de um sorteio com semente fixa: rodar o seed
+// de novo gera exatamente os mesmos dados.
+// ---------------------------------------------------------------------------
+function sorteio(semente) {
+  let x = semente
+  return () => {
+    x = (x * 1664525 + 1013904223) % 4294967296
+    return x / 4294967296
+  }
+}
+
+async function criarHistorico({ produtores, motorista, operador, analista }) {
+  const aleatorio = sorteio(2026)
+  const entre = (min, max) => min + aleatorio() * (max - min)
+  const redondo = (v, casas = 2) => Number(v.toFixed(casas))
+
+  // Mais três produtores, com CPF válido e só os dígitos, como o sistema grava.
+  const novos = await Promise.all([
+    ['Ademir Woiciechowski', '52601815906', 'Prudentópolis'],
+    ['Neusa Baran', '08301661305', 'Pinhão'],
+    ['Ervateira Rio Bonito Ltda', '99351819000160', 'Guarapuava'],
+  ].map(([nome, cpfCnpj, municipio]) =>
+    prisma.produtor.create({
+      data: {
+        nome, cpfCnpj, municipio, uf: 'PR',
+        formaPagamento: 'PIX', tipoChavePix: cpfCnpj.length === 14 ? 'ALEATORIA' : 'CPF',
+        chavePix: cpfCnpj.length === 14 ? 'b7e1c0d2-5a4f-4e8a-9c1d-0f3a6b2e7d91' : cpfCnpj,
+        titularConta: nome,
+      },
+    })
+  ))
+  const todos = [...produtores, ...novos]
+
+  const inicio = new Date('2026-07-20T08:00:00')
+  const cargas = []
+  for (let i = 0; i < 40; i++) {
+    const dia = new Date(inicio.getTime() + i * 1.8 * 24 * 3600 * 1000)
+    dia.setHours(7 + Math.floor(entre(0, 9)), Math.floor(entre(0, 60)))
+    const produtor = todos[i % todos.length]
+    const lenha = i % 7 === 3
+    const tipo = lenha ? 'LENHA' : i % 3 === 0 ? 'ERVA_MATE_PLANTADA' : 'ERVA_MATE_NATIVA'
+    const tara = redondo(entre(960, 1250), 0)
+    const liquido = redondo(lenha ? entre(2800, 4200) : entre(4500, 11000), 0)
+    const preco = redondo(lenha ? entre(0.28, 0.36) : entre(4.3, 5.2), 2)
+    const reprovada = i === 9 || i === 27
+    const recente = dia >= new Date('2026-09-20T00:00:00')
+
+    const carga = await prisma.carga.create({
+      data: {
+        numeroTicket: `PES-2026-${String(900 + i).padStart(5, '0')}`,
+        produtorId: produtor.id,
+        motoristaId: motorista.id,
+        veiculoId: motorista.veiculos[i % 2].id,
+        usuarioId: operador.id,
+        dataHora: dia,
+        tipoMateriaPrima: tipo,
+        pesoBrutoKg: liquido + tara,
+        taraKg: tara,
+        pesoLiquidoKg: liquido,
+        metragemM3: lenha ? redondo(liquido / 250, 1) : null,
+        pesoEstimadoCampoKg: lenha ? null : redondo(liquido * entre(0.9, 1.1), 0),
+        precoBaseKg: preco,
+        situacao: reprovada ? 'REPROVADA' : recente ? 'ANALISADA' : 'PAGA',
+      },
+    })
+
+    await prisma.analiseQualidade.create({
+      data: {
+        cargaId: carga.id,
+        usuarioId: analista.id,
+        dataHora: new Date(dia.getTime() + 2 * 3600 * 1000),
+        palitoPercentual: redondo(reprovada ? entre(46, 55) : entre(22, 41), 1),
+        umidadePercentual: redondo(entre(38, 46), 1),
+        folhaPercentual: redondo(entre(55, 75), 1),
+        aprovada: !reprovada,
+        motivoReprovacao: reprovada ? 'Palito acima do aceitável para o lote.' : null,
+        precoAjustadoKg: reprovada ? null : preco,
+        valorTotal: reprovada ? null : redondo(liquido * preco),
+      },
+    })
+
+    if (!reprovada && !recente) cargas.push({ carga, produtor, dia, liquido, preco })
+  }
+
+  // Uma ordem por produtor e por mês, já paga.
+  const grupos = new Map()
+  for (const c of cargas) {
+    const chave = `${c.produtor.id}|${c.dia.getMonth()}`
+    if (!grupos.has(chave)) grupos.set(chave, [])
+    grupos.get(chave).push(c)
+  }
+  let numero = 100
+  for (const lista of grupos.values()) {
+    const { produtor, dia } = lista[0]
+    const valor = redondo(lista.reduce((s, c) => s + c.liquido * c.preco, 0))
+    const fimDoMes = new Date(dia.getFullYear(), dia.getMonth() + 1, 0)
+    await prisma.ordemPagamento.create({
+      data: {
+        numero: `OP-2026-${String(numero++).padStart(4, '0')}`,
+        produtorId: produtor.id,
+        periodoInicio: new Date(dia.getFullYear(), dia.getMonth(), 1),
+        periodoFim: fimDoMes,
+        valorTotal: valor,
+        situacao: 'PAGA',
+        emitidaEm: fimDoMes,
+        pagaEm: new Date(fimDoMes.getTime() + 2 * 24 * 3600 * 1000),
+        formaPagamentoSnapshot: 'PIX',
+        chavePixSnapshot: produtor.chavePix,
+        tipoChavePixSnapshot: produtor.tipoChavePix,
+        titularSnapshot: produtor.titularConta,
+        itens: {
+          create: lista.map((c) => ({
+            cargaId: c.carga.id, pesoLiquidoKg: c.liquido, precoKg: c.preco, valor: redondo(c.liquido * c.preco),
+          })),
+        },
+      },
+    })
+  }
 }
 
 main()
