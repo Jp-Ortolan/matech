@@ -15,8 +15,8 @@ VERDE, TINTA, CINZA, BORDA = '#1B4D33', '#1f2422', '#5a6360', '#8b938f'
 CLARO, FUNDO = '#eef3f0', '#ffffff'
 FONTE = "Segoe UI, Helvetica, Arial, sans-serif"
 
-LARG, ALT = 1200, 1320
-BX0, BX1, BY0, BY1 = 300, 1120, 70, 1150      # fronteira do sistema
+LARG, ALT = 1200, 1445
+BX0, BX1, BY0, BY1 = 300, 1120, 70, 1275      # fronteira do sistema
 UCX, UCRX, UCRY = 700, 190, 27                # coluna e raio das elipses
 ATX = 110                                      # coluna dos atores
 BUS = 42                                       # calha da generalização
@@ -65,23 +65,25 @@ CASOS = [
     (150,  'Registrar pesagem e emitir ticket', False),
     (225,  'Cadastrar motorista e veículo',     False),
     (330,  'Lançar análise de laboratório',     False),
-    (405,  'Calcular desconto e valor a pagar', False),
-    (510,  'Cadastrar produtor',                True),
+    (405,  'Calcular valor da carga',           False),
+    (510,  'Cadastrar e editar produtor',       True),
     (585,  'Avaliar erval em campo',            True),
     (660,  'Sincronizar coleta do aparelho',    True),
-    (765,  'Emitir ordem de pagamento',         False),
-    (840,  'Confirmar pagamento',               False),
-    (930,  'Administrar contas de acesso',      False),
-    (1085, 'Consultar cargas, produtores e relatórios', False),
+    (735,  'Acompanhar aparelhos de campo',     False),
+    (840,  'Emitir ordem de pagamento',         False),
+    (915,  'Confirmar pagamento',               False),
+    (1005, 'Administrar contas de acesso',      False),
+    (1080, 'Consultar registro de alterações',  False),
+    (1210, 'Consultar cargas, produtores e relatórios', False),
 ]
 
 # ---------------------------------------------------- atores e associações
 ATORES = [
     (190,  ['Operador', 'de Balança'],        [150, 225]),
     (350,  ['Analista', 'de Qualidade'],      [330]),
-    (585,  ['Comprador /', 'Avaliador'],      [510, 585, 660]),
-    (800,  ['Administrativo'],                [765, 840]),
-    (930,  ['Administrador'],                 [930]),
+    (622,  ['Comprador /', 'Avaliador'],      [510, 585, 660, 735]),
+    (877,  ['Administrativo'],                [840, 915]),
+    (1042, ['Administrador'],                 [1005, 1080]),
 ]
 
 for ay, rot, ligados in ATORES:
@@ -89,8 +91,8 @@ for ay, rot, ligados in ATORES:
         assoc(ATX, ay, uy)
 
 # generalização: os cinco perfis são especializações do usuário autenticado
-PAI_Y = 1085
-assoc(ATX, PAI_Y, 1085)
+PAI_Y = 1210
+assoc(ATX, PAI_Y, 1210)
 for ay, _, _ in ATORES:
     add(f'<line x1="{ATX-34}" y1="{ay}" x2="{BUS}" y2="{ay}" stroke="{CINZA}" '
         f'stroke-width="1.2" stroke-dasharray="0"/>')
@@ -102,7 +104,7 @@ add(f'<polygon points="{ATX-20},{PAI_Y-34} {ATX-34},{PAI_Y-41} {ATX-34},{PAI_Y-2
 for y, txt, movel in CASOS:
     caso(y, txt, movel)
 
-# «include» da análise para o cálculo
+# «include»: lançar a análise sempre calcula o valor (peso líquido × preço acordado)
 add(f'<line x1="{UCX}" y1="{330+UCRY}" x2="{UCX}" y2="{405-UCRY-8}" stroke="{CINZA}" '
     f'stroke-width="1.2" stroke-dasharray="6 4"/>')
 add(f'<polygon points="{UCX},{405-UCRY} {UCX-6},{405-UCRY-10} {UCX+6},{405-UCRY-10}" fill="{CINZA}"/>')
@@ -122,13 +124,13 @@ def nota(x, y, w, h, linhas):
     for i, t in enumerate(linhas):
         add(f'<text x="{x+12}" y="{y+22+i*16}" font-size="11.5" fill="{CINZA}">{t}</text>')
 
-nota(40, 1195, 560, 92, [
+nota(40, 1320, 560, 92, [
     'Administrativo e Administrador passam também nas operações de negócio',
     'acima: o permitir() do servidor acrescenta os dois à lista de autorizados',
     'de toda rota. A administração de contas é a única operação em que isso',
     'não vale — ela usa apenas(&#39;ADMINISTRADOR&#39;), sem acréscimo automático.',
 ])
-nota(630, 1195, 530, 92, [
+nota(630, 1320, 530, 92, [
     'Os casos marcados como app móvel são executados no aplicativo Flutter,',
     'sem conexão. Ficam gravados no SQLite do aparelho e sobem depois, pela',
     'rota de sincronização, com idempotência garantida pelo clientId.',

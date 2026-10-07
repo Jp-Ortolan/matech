@@ -16,8 +16,12 @@ classDiagram
         +String nome
         +String cpfCnpj
         +String municipio
+        +String uf
         +FormaPagamento formaPagamento
         +String chavePix
+        +String banco
+        +String agencia
+        +String conta
         +String clientId
         +Boolean criadoOffline
         +DateTime sincronizadoEm
@@ -51,6 +55,7 @@ classDiagram
     class FotoErval {
         +String id
         +String caminho
+        +Bytes dados
         +Int tamanhoBytes
         +String clientId
     }
@@ -77,6 +82,7 @@ classDiagram
         +Decimal pesoBrutoKg
         +Decimal taraKg
         +Decimal pesoLiquidoKg
+        +Decimal metragemM3
         +Decimal pesoEstimadoCampoKg
         +Decimal precoBaseKg
         +SituacaoCarga situacao
@@ -87,8 +93,8 @@ classDiagram
         +DateTime dataHora
         +Decimal palitoPercentual
         +Decimal umidadePercentual
-        +Decimal limitePalito
-        +Decimal descontoPercentual
+        +Decimal folhaPercentual
+        +String motivoReprovacao
         +Decimal precoAjustadoKg
         +Decimal valorTotal
         +Boolean aprovada
@@ -100,6 +106,7 @@ classDiagram
         +DateTime periodoInicio
         +DateTime periodoFim
         +Decimal valorTotal
+        +FormaPagamento formaPagamentoSnapshot
         +String chavePixSnapshot
         +SituacaoOrdem situacao
         +DateTime pagaEm
@@ -126,6 +133,23 @@ classDiagram
         +DateTime recebidoEm
     }
 
+    class Aparelho {
+        +String id
+        +Int naFila
+        +Int comErro
+        +DateTime ultimoContato
+    }
+
+    class RegistroAuditoria {
+        +String id
+        +String usuarioNome
+        +String acao
+        +String entidade
+        +Json antes
+        +Json depois
+        +DateTime criadoEm
+    }
+
     Produtor "1" --> "0..*" Erval : possui
     Produtor "1" --> "0..*" Carga : entrega
     Produtor "1" --> "0..*" OrdemPagamento : recebe
@@ -147,5 +171,7 @@ classDiagram
     Carga "1" --> "0..1" AnaliseQualidade : recebe
     Carga "1" --> "0..1" ItemOrdemPagamento : compõe
     OrdemPagamento "1" *-- "1..*" ItemOrdemPagamento : agrupa
+    Usuario "0..1" --> "0..*" Aparelho : usa
 
-    note for RegistroSincronizacao "Auditoria da sincronização: sem chave estrangeira para as demais. Guarda o clientId, que é a chave de idempotência."
+    note for RegistroSincronizacao "Registro da sincronização: sem chave estrangeira. Guarda o clientId, chave de idempotência."
+    note for RegistroAuditoria "Alterações de usuários e senhas. Guarda nome e perfil do autor para o registro sobreviver à conta."

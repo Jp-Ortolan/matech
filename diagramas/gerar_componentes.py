@@ -66,11 +66,11 @@ txt(LARG/2, 34, 'MATECH · Diagrama de Componentes', 19, TINTA, '700')
 # ─────────────────────────────────────────── camada de apresentação
 camada(50, 58, 1190, 288, 'CAMADA DE APRESENTAÇÃO')
 componente(70, 84, 600, 270, 'Cliente Web', 'React 19 · Vite 8 · Tailwind 4 · React Router')
-TELAS = ['Painel · Pesagem · Avaliações de qualidade',
-         'Avaliações de campo · Sincronização',
-         'Produtores · Matéria-prima',
-         'Pagamentos · Relatórios',
-         'Configurações · Usuários']
+TELAS = ['Pesagem · Avaliações de qualidade',
+         'Avaliações de campo · Aparelhos de campo',
+         'Produtores · Pagamentos',
+         'Relatórios · Configurações',
+         'Usuários · Registro de alterações']
 for i, t in enumerate(TELAS):
     peca(90, 130 + i * 28, 490, 24, t, 11.5)
 
@@ -86,11 +86,11 @@ camada(50, 330, 1190, 660, 'CAMADA DE APLICAÇÃO')
 componente(70, 356, 1170, 642, 'API REST', 'Node.js 24 · Express 5 · sem estado')
 peca(100, 400, 1040, 40, 'Middlewares · autenticar (JWT) → permitir() para negócio · apenas() para administração de contas',
      12, '#e4eee8')
-MODS = ['auth', 'usuarios', 'produtores', 'motoristas', 'cargas',
-        'qualidade', 'pagamentos', 'sincronizacao', 'avaliacoes']
+MODS = ['auth', 'usuarios', 'produtores', 'motoristas', 'cargas', 'qualidade',
+        'pagamentos', 'sincronizacao', 'aparelhos', 'avaliacoes', 'auditoria', 'docs (Swagger)']
 for i, m in enumerate(MODS):
-    lin, col = divmod(i, 5)
-    peca(100 + col * 209, 470 + lin * 52, 194, 40, m, 12.5, FUNDO)
+    lin, col = divmod(i, 6)
+    peca(100 + col * 174, 470 + lin * 52, 162, 40, m, 12.5, FUNDO)
 txt(620, 606, 'cada módulo: rota → controlador → serviço', 11.5, CINZA, '400', it='italic')
 add(f'<line x1="100" y1="440" x2="100" y2="470" stroke="{CINZA}" stroke-width="1.2"/>')
 add(f'<line x1="100" y1="455" x2="1140" y2="455" stroke="{CINZA}" stroke-width="1.2"/>')
@@ -98,17 +98,16 @@ add(f'<line x1="1140" y1="440" x2="1140" y2="470" stroke="{CINZA}" stroke-width=
 
 # ─────────────────────────────────────────── camada de dados
 camada(50, 700, 1190, 900, 'CAMADA DE DADOS')
-cilindro(230, 810, 240, 110, 'PostgreSQL 18', '12 tabelas · fonte da verdade')
-add(f'<path d="M 540 780 h 90 l 14 16 h 96 v 76 h -200 Z" fill="{CLARO}" stroke="{VERDE}" stroke-width="1.6"/>')
-txt(640, 830, 'uploads/fotos', 12.5, TINTA, '700')
-txt(640, 848, 'arquivos do erval', 11, CINZA)
-cilindro(1010, 810, 240, 110, 'SQLite · sqflite', '7 tabelas + fila Outbox')
+cilindro(230, 810, 240, 110, 'PostgreSQL · Neon', '14 tabelas · fotos incluídas')
+txt(640, 818, 'Publicação', 12.5, TINTA, '700')
+txt(640, 836, 'API e web no Render (HTTPS)', 11, CINZA)
+txt(640, 852, 'banco no Neon', 11, CINZA)
+cilindro(1010, 810, 240, 110, 'SQLite · sqflite', 'dados locais + fila Outbox')
 
 # ─────────────────────────────────────────── ligações entre camadas
 seta(335, 270, 335, 400, 'HTTPS · REST sem estado', 'JSON + Bearer token', lado='start')
 seta(910, 270, 910, 400, 'POST /api/sincronizacao', 'lote idempotente por clientId', lado='start')
 seta(230, 642, 230, 755, 'Prisma 7 + adapter-pg', lado='start')
-seta(640, 642, 640, 780, 'express.raw · imagem', lado='start')
 add(f'<line x1="1170" y1="185" x2="1205" y2="185" stroke="{CINZA}" stroke-width="1.4" stroke-dasharray="6 4"/>')
 add(f'<line x1="1205" y1="185" x2="1205" y2="810" stroke="{CINZA}" stroke-width="1.4" stroke-dasharray="6 4"/>')
 add(f'<line x1="1205" y1="810" x2="1134" y2="810" stroke="{CINZA}" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#pf)"/>')

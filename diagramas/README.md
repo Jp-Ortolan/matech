@@ -15,11 +15,11 @@ equivalente ao arquivo do Astah, só que em texto e versionável no Git.
 **Casos de uso** — os cinco perfis e o que cada um faz. Traz três construções
 que a banca costuma procurar: a **fronteira do sistema**, a **generalização de
 ator** (os cinco perfis são especializações de *Usuário autenticado*, que é
-quem consulta) e um **«include»** (lançar a análise sempre inclui calcular o
-desconto e o valor). Os casos marcados como *app móvel* rodam no Flutter, sem
+quem consulta) e um **«include»** (lançar a análise sempre calcula o valor da
+carga: peso líquido × preço acordado). Os casos marcados como *app móvel* rodam no Flutter, sem
 conexão.
 
-**Classes de domínio** — as 12 entidades com atributos e cardinalidades.
+**Classes de domínio** — as 14 entidades com atributos e cardinalidades.
 Repare nos campos `clientId`, `criadoOffline` e `alteradoEmOrigem`: são eles
 que sustentam a sincronização. `RegistroSincronizacao` aparece separado de
 propósito — não tem chave estrangeira para as demais, e a nota explica por quê.
