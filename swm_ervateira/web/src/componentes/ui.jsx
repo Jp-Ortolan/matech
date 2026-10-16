@@ -374,9 +374,9 @@ export function Etiqueta({ children, tom = 'neutro' }) {
 
 export function LinhaDado({ rotulo, valor, className = '' }) {
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className}`}>
       <p className="text-[0.8125rem] font-medium text-cinza-600">{rotulo}</p>
-      <p className="mt-0.5 text-[0.9375rem] font-semibold text-tinta">
+      <p className="mt-0.5 text-[0.9375rem] font-semibold text-tinta [overflow-wrap:anywhere]">
         {valor === null || valor === undefined || valor === '' ? '—' : valor}
       </p>
     </div>

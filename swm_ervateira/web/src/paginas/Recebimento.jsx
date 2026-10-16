@@ -18,6 +18,10 @@ import { ICONE_DA_ACAO, SITUACAO, SITUACOES_DA_CARGA } from '../lib/icones'
 import { colunasDeCargas } from '../componentes/tabelas'
 import { resumirFiltros, nomeNaLista } from '../lib/filtros'
 
+// Faixas da balança (as mesmas da API).
+const PESO_BRUTO = { min: 1000, max: 80000 }
+const TARA_MINIMA = 1000
+
 export default function Recebimento() {
   const { podeFazer } = useAutenticacao()
   const veDinheiro = podeFazer('ADMINISTRATIVO')
@@ -314,7 +318,7 @@ function FilaDeTara({ cargas, erro, podeFechar, aoFechar }) {
             render: (c) => (
               podeFechar ? (
                 <input
-                  type="number" step="0.01" min="0"
+                  type="number" step="0.01" min={TARA_MINIMA}
                   value={taras[c.id] ?? ''}
                   onChange={(e) => setTaras((t) => ({ ...t, [c.id]: e.target.value }))}
                   onClick={(e) => e.stopPropagation()}
@@ -328,7 +332,7 @@ function FilaDeTara({ cargas, erro, podeFechar, aoFechar }) {
             chave: 'acao', titulo: '', fixar: 'direita',
             render: (c) => {
               const tara = Number(taras[c.id])
-              const valida = Number.isFinite(tara) && tara > 0 && tara < Number(c.pesoBrutoKg)
+              const valida = Number.isFinite(tara) && tara >= TARA_MINIMA && tara < Number(c.pesoBrutoKg)
               return (
                 <Botao
                   variante="primario"
@@ -336,7 +340,7 @@ function FilaDeTara({ cargas, erro, podeFechar, aoFechar }) {
                   onClick={(e) => { e.stopPropagation(); fechar(c) }}
                   title={
                     taras[c.id] && !valida
-                      ? 'A tara precisa ser maior que zero e menor que o peso bruto.'
+                      ? 'A tara precisa ser de pelo menos 1.000 kg e menor que o peso bruto.'
                       : undefined
                   }
                 >
@@ -493,8 +497,8 @@ function FormularioEntrada({ produtores, motoristas, aoCadastrarMotorista, aoReg
         )}
 
         <div className="flex flex-wrap gap-2 xl:gap-3">
-          <Campo rotulo="Peso bruto (kg)" type="number" step="0.01" min="0.01" className="flex-1" required value={form.pesoBrutoKg} onChange={(e) => alterar('pesoBrutoKg', e.target.value)} />
-          <Campo rotulo="Estimado em campo (kg)" type="number" step="0.01" min="0.01" className="flex-1" value={form.pesoEstimadoCampoKg} onChange={(e) => alterar('pesoEstimadoCampoKg', e.target.value)} />
+          <Campo rotulo="Peso bruto (kg)" type="number" step="0.01" min={PESO_BRUTO.min} max={PESO_BRUTO.max} className="flex-1" required value={form.pesoBrutoKg} onChange={(e) => alterar('pesoBrutoKg', e.target.value)} />
+          <Campo rotulo="Estimado em campo (kg)" type="number" step="0.01" min="0.01" max="100000" className="flex-1" value={form.pesoEstimadoCampoKg} onChange={(e) => alterar('pesoEstimadoCampoKg', e.target.value)} />
           {ehLenha && (
             <Campo rotulo="Metragem (m³)" type="number" step="0.01" min="0.01" max="500" className="flex-1"
                    value={form.metragemM3} onChange={(e) => alterar('metragemM3', e.target.value)} />
@@ -511,7 +515,7 @@ function FormularioEntrada({ produtores, motoristas, aoCadastrarMotorista, aoReg
               A tara é pesada quando o caminhão voltar vazio. O ticket sai lá.
             </p>
           </div>
-          <Botao variante="primario" type="submit" disabled={enviando || !(bruto > 0)}>
+          <Botao variante="primario" type="submit" disabled={enviando || !(bruto >= PESO_BRUTO.min && bruto <= PESO_BRUTO.max)}>
             {enviando ? 'Gravando...' : 'Registrar entrada'}
           </Botao>
         </div>
@@ -606,6 +610,7 @@ function NovoMotorista({ aoCriar, aoCancelar }) {
         <Campo
           rotulo="Nome *"
           className="flex-[2]"
+          maxLength={120}
           value={dados.nome}
           onChange={(e) => alterar('nome', e.target.value)}
         />

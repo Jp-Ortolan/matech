@@ -131,6 +131,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Texto longo sem espaço quebra a linha em vez de vazar da caixa. */
+p, h1, h2, h3, h4, li, dd, dt, td { overflow-wrap: break-word; }
+
 /* Números em tabela alinham melhor com largura fixa por dígito */
 .tabular { font-variant-numeric: tabular-nums; }
 

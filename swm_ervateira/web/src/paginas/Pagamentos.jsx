@@ -430,7 +430,7 @@ function FormularioOrdem({ produtores, inicial, aoGerar }) {
               <Campo
                 rotulo="Preço por quilo para todas (R$)"
                 className="min-w-[220px] flex-1"
-                type="number" step="0.0001" min="0.0001"
+                type="number" step="0.0001" min="0.0001" max="100"
                 placeholder="Preencha as cargas de uma vez"
                 value={precoParaTodas}
                 onChange={(e) => aplicarATodas(e.target.value)}

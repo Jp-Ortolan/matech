@@ -279,6 +279,7 @@ function FormularioUsuario({ usuario, souEu, aoConcluir, aoCancelar }) {
           <Campo
             rotulo="Nome *"
             className="min-w-[220px] flex-[2]"
+            maxLength={120}
             value={form.nome}
             onChange={(e) => alterar('nome', e.target.value)}
           />
@@ -290,6 +291,7 @@ function FormularioUsuario({ usuario, souEu, aoConcluir, aoCancelar }) {
               rotulo="Usuário *"
               className="flex-1"
               placeholder="nome.sobrenome"
+              maxLength={40}
               value={form.usuario}
               onChange={(e) => alterar('usuario', e.target.value.toLowerCase())}
             />
