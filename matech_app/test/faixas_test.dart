@@ -104,4 +104,36 @@ void main() {
       expect(erroNoValorPorQuilo('500'), contains('fora da faixa'));
     });
   });
+
+  group('erroNoTexto · texto sem sentido', () {
+    test('aceita texto real', () {
+      expect(erroNoTexto('Ervateira Rio Bonito Ltda', 'o nome', nome: true), isNull);
+      expect(erroNoTexto('Talhão 3', 'a área'), isNull);
+      expect(erroNoTexto('', 'as observações'), isNull);
+    });
+
+    test('recusa letra repetida, maiúscula ou minúscula', () {
+      expect(erroNoTexto('aaaaaAAAAA', 'o nome'), contains('repetida'));
+    });
+
+    test('recusa palavra gigante sem espaço', () {
+      expect(erroNoTexto('abcdefghij' * 5, 'a área'), contains('40 letras'));
+    });
+
+    test('nome precisa de 3 letras', () {
+      expect(erroNoTexto('12', 'o nome', nome: true), contains('3 letras'));
+    });
+  });
+
+  group('erroNoTelefone', () {
+    test('aceita DDD + número, e vazio', () {
+      expect(erroNoTelefone('(42) 99999-9999'), isNull);
+      expect(erroNoTelefone('4236231234'), isNull);
+      expect(erroNoTelefone(''), isNull);
+    });
+
+    test('recusa número sem DDD', () {
+      expect(erroNoTelefone('99999-9999'), isNotNull);
+    });
+  });
 }

@@ -183,6 +183,7 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
         labelText: _forma == 'PIX' ? 'Titular da chave' : 'Titular da conta',
         counterText: '',
       ),
+      validator: (v) => erroNoTexto(v, 'o titular', nome: true),
     );
 
     switch (_forma) {
@@ -310,7 +311,7 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
                     (v) =>
                         (v == null || v.trim().length < 3)
                             ? 'Informe o nome'
-                            : null,
+                            : erroNoTexto(v, 'o nome', nome: true),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -336,6 +337,7 @@ class _FormularioProdutorState extends State<FormularioProdutor> {
                   labelText: 'Telefone',
                   counterText: '',
                 ),
+                validator: erroNoTelefone,
               ),
 
               const SizedBox(height: 24),

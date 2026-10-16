@@ -154,8 +154,6 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
 
   Future<void> _adicionarDaCamera() => _adicionar(CapturaDeFotos.daCamera());
 
-  Future<void> _adicionarDaGaleria() => _adicionar(CapturaDeFotos.daGaleria());
-
   Future<void> _adicionar(Future<ResultadoDeCaptura> captura) async {
     final resultado = await captura;
     if (!mounted) return;
@@ -344,11 +342,12 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
                       helperText:
                           'Como o produtor chama: "Erval do fundo", "Talhão 3"',
                     ),
+                    maxLength: kMaxIdentificacao,
                     validator:
                         (v) =>
                             (_areaNova && (v == null || v.trim().length < 2))
                                 ? 'Dê um nome à área'
-                                : null,
+                                : (_areaNova ? erroNoTexto(v, 'o nome da área') : null),
                   )
                 else
                   DropdownButtonFormField<Erval>(
@@ -495,24 +494,11 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
                 _Secao('Fotos${_fotos.isEmpty ? "" : " (${_fotos.length})"}'),
                 _GradeDeFotos(fotos: _fotos, aoRemover: _removerFoto),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _adicionarDaCamera,
-                        icon: const Icon(Icons.photo_camera_outlined),
-                        label: const Text('Câmera'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _adicionarDaGaleria,
-                        icon: const Icon(Icons.photo_library_outlined),
-                        label: const Text('Galeria'),
-                      ),
-                    ),
-                  ],
+                // Só câmera: a foto prova que o avaliador esteve no erval.
+                OutlinedButton.icon(
+                  onPressed: _adicionarDaCamera,
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: const Text('Tirar foto'),
                 ),
 
                 const SizedBox(height: 24),
@@ -520,11 +506,13 @@ class _FormularioAvaliacaoState extends State<FormularioAvaliacao> {
                 TextFormField(
                   controller: _observacoes,
                   maxLines: 4,
+                  maxLength: kMaxObservacoes,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     hintText: 'O que não coube nos campos acima',
                     alignLabelWithHint: true,
                   ),
+                  validator: (v) => erroNoTexto(v, 'as observações'),
                 ),
 
                 const SizedBox(height: 32),

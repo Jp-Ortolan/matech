@@ -312,25 +312,11 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
                 '${_fotosNovas.isEmpty ? "" : " (${_fotosNovas.length})"}',
               ),
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _adicionarFotos(CapturaDeFotos.daCamera()),
-                      icon: const Icon(Icons.photo_camera_outlined),
-                      label: const Text('Câmera'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed:
-                          () => _adicionarFotos(CapturaDeFotos.daGaleria()),
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Galeria'),
-                    ),
-                  ),
-                ],
+              // Só câmera: a foto prova que o avaliador esteve no erval.
+              OutlinedButton.icon(
+                onPressed: () => _adicionarFotos(CapturaDeFotos.daCamera()),
+                icon: const Icon(Icons.photo_camera_outlined),
+                label: const Text('Tirar foto'),
               ),
               if (_fotosNovas.isNotEmpty) ...[
                 const SizedBox(height: 8),
@@ -346,11 +332,13 @@ class _TelaEditarAvaliacaoState extends State<TelaEditarAvaliacao> {
               TextFormField(
                 controller: _observacoes,
                 maxLines: 4,
+                maxLength: kMaxObservacoes,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   hintText: 'O que não coube nos campos acima',
                   alignLabelWithHint: true,
                 ),
+                validator: (v) => erroNoTexto(v, 'as observações'),
               ),
 
               const SizedBox(height: 32),

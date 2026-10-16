@@ -73,5 +73,37 @@ String? erroNoValorPorQuilo(String? valor) {
   return null;
 }
 
+// Mesmas regras de texto da API (src/lib/textos.js).
+final _letraRepetida = RegExp(r'(\p{L})\1{4,}', unicode: true, caseSensitive: false);
+final _palavraGigante = RegExp(r'\S{41,}');
+final _letra = RegExp(r'\p{L}', unicode: true);
+
+// Recusa texto sem sentido ("aaaaaAAAA", palavra de 80 letras).
+// Com [nome], exige também pelo menos 3 letras.
+String? erroNoTexto(String? valor, String rotulo, {bool nome = false}) {
+  final texto = (valor ?? '').trim();
+  if (texto.isEmpty) return null;
+  if (nome && _letra.allMatches(texto).length < 3) {
+    return 'Confira $rotulo: precisa ter pelo menos 3 letras';
+  }
+  if (_letraRepetida.hasMatch(texto)) {
+    return 'Confira $rotulo: há uma letra repetida muitas vezes';
+  }
+  if (_palavraGigante.hasMatch(texto)) {
+    return 'Confira $rotulo: há uma palavra com mais de 40 letras';
+  }
+  return null;
+}
+
+// Telefone: DDD + número (10 ou 11 dígitos). Vazio é permitido.
+String? erroNoTelefone(String? valor) {
+  final digitos = (valor ?? '').replaceAll(RegExp(r'\D'), '');
+  if (digitos.isEmpty) return null;
+  if (digitos.length < 10 || digitos.length > 11) {
+    return 'Informe DDD e número, como (42) 99999-9999';
+  }
+  return null;
+}
+
 String _kg(double n) =>
     '${n.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.')} kg';

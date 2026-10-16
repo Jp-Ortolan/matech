@@ -68,13 +68,6 @@ class CapturaDeFotos {
     return imagem == null ? <XFile>[] : <XFile>[imagem];
   });
 
-  static Future<ResultadoDeCaptura> daGaleria() => _capturar(
-    () => ImagePicker().pickMultiImage(
-      maxWidth: _larguraMaxima,
-      imageQuality: _qualidade,
-    ),
-  );
-
   static Future<ResultadoDeCaptura> _capturar(
     Future<List<XFile>> Function() escolher,
   ) async {
@@ -164,7 +157,7 @@ class CapturaDeFotos {
           falha: FalhaDeFoto.cameraIndisponivel,
           mensagem:
               'Este aparelho não tem câmera disponível. '
-              'Dá para escolher imagens da galeria.',
+              'A foto do erval precisa ser tirada na hora, com a câmera.',
         );
 
       case 'invalid_image':
