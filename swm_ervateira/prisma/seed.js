@@ -87,13 +87,13 @@ async function main() {
   const jose = await prisma.produtor.create({
     data: {
       nome: 'José Fontana',
-      cpfCnpj: '012.345.678-90',
+      cpfCnpj: '01234567890',
       telefone: '(42) 99912-4477',
       municipio: 'Guarapuava',
       uf: 'PR',
       formaPagamento: 'PIX',
       tipoChavePix: 'CPF',
-      chavePix: '012.345.678-90',
+      chavePix: '01234567890',
       titularConta: 'José Fontana',
       ervais: {
         create: [
@@ -108,7 +108,7 @@ async function main() {
   const marlene = await prisma.produtor.create({
     data: {
       nome: 'Marlene Kaviski',
-      cpfCnpj: '987.123.456-01',
+      cpfCnpj: '98712345628',
       telefone: '(42) 99845-7712',
       municipio: 'Turvo',
       uf: 'PR',
@@ -125,14 +125,14 @@ async function main() {
   const otavio = await prisma.produtor.create({
     data: {
       nome: 'Otávio Bonato',
-      cpfCnpj: '045.987.221-13',
+      cpfCnpj: '04598722142',
       telefone: '(42) 99730-1188',
       endereco: 'Linha Rio das Pedras, s/n',
       municipio: 'Turvo',
       uf: 'PR',
       formaPagamento: 'PIX',
       tipoChavePix: 'CPF',
-      chavePix: '045.987.221-13',
+      chavePix: '04598722142',
       titularConta: 'Otávio Bonato',
       clientId: 'app-produtor-0001',
       criadoOffline: true,
