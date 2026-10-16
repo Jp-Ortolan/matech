@@ -1,6 +1,16 @@
 const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { lerNumero, estaVazio, DICA_FORMATO } = require('../../lib/numeros')
+const { FAIXAS, numeroNaFaixa, daLista, lerData } = require('../../lib/validacao')
+const { erroNosTextos } = require('../../lib/textos')
+
+// Peso bruto: maior que zero e dentro da faixa de um caminhão carregado.
+function validarPesoBruto(valor) {
+  const bruto = lerNumero(valor)
+  if (!Number.isFinite(bruto)) throw new ErroDeNegocio('O peso bruto precisa ser um número', 400, DICA_FORMATO)
+  if (!(bruto > 0)) throw new ErroDeNegocio('O peso bruto deve ser maior que zero', 400)
+  return numeroNaFaixa(bruto, { rotulo: 'o peso bruto', ...FAIXAS.pesoBrutoKg, unidade: ' kg' })
+}
 
 function calcularPesoLiquido(pesoBrutoKg, taraKg) {
   const bruto = lerNumero(pesoBrutoKg)
@@ -16,6 +26,13 @@ function calcularPesoLiquido(pesoBrutoKg, taraKg) {
   if (!Number.isFinite(tara)) throw new ErroDeNegocio('A tara precisa ser um número', 400, DICA_FORMATO)
   if (!(tara > 0)) {
     throw new ErroDeNegocio('A tara deve ser maior que zero', 400, 'Um caminhão vazio pesa alguma coisa.')
+  }
+  if (tara < FAIXAS.taraKg.min) {
+    throw new ErroDeNegocio(
+      `A tara deve ser de pelo menos ${FAIXAS.taraKg.min.toLocaleString('pt-BR')} kg`,
+      400,
+      'É o peso do caminhão vazio. Confira se não faltou algum dígito.'
+    )
   }
   if (tara >= bruto) throw new ErroDeNegocio('A tara não pode ser maior ou igual ao peso bruto', 400)
 
@@ -58,6 +75,13 @@ function validarPrecoBase(precoBaseKg, { obrigatorio = false } = {}) {
   if (!(preco > 0)) {
     throw new ErroDeNegocio('O preço por quilograma deve ser maior que zero', 400)
   }
+  if (preco > FAIXAS.precoKg.max) {
+    throw new ErroDeNegocio(
+      `O preço por quilograma deve ser de no máximo R$ ${FAIXAS.precoKg.max},00`,
+      400,
+      'Confira se não sobrou algum dígito ou se a vírgula está no lugar certo.'
+    )
+  }
   return Number(preco.toFixed(4))   // o banco guarda quatro casas
 }
 
@@ -84,10 +108,10 @@ function calcularPagamento({ pesoLiquidoKg, precoBaseKg = null }) {
 
 function montarFiltro({ produtorId, de, ate, situacao, busca }) {
   const where = {}
-  if (produtorId) where.produtorId = produtorId
-  if (situacao) where.situacao = situacao
+  if (produtorId) where.produtorId = String(produtorId)
+  if (situacao) where.situacao = daLista(situacao, 'situacaoCarga', 'a situação')
 
-  const termo = String(busca ?? '').trim()
+  const termo = String(busca ?? '').trim().slice(0, 100)
   if (termo) {
     where.OR = [
       { numeroTicket: { contains: termo.toUpperCase() } },
@@ -97,8 +121,8 @@ function montarFiltro({ produtorId, de, ate, situacao, busca }) {
 
   if (de || ate) {
     where.dataHora = {}
-    if (de) where.dataHora.gte = new Date(de)
-    if (ate) where.dataHora.lte = new Date(ate)
+    if (de) where.dataHora.gte = lerData(de, 'a data inicial')
+    if (ate) where.dataHora.lte = lerData(ate, 'a data final')
   }
 
   return where
@@ -135,10 +159,12 @@ async function registrarEntrada(dados, usuarioId) {
 
   if (!produtorId) throw new ErroDeNegocio('Informe o produtor', 400)
   if (!tipoMateriaPrima) throw new ErroDeNegocio('Informe o tipo de matéria-prima', 400)
+  daLista(tipoMateriaPrima, 'tipoMateriaPrima', 'o tipo de matéria-prima')
 
-  const bruto = lerNumero(pesoBrutoKg)
-  if (!Number.isFinite(bruto)) throw new ErroDeNegocio('O peso bruto precisa ser um número', 400, DICA_FORMATO)
-  if (!(bruto > 0)) throw new ErroDeNegocio('O peso bruto deve ser maior que zero', 400)
+  const bruto = validarPesoBruto(pesoBrutoKg)
+
+  const erroTexto = erroNosTextos({ observacoes })
+  if (erroTexto) throw new ErroDeNegocio(erroTexto, 400)
 
   const metragem = validarMetragem(metragemM3, tipoMateriaPrima)
   const precoValidado = validarPrecoBase(precoBaseKg)
@@ -149,6 +175,7 @@ async function registrarEntrada(dados, usuarioId) {
     if (!Number.isFinite(estimadoCampo) || estimadoCampo <= 0) {
       throw new ErroDeNegocio('O peso estimado em campo deve ser maior que zero', 400)
     }
+    numeroNaFaixa(estimadoCampo, { rotulo: 'o peso estimado em campo', ...FAIXAS.pesoEstimadoKg, unidade: ' kg' })
   }
   const daCarga = {
     produtorId, ervalId, motoristaId, veiculoId, avaliacaoId,
@@ -160,7 +187,7 @@ async function registrarEntrada(dados, usuarioId) {
     metragemM3: metragem,
     pesoEstimadoCampoKg: estimadoCampo,
     precoBaseKg: precoValidado,
-    observacoes,
+    observacoes: estaVazio(observacoes) ? null : String(observacoes).trim(),
     situacao: 'AGUARDANDO_TARA',
   }
 
@@ -251,6 +278,7 @@ module.exports = {
   criarComNumeroSequencial,
   montarFiltro,
   calcularPesoLiquido,
+  validarPesoBruto,
   validarPrecoBase,
   calcularPagamento,
   listar,

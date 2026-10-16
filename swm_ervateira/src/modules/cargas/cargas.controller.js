@@ -1,6 +1,7 @@
 const servico = require('./cargas.service')
 const { podeNegocio } = require('../../middlewares/autorizacao')
 const { ocultarDaCarga } = require('../../lib/sigilo')
+const { paginacao } = require('../../lib/validacao')
 
 function comoEsteUsuarioPodeVer(req) {
   return { veDinheiro: podeNegocio(req.usuario.perfil, 'ADMINISTRATIVO') }
@@ -10,15 +11,10 @@ const POR_PAGINA_PADRAO = 20
 const POR_PAGINA_MAXIMO = 500
 
 async function listar(req, res) {
-  const { produtorId, de, ate, situacao, busca, pagina, porPagina } = req.query
+  const { produtorId, de, ate, situacao, busca } = req.query
+  const { pagina, porPagina } = paginacao(req.query, { padrao: POR_PAGINA_PADRAO, maximo: POR_PAGINA_MAXIMO })
 
-  const tamanho = Math.min(Number(porPagina) || POR_PAGINA_PADRAO, POR_PAGINA_MAXIMO)
-
-  const resultado = await servico.listar({
-    produtorId, de, ate, situacao, busca,
-    pagina: Number(pagina) || 1,
-    porPagina: tamanho,
-  })
+  const resultado = await servico.listar({ produtorId, de, ate, situacao, busca, pagina, porPagina })
 
   const visao = comoEsteUsuarioPodeVer(req)
   res.json({ ...resultado, cargas: resultado.cargas.map((c) => ocultarDaCarga(c, visao)) })

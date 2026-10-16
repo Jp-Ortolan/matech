@@ -8,6 +8,11 @@ async function entrar(usuario, senha) {
   if (!usuario || !senha) {
     throw new ErroDeNegocio('Informe usuário e senha', 400)
   }
+  // Só texto: um objeto aqui poderia virar filtro na consulta.
+  if (typeof usuario !== 'string' || typeof senha !== 'string' || usuario.length > 40 || senha.length > 72) {
+    throw new ErroDeNegocio('Usuário ou senha inválidos', 401)
+  }
+  usuario = usuario.trim().toLowerCase()
 
   const encontrado = await prisma.usuario.findUnique({ where: { usuario } })
 

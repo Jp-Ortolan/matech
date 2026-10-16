@@ -2,6 +2,7 @@ const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { lerNumero, estaVazio, DICA_FORMATO } = require('../../lib/numeros')
 const { calcularPagamento } = require('../cargas/cargas.service')
+const { erroNosTextos } = require('../../lib/textos')
 
 // Umidade e folha são opcionais, mas se vierem precisam ser número de 0 a 100.
 function percentualOpcional(valor, rotulo) {
@@ -43,6 +44,9 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
   const folha = percentualOpcional(folhaPercentual, 'de folha')
 
   const justificativa = String(dados.motivoReprovacao ?? '').trim()
+  const erroTexto = erroNosTextos({ observacoes, motivo: justificativa })
+  if (erroTexto) throw new ErroDeNegocio(erroTexto, 400)
+  if (typeof aprovada !== 'boolean') throw new ErroDeNegocio('Informe se a carga foi aprovada (verdadeiro ou falso)', 400)
   if (!aprovada && !justificativa) {
     throw new ErroDeNegocio(
       'Informe o motivo da reprovação',
@@ -66,7 +70,7 @@ async function registrarAnalise(cargaId, dados, usuarioId) {
         palitoPercentual: palito,
         umidadePercentual: umidade,
         folhaPercentual: folha,
-        observacoes,
+        observacoes: estaVazio(observacoes) ? null : String(observacoes).trim(),
         motivoReprovacao: justificativa || null,
         precoAjustadoKg,
         valorTotal,

@@ -43,3 +43,34 @@ describe('erroDeTamanho', () => {
     assert.equal(erroDeTamanho({ chavePix: 'a'.repeat(78) }) !== null, true)
   })
 })
+
+const { erroDeConteudo, erroNosTextos } = require('./textos')
+
+describe('erroDeConteudo', () => {
+  test('deixa passar nomes e textos reais', () => {
+    assert.equal(erroNosTextos({
+      nome: 'Ervateira Rio Bonito Ltda',
+      titularConta: 'Ana Lu',
+      observacoes: 'Erva bem conservada, sem queima — talhão 3.',
+      identificacao: 'Talhão da sanga',
+    }), null)
+  })
+
+  test('recusa letra repetida muitas vezes, maiúscula ou minúscula', () => {
+    assert.match(erroDeConteudo({ nome: 'aaaaaAAAAA' }), /repetida/)
+    assert.match(erroDeConteudo({ observacoes: 'okkkkkk' }), /repetida/)
+  })
+
+  test('recusa palavra gigante sem espaço', () => {
+    assert.match(erroDeConteudo({ endereco: 'Aaajsjcjsjslgfkydkgdlgdmgxmgxlgdlgxhfkgdlgx' }), /40 letras/)
+  })
+
+  test('nome precisa de pelo menos 3 letras', () => {
+    assert.match(erroDeConteudo({ nome: '12' }), /3 letras/)
+    assert.match(erroDeConteudo({ nome: '...' }), /3 letras/)
+  })
+
+  test('não julga telefone, conta nem chave Pix (dígito repetido é normal ali)', () => {
+    assert.equal(erroDeConteudo({ telefone: '42999999999', conta: '100000', chavePix: '00000000000' }), null)
+  })
+})

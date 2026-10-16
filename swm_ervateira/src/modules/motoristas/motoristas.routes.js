@@ -4,6 +4,25 @@ const { autenticar } = require('../../middlewares/autenticacao')
 const { permitir } = require('../../middlewares/autorizacao')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { apenasDigitos, cpfValido } = require('../../lib/documentos')
+const { erroNosTextos } = require('../../lib/textos')
+const { lerData } = require('../../lib/validacao')
+
+const CNH = /^(A|B|C|D|E|AB|AC|AD|AE)$/
+
+// Confere nome, telefone, CNH e tipo do veículo (o que vier).
+function conferirMotorista({ nome, telefone, cnhCategoria, tipo }) {
+  const erroTexto = erroNosTextos({ nome, tipo, cnhCategoria })
+  if (erroTexto) throw new ErroDeNegocio(erroTexto, 400)
+  if (telefone) {
+    const digitos = apenasDigitos(telefone)
+    if (digitos.length < 10 || digitos.length > 11) {
+      throw new ErroDeNegocio('Telefone inválido: informe DDD e número, como (42) 99999-9999', 400)
+    }
+  }
+  if (cnhCategoria && !CNH.test(String(cnhCategoria).toUpperCase())) {
+    throw new ErroDeNegocio('Categoria da CNH inválida. Use A, B, C, D, E ou AB, AC, AD, AE', 400)
+  }
+}
 
 const router = Router()
 router.use(autenticar)
@@ -23,7 +42,7 @@ function normalizarPlaca(valor) {
 }
 
 router.get('/', async (req, res) => {
-  const { busca } = req.query
+  const busca = String(req.query.busca ?? '').trim().slice(0, 100)
 
   const where = busca
     ? {
@@ -55,13 +74,14 @@ router.post('/', permitir('OPERADOR_BALANCA'), async (req, res) => {
   if (!cpfValido(documento)) {
     throw new ErroDeNegocio('CPF do motorista inválido: confira os números', 400)
   }
+  conferirMotorista({ nome: String(nome).trim(), telefone, cnhCategoria, tipo: veiculo?.tipo })
 
   const dados = {
     nome: String(nome).trim(),
     cpf: documento,
     telefone: telefone || null,
-    cnhCategoria: cnhCategoria || null,
-    cnhValidade: cnhValidade ? new Date(cnhValidade) : null,
+    cnhCategoria: cnhCategoria ? String(cnhCategoria).toUpperCase() : null,
+    cnhValidade: lerData(cnhValidade, 'a validade da CNH'),
   }
 
   if (veiculo?.placa) {
@@ -89,6 +109,7 @@ router.post('/:id/veiculos', permitir('OPERADOR_BALANCA'), async (req, res) => {
   if (!PLACA.test(normalizada)) {
     throw new ErroDeNegocio('Placa inválida. Use o formato ABC1234 ou ABC1D23', 400)
   }
+  conferirMotorista({ tipo })
 
   const motorista = await prisma.motorista.findUnique({ where: { id: req.params.id } })
   if (!motorista) throw new ErroDeNegocio('Motorista não encontrado', 404)
@@ -107,11 +128,16 @@ router.post('/:id/veiculos', permitir('OPERADOR_BALANCA'), async (req, res) => {
 router.put('/:id', permitir('OPERADOR_BALANCA'), async (req, res) => {
   const { nome, telefone, cnhCategoria, cnhValidade, ativo } = req.body
 
+  if (nome !== undefined && String(nome).trim().length < 3) {
+    throw new ErroDeNegocio('Informe o nome do motorista', 400)
+  }
+  conferirMotorista({ nome: nome === undefined ? undefined : String(nome).trim(), telefone, cnhCategoria })
+
   const dados = {}
   if (nome !== undefined) dados.nome = String(nome).trim()
   if (telefone !== undefined) dados.telefone = telefone || null
-  if (cnhCategoria !== undefined) dados.cnhCategoria = cnhCategoria || null
-  if (cnhValidade !== undefined) dados.cnhValidade = cnhValidade ? new Date(cnhValidade) : null
+  if (cnhCategoria !== undefined) dados.cnhCategoria = cnhCategoria ? String(cnhCategoria).toUpperCase() : null
+  if (cnhValidade !== undefined) dados.cnhValidade = lerData(cnhValidade, 'a validade da CNH')
   if (ativo !== undefined) dados.ativo = Boolean(ativo)
 
   if (Object.keys(dados).length === 0) throw new ErroDeNegocio('Nada a atualizar', 400)

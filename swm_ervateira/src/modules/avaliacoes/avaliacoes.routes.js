@@ -2,6 +2,7 @@ const { Router } = require('express')
 const { prisma } = require('../../lib/prisma')
 const { autenticar } = require('../../middlewares/autenticacao')
 const { permitir } = require('../../middlewares/autorizacao')
+const { lerData, paginacao } = require('../../lib/validacao')
 
 const router = Router()
 router.use(autenticar)
@@ -36,15 +37,14 @@ async function comSituacao(avaliacoes) {
 
 router.get('/', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   const { produtorId, de, ate, comFoto } = req.query
-  const pagina = Number(req.query.pagina) || 1
-  const porPagina = Math.min(Number(req.query.porPagina) || 20, 200)
+  const { pagina, porPagina } = paginacao(req.query)
 
   const where = {}
-  if (produtorId) where.erval = { produtorId }
+  if (produtorId) where.erval = { produtorId: String(produtorId) }
   if (de || ate) {
     where.dataAvaliacao = {}
-    if (de) where.dataAvaliacao.gte = new Date(de)
-    if (ate) where.dataAvaliacao.lte = new Date(ate)
+    if (de) where.dataAvaliacao.gte = lerData(de, 'a data inicial')
+    if (ate) where.dataAvaliacao.lte = lerData(ate, 'a data final')
   }
   if (comFoto === 'true') where.fotos = { some: {} }
 

@@ -2,21 +2,27 @@ const { Router } = require('express')
 const { prisma } = require('../../lib/prisma')
 const { autenticar } = require('../../middlewares/autenticacao')
 const { apenas } = require('../../middlewares/autorizacao')
+const { lerData } = require('../../lib/validacao')
+
+const { ErroDeNegocio } = require('../../middlewares/erros')
 
 const router = Router()
 router.use(autenticar, apenas('ADMINISTRADOR'))
 
 router.get('/', async (req, res) => {
   const { acao, usuarioId, de, ate } = req.query
-  const limite = Math.min(Number(req.query.limite) || 200, 500)
+  const limite = Math.min(Math.max(1, parseInt(req.query.limite, 10) || 200), 500)
+  const DIA = /^\d{4}-\d{2}-\d{2}$/   // AAAA-MM-DD
 
   const where = {}
-  if (acao) where.acao = acao
-  if (usuarioId) where.usuarioId = usuarioId
+  if (acao) where.acao = String(acao)
+  if (usuarioId) where.usuarioId = String(usuarioId)
   if (de || ate) {
     where.criadoEm = {}
-    if (de) where.criadoEm.gte = new Date(`${de}T00:00:00`)
-    if (ate) where.criadoEm.lte = new Date(`${ate}T23:59:59.999`)
+    if (de && !DIA.test(de)) throw new ErroDeNegocio('Data inicial inválida: use AAAA-MM-DD', 400)
+    if (ate && !DIA.test(ate)) throw new ErroDeNegocio('Data final inválida: use AAAA-MM-DD', 400)
+    if (de) where.criadoEm.gte = lerData(`${de}T00:00:00`, 'a data inicial')
+    if (ate) where.criadoEm.lte = lerData(`${ate}T23:59:59.999`, 'a data final')
   }
 
   const [total, registros] = await prisma.$transaction([

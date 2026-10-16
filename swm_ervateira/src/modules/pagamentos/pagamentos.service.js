@@ -1,17 +1,26 @@
 const { prisma } = require('../../lib/prisma')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { lerNumero, DICA_FORMATO } = require('../../lib/numeros')
+const { FAIXAS, lerData, daLista } = require('../../lib/validacao')
+const { erroNosTextos } = require('../../lib/textos')
 
 function periodoDe(periodoInicio, periodoFim) {
-  const inicio = new Date(periodoInicio)
-  const fim = new Date(periodoFim)
-  if (isNaN(inicio) || isNaN(fim)) throw new ErroDeNegocio('Período inválido', 400)
+  if (!periodoInicio || !periodoFim) throw new ErroDeNegocio('Informe o período', 400)
+  const inicio = lerData(periodoInicio, 'a data inicial')
+  const fim = lerData(periodoFim, 'a data final')
   if (inicio > fim) throw new ErroDeNegocio('A data inicial não pode ser maior que a final', 400)
   fim.setHours(23, 59, 59, 999)
   return { inicio, fim }
 }
 
 function montarDestino(produtor, destino) {
+  if (destino) {
+    const erroTexto = erroNosTextos({ titularConta: destino.titularConta, banco: destino.banco })
+    if (erroTexto) throw new ErroDeNegocio(erroTexto, 400)
+    daLista(destino.formaPagamento, 'formaPagamento', 'a forma de pagamento')
+    daLista(destino.tipoChavePix, 'tipoChavePix', 'o tipo da chave Pix')
+    daLista(destino.tipoConta, 'tipoConta', 'o tipo de conta')
+  }
   const forma = destino?.formaPagamento || produtor.formaPagamento || 'PIX'
   const usa = (campo) => (destino && campo in destino ? destino[campo] : produtor[campo])
 
@@ -156,6 +165,9 @@ async function cargasElegiveis(produtorId, inicio, fim) {
 }
 
 function mapearPrecos(precos) {
+  if (precos !== undefined && precos !== null && !Array.isArray(precos)) {
+    throw new ErroDeNegocio('Os preços precisam vir em lista', 400)
+  }
   const mapa = new Map()
   for (const item of precos ?? []) {
     if (!item || !item.cargaId) continue
@@ -165,6 +177,9 @@ function mapearPrecos(precos) {
     }
     if (!(preco > 0)) {
       throw new ErroDeNegocio('O preço por quilo deve ser maior que zero', 400)
+    }
+    if (preco > FAIXAS.precoKg.max) {
+      throw new ErroDeNegocio(`O preço por quilo deve ser de no máximo R$ ${FAIXAS.precoKg.max},00`, 400, 'Confira se não sobrou algum dígito.')
     }
     mapa.set(item.cargaId, Number(preco.toFixed(4)))
   }
@@ -328,7 +343,7 @@ async function confirmarPagamento(ordemId) {
 async function listar({ produtorId, situacao }) {
   const where = {}
   if (produtorId) where.produtorId = produtorId
-  if (situacao) where.situacao = situacao
+  if (situacao) where.situacao = daLista(situacao, 'situacaoOrdem', 'a situação')
 
   const ordens = await prisma.ordemPagamento.findMany({
     where,

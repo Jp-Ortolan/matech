@@ -2,6 +2,14 @@ const { prisma } = require('../../lib/prisma')
 const { gerarHash } = require('../auth/auth.service')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { PERFIS } = require('../../middlewares/autorizacao')
+const { erroNosTextos } = require('../../lib/textos')
+
+// Nome completo: 3 letras no mínimo, sem texto sem sentido.
+function validarNome(nome) {
+  if (!nome || String(nome).trim().length < 3) throw new ErroDeNegocio('Informe o nome completo', 400)
+  const erro = erroNosTextos({ nome: String(nome).trim() })
+  if (erro) throw new ErroDeNegocio(erro, 400)
+}
 
 const CAMPOS_PUBLICOS = {
   id: true,
@@ -22,15 +30,21 @@ function validarPerfil(perfil) {
 }
 
 function validarSenha(senha) {
-  if (!senha || String(senha).length < MINIMO_SENHA) {
+  if (senha === undefined || senha === null || senha === '') {
+    throw new ErroDeNegocio(`A senha precisa ter ao menos ${MINIMO_SENHA} caracteres`, 400)
+  }
+  if (typeof senha !== 'string' || senha.length > 72) {
+    throw new ErroDeNegocio('A senha precisa ser um texto de até 72 caracteres', 400)
+  }
+  if (senha.length < MINIMO_SENHA) {
     throw new ErroDeNegocio(`A senha precisa ter ao menos ${MINIMO_SENHA} caracteres`, 400)
   }
 }
 
 function normalizarLogin(usuario) {
   const limpo = String(usuario ?? '').trim().toLowerCase()
-  if (limpo.length < 3) {
-    throw new ErroDeNegocio('O nome de usuário precisa ter ao menos 3 caracteres', 400)
+  if (limpo.length < 3 || limpo.length > 40) {
+    throw new ErroDeNegocio('O nome de usuário precisa ter ao menos 3 caracteres e no máximo 40', 400)
   }
   if (!/^[a-z0-9._-]+$/.test(limpo)) {
     throw new ErroDeNegocio('O nome de usuário aceita apenas letras, números, ponto, hífen e sublinhado', 400)
@@ -51,9 +65,7 @@ async function obter(id) {
 }
 
 async function criar({ nome, usuario, senha, perfil, ativo = true }) {
-  if (!nome || String(nome).trim().length < 3) {
-    throw new ErroDeNegocio('Informe o nome completo', 400)
-  }
+  validarNome(nome)
   validarPerfil(perfil)
   validarSenha(senha)
 
@@ -73,7 +85,7 @@ async function atualizar(id, { nome, perfil, ativo }, quemPede) {
   const dados = {}
 
   if (nome !== undefined) {
-    if (String(nome).trim().length < 3) throw new ErroDeNegocio('Informe o nome completo', 400)
+    validarNome(nome)
     dados.nome = String(nome).trim()
   }
 

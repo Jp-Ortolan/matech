@@ -4,7 +4,9 @@ const { autenticar } = require('../../middlewares/autenticacao')
 const { permitir, podeNegocio } = require('../../middlewares/autorizacao')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { apenasDigitos, erroNoDocumento } = require('../../lib/documentos')
-const { erroDeTamanho } = require('../../lib/textos')
+const { erroNosTextos } = require('../../lib/textos')
+const { daLista } = require('../../lib/validacao')
+const { UFS } = require('../../lib/ufs')
 const { ajustarPagamento } = require('../../lib/pagamento')
 
 const router = Router()
@@ -31,13 +33,35 @@ function extrairCampos(corpo = {}) {
 
   if (dados.cpfCnpj) dados.cpfCnpj = apenasDigitos(dados.cpfCnpj)
   if (dados.cep) dados.cep = apenasDigitos(dados.cep).slice(0, 8) || null
-  if (dados.uf) dados.uf = String(dados.uf).toUpperCase().slice(0, 2)
+  if (dados.uf) dados.uf = String(dados.uf).toUpperCase().trim()
 
+  // Texto: tira espaços das pontas.
+  for (const [campo, valor] of Object.entries(dados)) {
+    if (typeof valor === 'string') dados[campo] = valor.trim() || null
+  }
   return dados
 }
 
+// Formato dos campos que têm lista ou padrão fixo.
+function conferirFormato(dados) {
+  const erroTexto = erroNosTextos(dados)
+  if (erroTexto) throw new ErroDeNegocio(erroTexto, 400)
+
+  if (dados.formaPagamento !== undefined) daLista(dados.formaPagamento, 'formaPagamento', 'a forma de pagamento')
+  if (dados.tipoChavePix) daLista(dados.tipoChavePix, 'tipoChavePix', 'o tipo da chave Pix')
+  if (dados.tipoConta) daLista(dados.tipoConta, 'tipoConta', 'o tipo de conta')
+  if (dados.uf && !UFS.includes(dados.uf)) throw new ErroDeNegocio('UF inválida: use a sigla do estado, como PR', 400)
+  if (dados.cep && dados.cep.length !== 8) throw new ErroDeNegocio('O CEP tem 8 dígitos', 400)
+  if (dados.telefone) {
+    const digitos = apenasDigitos(dados.telefone)
+    if (digitos.length < 10 || digitos.length > 11) {
+      throw new ErroDeNegocio('Telefone inválido: informe DDD e número, como (42) 99999-9999', 400)
+    }
+  }
+}
+
 router.get('/', async (req, res) => {
-  const { busca } = req.query
+  const busca = String(req.query.busca ?? '').trim().slice(0, 100)
 
   const where = busca
     ? { OR: [
@@ -78,9 +102,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   const dados = extrairCampos(req.body)
   if (!dados.nome) throw new ErroDeNegocio('Informe o nome do produtor', 400)
-
-  const erroLongo = erroDeTamanho(dados)
-  if (erroLongo) throw new ErroDeNegocio(erroLongo, 400)
+  conferirFormato(dados)
 
   const erroDoc = erroNoDocumento(dados.cpfCnpj)
   if (erroDoc) throw new ErroDeNegocio(erroDoc, 400)
@@ -105,9 +127,8 @@ router.post('/', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
 router.put('/:id', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   const dados = extrairCampos(req.body)
   if (Object.keys(dados).length === 0) throw new ErroDeNegocio('Nada a atualizar', 400)
-
-  const erroLongo = erroDeTamanho(dados)
-  if (erroLongo) throw new ErroDeNegocio(erroLongo, 400)
+  if ('nome' in req.body && !dados.nome) throw new ErroDeNegocio('O nome do produtor não pode ficar vazio', 400)
+  conferirFormato(dados)
 
   if (dados.cpfCnpj) {
     const erroDoc = erroNoDocumento(dados.cpfCnpj)

@@ -129,8 +129,12 @@ describe('validarPrecoBase', () => {
     assert.throws(() => validarPrecoBase('4.85'), /número/i)
   })
 
-  test('texto com milhar e vírgula é lido no padrão brasileiro', () => {
-    assert.equal(validarPrecoBase('1.250,5'), 1250.5)
+  test('texto com vírgula é lido no padrão brasileiro', () => {
+    assert.equal(validarPrecoBase('12,5'), 12.5)
+  })
+
+  test('recusa preço acima de R$ 100 por quilo (dígito a mais)', () => {
+    assert.throws(() => validarPrecoBase('1.250,5'), /no máximo/i)
   })
 
   test('recusa preço zero', () => {
@@ -185,5 +189,20 @@ describe('montarFiltro · busca por ticket ou produtor', () => {
     assert.equal(where.situacao, 'ANALISADA')
     assert.equal(where.produtorId, 'p1')
     assert.ok(where.OR)
+  })
+})
+
+const { validarPesoBruto } = require('./cargas.service')
+
+describe('faixas da balança', () => {
+  test('peso bruto entre 1.000 e 80.000 kg', () => {
+    assert.equal(validarPesoBruto('8.420'), 8420)
+    assert.throws(() => validarPesoBruto(1), /pelo menos 1\.000/)
+    assert.throws(() => validarPesoBruto(80001), /no máximo 80\.000/)
+  })
+
+  test('tara de pelo menos 1.000 kg', () => {
+    assert.throws(() => calcularPesoLiquido(8420, '0,4'), /pelo menos 1\.000 kg/)
+    assert.equal(calcularPesoLiquido(8420, 1000), 7420)
   })
 })

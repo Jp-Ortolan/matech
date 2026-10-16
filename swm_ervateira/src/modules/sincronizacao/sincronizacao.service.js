@@ -1,7 +1,28 @@
 const { prisma } = require('../../lib/prisma')
-const { ErroDeNegocio } = require('../../middlewares/erros')
+const { ErroDeNegocio, traduzirErro } = require('../../middlewares/erros')
 const { lerNumero, estaVazio, DICA_FORMATO } = require('../../lib/numeros')
-const { erroDeTamanho } = require('../../lib/textos')
+const { erroNosTextos } = require('../../lib/textos')
+const { FAIXAS, numeroNaFaixa, daLista, lerData, coordenada } = require('../../lib/validacao')
+const { UFS } = require('../../lib/ufs')
+const { apenasDigitos } = require('../../lib/documentos')
+
+// Mesmas regras de texto, lista, UF e telefone da web.
+function conferirProdutor(p) {
+  const erroTexto = erroNosTextos(p)
+  if (erroTexto) throw new ErroDeNegocio(erroTexto, 400)
+  daLista(p.formaPagamento, 'formaPagamento', 'a forma de pagamento')
+  daLista(p.tipoChavePix, 'tipoChavePix', 'o tipo da chave Pix')
+  daLista(p.tipoConta, 'tipoConta', 'o tipo de conta')
+  if (p.uf && !UFS.includes(String(p.uf).toUpperCase().trim())) {
+    throw new ErroDeNegocio('UF inválida: use a sigla do estado, como PR', 400)
+  }
+  if (p.telefone) {
+    const digitos = apenasDigitos(p.telefone)
+    if (digitos.length < 10 || digitos.length > 11) {
+      throw new ErroDeNegocio('Telefone inválido: informe DDD e número', 400)
+    }
+  }
+}
 const { erroNoDocumento } = require('../../lib/documentos')
 const { ajustarPagamento } = require('../../lib/pagamento')
 
@@ -9,6 +30,9 @@ const ENTIDADES = ['Produtor', 'ProdutorAlteracao', 'Erval', 'Avaliacao']
 
 async function receberLote({ dispositivoId, operacoes }, usuarioId) {
   if (!dispositivoId) throw new ErroDeNegocio('Informe o identificador do dispositivo', 400)
+  if (typeof dispositivoId !== 'string' || dispositivoId.length > 64) {
+    throw new ErroDeNegocio('Identificador do dispositivo inválido', 400)
+  }
   if (!Array.isArray(operacoes)) throw new ErroDeNegocio('O lote precisa de uma lista de operações', 400)
   if (operacoes.length === 0) return { recebidas: 0, resultados: [] }
   if (operacoes.length > 200) throw new ErroDeNegocio('Envie no máximo 200 operações por lote', 400)
@@ -29,9 +53,10 @@ async function receberLote({ dispositivoId, operacoes }, usuarioId) {
 }
 
 async function aplicarUma(operacao, dispositivoId, usuarioId) {
-  const { clientId, entidade, criadoEmOrigem, payload } = operacao
+  const { clientId, entidade, payload } = operacao ?? {}
+  const criadoEmOrigem = dataValidaOuNula(operacao?.criadoEmOrigem)
 
-  if (!clientId) return { clientId: null, entidade, situacao: 'ERRO', erro: 'Operação sem clientId' }
+  if (!clientId || typeof clientId !== 'string' || clientId.length > 64) return { clientId: null, entidade, situacao: 'ERRO', erro: 'Operação sem clientId' }
   if (!ENTIDADES.includes(entidade)) {
     await registrar({ clientId, entidade, dispositivoId, usuarioId, criadoEmOrigem, payload, situacao: 'ERRO', erro: `Entidade desconhecida: ${entidade}` })
     return { clientId, entidade, situacao: 'ERRO', erro: `Entidade desconhecida: ${entidade}` }
@@ -64,8 +89,7 @@ const APLICADORES = {
     if (!p.nome) throw new ErroDeNegocio('Informe o nome do produtor', 400)
     if (!p.cpfCnpj) throw new ErroDeNegocio('Informe o CPF ou CNPJ', 400)
 
-    const erroLongo = erroDeTamanho(p)
-    if (erroLongo) throw new ErroDeNegocio(erroLongo, 400)
+    conferirProdutor(p)
 
     const erroDoc = erroNoDocumento(p.cpfCnpj)
     if (erroDoc) throw new ErroDeNegocio(erroDoc, 400)
@@ -125,8 +149,7 @@ const APLICADORES = {
     }
 
     if (!p.nome || String(p.nome).trim().length < 3) throw new ErroDeNegocio('Informe o nome do produtor', 400)
-    const erroLongo = erroDeTamanho(p)
-    if (erroLongo) throw new ErroDeNegocio(erroLongo, 400)
+    conferirProdutor(p)
 
     const atual = await prisma.produtor.findUnique({ where: { id: produtorId } })
     if (atual.atualizadoEm > alteradoEmOrigem) {
@@ -163,17 +186,19 @@ const APLICADORES = {
       return { situacao: 'DEPENDENCIA_PENDENTE', erro: `Produtor ${p.produtorClientId || p.produtorId} ainda não chegou ao servidor` }
     }
     if (!p.identificacao) throw new ErroDeNegocio('Informe a identificação do erval', 400)
+    const erroTexto = erroNosTextos({ identificacao: p.identificacao })
+    if (erroTexto) throw new ErroDeNegocio(erroTexto, 400)
 
     const criado = await prisma.erval.create({
       data: {
         clientId,
         produtorId,
         identificacao: String(p.identificacao).trim(),
-        tipoErva: p.tipoErva || 'NATIVA',
-        quantidadeEstimadaKg: numeroDoAparelho(p.quantidadeEstimadaKg, 'A quantidade estimada'),
-        idadeAnos: inteiroOuNulo(p.idadeAnos),
-        latitude: numeroOuNulo(p.latitude),
-        longitude: numeroOuNulo(p.longitude),
+        tipoErva: daLista(p.tipoErva, 'tipoErva', 'o tipo de erva', 'NATIVA'),
+        quantidadeEstimadaKg: quantidadeEstimada(p.quantidadeEstimadaKg),
+        idadeAnos: idade(p.idadeAnos),
+        latitude: coordenada(p.latitude, 'latitude'),
+        longitude: coordenada(p.longitude, 'longitude'),
         criadoOffline: true,
         sincronizadoEm: new Date(),
       },
@@ -188,6 +213,9 @@ const APLICADORES = {
     const alteradoEmOrigem = new Date(p.alteradoEmOrigem)
     if (isNaN(alteradoEmOrigem)) throw new ErroDeNegocio('alteradoEmOrigem inválido', 400)
 
+    const erroTexto = erroNosTextos({ observacoes: p.observacoes, taloAparente: p.taloAparente })
+    if (erroTexto) throw new ErroDeNegocio(erroTexto, 400)
+
     const ervalId = await resolverErval(p)
     if (!ervalId) {
       return { situacao: 'DEPENDENCIA_PENDENTE', erro: `Erval ${p.ervalClientId || p.ervalId} ainda não chegou ao servidor` }
@@ -196,17 +224,17 @@ const APLICADORES = {
     const dados = {
       ervalId,
       usuarioId,                                  // vem do token, nunca do corpo
-      dataAvaliacao: p.dataAvaliacao ? new Date(p.dataAvaliacao) : new Date(),
-      tipoErva: p.tipoErva || 'NATIVA',
-      ervaQueimada: p.ervaQueimada || 'NAO',
-      idadeErvalAnos: inteiroOuNulo(p.idadeErvalAnos),
-      quantidadeEstimadaKg: numeroDoAparelho(p.quantidadeEstimadaKg, 'A quantidade estimada'),
-      classificacao: vazioVirauNulo(p.classificacao),
-      umidadeEstimada: numeroDoAparelho(p.umidadeEstimada, 'A umidade estimada'),
+      dataAvaliacao: lerData(p.dataAvaliacao, 'a data da avaliação', { semFuturo: true }) ?? new Date(),
+      tipoErva: daLista(p.tipoErva, 'tipoErva', 'o tipo de erva', 'NATIVA'),
+      ervaQueimada: daLista(p.ervaQueimada, 'ervaQueimada', 'a erva queimada', 'NAO'),
+      idadeErvalAnos: idade(p.idadeErvalAnos),
+      quantidadeEstimadaKg: quantidadeEstimada(p.quantidadeEstimadaKg),
+      classificacao: daLista(p.classificacao, 'classificacao', 'a classificação'),
+      umidadeEstimada: numeroNaFaixa(p.umidadeEstimada, { rotulo: 'a umidade estimada', min: 0, max: 100, unidade: '%' }),
       taloAparente: vazioVirauNulo(p.taloAparente),
-      valorCombinadoKg: numeroDoAparelho(p.valorCombinadoKg, 'O valor combinado'),
-      latitude: numeroOuNulo(p.latitude),
-      longitude: numeroOuNulo(p.longitude),
+      valorCombinadoKg: precoCombinado(p.valorCombinadoKg),
+      latitude: coordenada(p.latitude, 'latitude'),
+      longitude: coordenada(p.longitude, 'longitude'),
       observacoes: vazioVirauNulo(p.observacoes),
       criadoOffline: true,
       alteradoEmOrigem,
@@ -349,14 +377,33 @@ async function resolverErval(p) {
 }
 
 function traduzirErroDoPrisma(e) {
-  if (e.code === 'P2002') return `Já existe um registro com este valor em: ${e.meta?.target}`
-  if (e.code === 'P2003') return 'Referência para um registro que não existe'
+  const conhecido = traduzirErro(e)
+  if (conhecido) return conhecido.detalhe ? `${conhecido.erro}: ${conhecido.detalhe}` : conhecido.erro
   console.error('[sincronizacao] erro não tratado', e)
   return 'Erro ao gravar no servidor'
 }
 
+// Faixas dos números que vêm do app (as mesmas da tela do app).
+function quantidadeEstimada(v) {
+  const n = numeroDoAparelho(v, 'A quantidade estimada')
+  if (n === null) return null
+  return numeroNaFaixa(n, { rotulo: 'a quantidade estimada', min: 0.01, ...FAIXAS.pesoEstimadoKg, unidade: ' kg' })
+}
+function idade(v) {
+  if (estaVazio(v)) return null
+  return numeroNaFaixa(v, { rotulo: 'a idade do erval', ...FAIXAS.idadeAnos, inteiro: true, unidade: ' anos' })
+}
+function precoCombinado(v) {
+  const n = numeroDoAparelho(v, 'O valor combinado')
+  if (n === null) return null
+  return numeroNaFaixa(n, { rotulo: 'o valor combinado', min: 0.01, ...FAIXAS.precoKg })
+}
+function dataValidaOuNula(v) {
+  const d = v ? new Date(v) : null
+  return d && !isNaN(d) ? d : null
+}
+
 const vazioVirauNulo = (v) => (v === undefined || v === null || v === '' ? null : v)
-const numeroOuNulo = (v) => (v === undefined || v === null || v === '' || isNaN(Number(v)) ? null : Number(v))
 // Valor digitado no app: vazio vira nulo; formato errado é recusado
 // (antes virava nulo calado e o dado se perdia).
 function numeroDoAparelho(valor, rotulo) {
