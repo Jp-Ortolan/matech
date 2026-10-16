@@ -74,3 +74,28 @@ describe('erroDeConteudo', () => {
     assert.equal(erroDeConteudo({ telefone: '42999999999', conta: '100000', chavePix: '00000000000' }), null)
   })
 })
+
+describe('regras mais rígidas para nomes e textos', () => {
+  test('recusa palavra de teste e sequência do teclado', () => {
+    assert.match(erroDeConteudo({ nome: 'teste' }), /teste/)
+    assert.match(erroDeConteudo({ nome: 'Teste Silva' }), /teste/)
+    assert.match(erroDeConteudo({ nome: 'asdfgh' }), /teste/)
+    assert.match(erroDeConteudo({ nome: 'Maria Sdfgh' }), /teclado/)
+    assert.match(erroDeConteudo({ municipio: 'teste' }), /teste/)
+    assert.match(erroDeConteudo({ identificacao: 'asdf' }), /teste/)
+  })
+  test('nome precisa de nome e sobrenome', () => {
+    assert.match(erroDeConteudo({ nome: 'Maria' }), /sobrenome/)
+  })
+  test('palavra sem vogal não é nome', () => {
+    assert.match(erroDeConteudo({ nome: 'Maria Brtk' }), /não parece uma palavra/)
+  })
+  test('aceita nomes reais, siglas e observações comuns', () => {
+    for (const nome of ['Maria Silva', 'João P. Souza', 'Comércio XYZ Ltda', 'Lynn Barros', 'Ervateira Rio Bonito Ltda']) {
+      assert.equal(erroDeConteudo({ nome }), null, nome)
+    }
+    assert.equal(erroDeConteudo({ observacoes: 'teste de umidade feito na amostra' }), null)
+    assert.equal(erroDeConteudo({ banco: 'BB' }), null)
+  })
+})
+
