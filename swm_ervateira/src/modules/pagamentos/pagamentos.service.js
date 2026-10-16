@@ -1,4 +1,5 @@
 const { prisma } = require('../../lib/prisma')
+const { valorDaCarga, somarReais } = require('../../lib/dinheiro')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { lerNumero, DICA_FORMATO } = require('../../lib/numeros')
 const { FAIXAS, lerData, daLista } = require('../../lib/validacao')
@@ -90,7 +91,7 @@ async function gerarOrdem({ produtorId, periodoInicio, periodoFim, precos, desti
 
   const destinoDaOrdem = montarDestino(produtor, destino)
 
-  const valorTotal = Number(itens.reduce((soma, i) => soma + i.valor, 0).toFixed(2))
+  const valorTotal = somarReais(itens.map((i) => i.valor))
 
   const MAXIMO_DE_TENTATIVAS = 3
 
@@ -197,7 +198,7 @@ function montarItens(cargas, precoPorCarga) {
       )
     }
 
-    const valor = Number((Number(c.pesoLiquidoKg) * precoKg).toFixed(2))
+    const valor = valorDaCarga(Number(c.pesoLiquidoKg), precoKg)
 
     return {
       cargaId: c.id,

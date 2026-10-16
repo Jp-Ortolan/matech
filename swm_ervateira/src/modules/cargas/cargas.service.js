@@ -1,4 +1,5 @@
 const { prisma } = require('../../lib/prisma')
+const { valorDaCarga } = require('../../lib/dinheiro')
 const { ErroDeNegocio } = require('../../middlewares/erros')
 const { lerNumero, estaVazio, DICA_FORMATO } = require('../../lib/numeros')
 const { FAIXAS, numeroNaFaixa, daLista, lerData } = require('../../lib/validacao')
@@ -97,7 +98,7 @@ function calcularPagamento({ pesoLiquidoKg, precoBaseKg = null }) {
 
   const valorTotal = precoBase === null
     ? null
-    : Number((peso * precoBase).toFixed(2))
+    : valorDaCarga(peso, precoBase)
 
   return {
     pesoLiquidoKg: peso,
