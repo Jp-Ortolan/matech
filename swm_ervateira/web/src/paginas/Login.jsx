@@ -42,7 +42,7 @@ export default function Login() {
           {[
             'Pesagem, ticket e rastreabilidade da carga',
             'Avaliação em campo mesmo sem internet',
-            'Cálculo de pagamento com desconto por qualidade',
+            'Pagamento calculado com o preço acordado por carga',
           ].map((t) => (
             <li key={t} className="flex items-center gap-3 text-[0.9375rem] text-barra-tenue">
               <span className="h-[7px] w-[7px] rounded-[1px] bg-mate-700" />

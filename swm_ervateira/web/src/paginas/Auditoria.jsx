@@ -40,11 +40,14 @@ const ROTULO_CAMPO = {
   cnhCategoria: 'CNH', cnhValidade: 'Validade da CNH', placa: 'Placa', tipo: 'Veículo',
   tipoMateriaPrima: 'Matéria-prima', pesoBrutoKg: 'Peso bruto', taraKg: 'Tara', pesoLiquidoKg: 'Peso líquido',
   aprovada: 'Resultado', palitoPercentual: 'Palito', umidadePercentual: 'Umidade', folhaPercentual: 'Folha',
-  motivoReprovacao: 'Motivo', valorTotal: 'Valor', cargas: 'Cargas', situacao: 'Situação',
-  periodoInicio: 'De', periodoFim: 'Até',
+  motivoReprovacao: 'Motivo', periodoInicio: 'De', periodoFim: 'Até', cargas: 'Cargas',
+  valorTotal: 'Valor', situacao: 'Situação',
   // o que chega do app de campo
   Produtor: 'Produtores', Erval: 'Ervais', Avaliacao: 'Avaliações',
 }
+
+const ORDEM_DOS_CAMPOS = Object.keys(ROTULO_CAMPO)
+const posicaoDoCampo = (c) => (ORDEM_DOS_CAMPOS.includes(c) ? ORDEM_DOS_CAMPOS.indexOf(c) : 999)
 
 const SITUACAO_DA_ORDEM = { PENDENTE: 'Em aberto', PAGA: 'Paga', CANCELADA: 'Cancelada' }
 
@@ -74,7 +77,8 @@ const CAMPOS_VISIVEIS = 5   // cadastro grande mostra só os primeiros campos
 function MudancasDoRegistro({ registro }) {
   const depois = registro.depois || {}
   const antes = registro.antes || {}
-  const campos = Object.keys(depois)
+  // o banco reordena as chaves ao gravar: aqui voltam para a ordem natural
+  const campos = Object.keys(depois).sort((a, b) => posicaoDoCampo(a) - posicaoDoCampo(b))
   // cadastro novo não tem "antes": mostra só o valor, sem o "— →"
   const ehNovo = Object.keys(antes).length === 0
 

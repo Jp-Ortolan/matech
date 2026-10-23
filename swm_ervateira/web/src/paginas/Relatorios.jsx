@@ -182,7 +182,7 @@ function Recebimento({ lista, veDinheiro }) {
                    apoio="Com entrega no período" />
       </FaixaDeIndicadores>
 
-      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Painel titulo="Recebimento por produtor" acao={`${porProdutor.length} produtores`}>
           <Tabela
             colunas={[
@@ -303,7 +303,7 @@ function Qualidade({ lista, veDinheiro }) {
                    apoio="Cargas com preço já acordado" />}
       </FaixaDeIndicadores>
 
-      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Painel titulo="Análises lançadas" acao={<SaidaDoPainel aoExportar={exportar} />}>
           <Tabela
             colunas={[
@@ -541,7 +541,7 @@ function Financeiro({ ordens }) {
                    apoio="Valor médio por ordem emitida" />
       </FaixaDeIndicadores>
 
-      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Painel titulo="Ordens emitidas" acao={<SaidaDoPainel aoExportar={exportar} />}>
           <Tabela
             colunas={[
