@@ -50,7 +50,7 @@ router.post('/:id/confirmar', permitir('ADMINISTRATIVO'), async (req, res) => {
     entidadeId: paga.id,
     alvo: [paga.numero, produtor?.nome].filter(Boolean).join(' · '),
     antes: { situacao: 'PENDENTE' },
-    depois: { situacao: 'PAGA', valorTotal: Number(paga.valorTotal) },
+    depois: { situacao: 'PAGA' },
   })
 
   res.json(paga)
