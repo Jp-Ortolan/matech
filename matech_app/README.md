@@ -12,40 +12,12 @@ no pátio, onde há computador e internet.
 
 ## 1. Antes de rodar pela primeira vez
 
-O projeto está com o código, mas **sem as pastas de plataforma** (`android/`,
-`ios/`). Elas são geradas pelo próprio Flutter:
-
 ```powershell
-cd "C:\Users\joaop\Documents\Faculdade 2026\Tcc\desenvolvimento\matech_app"
-flutter create . --platforms=android --org br.com.matech
+cd matech_app
 flutter pub get
 ```
 
-O `flutter create .` numa pasta que já tem `lib/` e `pubspec.yaml` **não
-sobrescreve** o que existe: ele só acrescenta o que falta.
-
-### Permissões do Android
-
-Depois do `flutter create`, abra
-`android/app/src/main/AndroidManifest.xml` e acrescente, **antes** da tag
-`<application>`:
-
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-<uses-permission android:name="android.permission.CAMERA" />
-```
-
-E, **só para desenvolvimento**, adicione na tag `<application>`:
-
-```xml
-android:usesCleartextTraffic="true"
-```
-
-Sem isso o Android bloqueia HTTP sem TLS e o login falha com erro de rede — a
-API local roda em `http://`, não em `https://`. Em produção isso sai e a API
-passa a ter certificado.
+A pasta `android/` já está no repositório, com as permissões de internet, localização e câmera declaradas no `AndroidManifest.xml`.
 
 ---
 
@@ -80,8 +52,8 @@ flutter run
 ```
 
 Entre com **`marcos.ferrari`** / **`matech123`** — é o perfil
-`COMPRADOR_AVALIADOR`, o único (junto do administrativo) que a rota
-`POST /api/sincronizacao` aceita.
+`COMPRADOR_AVALIADOR`. A rota `POST /api/sincronizacao` aceita esse perfil,
+o administrativo e o administrador.
 
 ---
 
@@ -320,7 +292,7 @@ O passo 5 é o que prova que não é "o último que chega ganha".
 
 ---
 
-## 9. Como demonstrar isso para a banca
+## 9. Como demonstrar a sincronização
 
 1. **Coletar sem conexão** — ative o modo avião, cadastre um produtor e faça
    uma avaliação com foto. Tudo é salvo; a aba Sincronização mostra a fila
@@ -356,7 +328,7 @@ aplicativo) e `dio` (o `http` do próprio time do Dart dá conta).
 
 ---
 
-## 11. Verificar antes de apresentar
+## 11. Verificar o código
 
 Dois comandos, nesta ordem, na pasta do aplicativo:
 
@@ -367,24 +339,11 @@ flutter test      # os testes de test/
 
 ### Os testes
 
-Rodam **sem emulador, sem banco e sem servidor** — o que só é possível porque
-cobrem lógica pura. É o mesmo argumento que vale para o `calcularPagamento` na
-API: regra isolada é regra testável.
+Rodam **sem emulador, sem banco e sem servidor**, porque cobrem lógica pura: o dígito verificador do CPF e do CNPJ, as faixas plausíveis dos valores, a lista de municípios, o endereço do servidor, a política de novas tentativas, a validade do *token*, o formato do `clientId` e a ligação entre registros pais e filhos na fila de sincronização.
 
-| Arquivo | O que garante |
-|---|---|
-| `politica_de_tentativas_test.dart` | a escada de espera sobe, para de subir no último degrau e não estoura com contagem errada; a dependência custa pouco nas primeiras rodadas e desiste no limite |
-| `token_test.dart` | o `exp` do JWT (em **segundos**) vira `DateTime` (em milissegundos) corretamente; token ilegível não desloga ninguém |
-| `identificadores_test.dart` | o `clientId` tem formato UUID v4 e não colide em dez mil gerações |
+A escada de espera entre tentativas é o tipo de código que erra em silêncio: um limite trocado faria o aplicativo tentar de dez em dez segundos o dia inteiro, gastando bateria, e a sincronização continuaria "funcionando". Por isso ela tem teste próprio.
 
-Não são decoração. A escada de espera é o tipo de código que erra em silêncio:
-um `clamp` trocado faria o aplicativo tentar de dez em dez segundos o dia
-inteiro, matando a bateria — e a sincronização continuaria "funcionando".
-E esquecer o fator mil no `exp` faria toda sessão parecer vencida desde 1970,
-pedindo login a cada abertura, inclusive no erval, onde não há sinal para isso.
-
-Do lado da API, `npm test` cobre o cálculo de pagamento e a numeração
-sequencial sob concorrência — 20 testes.
+Do lado da API, `npm test` (na pasta `swm_ervateira`) roda os testes da API e da web.
 
 ---
 
@@ -409,7 +368,6 @@ Rode sempre `flutter analyze` antes de apresentar.
   o aplicativo aberto ou em segundo plano. Subir com o aplicativo encerrado
   exigiria `workmanager` ou equivalente — uma dependência com configuração
   nativa dos dois lados, que não se paga no escopo deste trabalho.
-- **Testes de widget.**
 
 ---
 

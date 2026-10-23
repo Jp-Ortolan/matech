@@ -1,45 +1,46 @@
-# MATECH · API e sistema web
+# MATECH · API e plataforma web
 
-Back-end REST e interface web do **MATECH**, sistema de gestão de matéria-prima
-para indústrias ervateiras. O aplicativo móvel fica em `../matech_app`.
+API REST e interface web do **MATECH**. O aplicativo móvel fica em [`../matech_app`](../matech_app) e a visão geral do projeto no [README principal](../README.md).
 
 ---
 
 ## O que este serviço faz
 
-Concentra **toda a regra de negócio** do sistema. Os dois clientes — a web em
-React e o aplicativo em Flutter — não calculam nada que valha dinheiro: eles
-perguntam, exibem e enviam. A conta que vale acontece aqui.
+Concentra **toda a regra de negócio** do sistema. Os dois clientes, a web em React e o aplicativo em Flutter, não calculam nada que valha dinheiro: eles consultam, exibem e enviam. O cálculo que vale acontece aqui.
+
+São 11 módulos e 37 rotas, documentadas em `/api/docs` (OpenAPI):
 
 | Módulo | Responsabilidade |
 |---|---|
-| `auth` | login, token JWT e os quatro perfis de acesso |
-| `produtores` | cadastro de quem entrega, com validação de CPF/CNPJ |
-| `motoristas` | motoristas e veículos, com a tara guardada por placa |
-| `cargas` | pesagem, ticket sequencial e o cálculo do RF10 |
-| `qualidade` | análise de laboratório e o desconto por palito |
-| `pagamentos` | ordens de pagamento agrupadas por período |
-| `sincronizacao` | recebimento do lote coletado em campo, sem conexão |
-| `avaliacoes` | consulta do que o aplicativo produziu no erval |
+| `auth` | login, token JWT e troca da própria senha |
+| `usuarios` | contas de acesso e os cinco perfis |
+| `produtores` | cadastro de quem entrega, com validação de CPF/CNPJ e forma de pagamento |
+| `motoristas` | motoristas e veículos |
+| `cargas` | pesagem em duas etapas (bruto e tara), ticket sequencial e peso líquido |
+| `qualidade` | fila de amostras e análise (palito, umidade, folha, aprovação) |
+| `pagamentos` | ordens de pagamento por produtor e período, e a baixa |
+| `sincronizacao` | recebimento da fila do aplicativo, sem duplicar |
+| `avaliacoes` | consulta das avaliações feitas em campo |
+| `aparelhos` | último contato e fila pendente de cada celular |
+| `auditoria` | registro de alterações de todo o sistema |
 
 ---
 
 ## Rodar
 
-Requisitos: **Node 24+** e **PostgreSQL 18** rodando localmente.
+Requisitos: **Node 24+** e **PostgreSQL** rodando localmente.
 
 ```bash
 cp ../.env.exemplo .env      # e preencha DATABASE_URL e JWT_SECRET
 npm install
-npx prisma migrate dev       # cria as 12 tabelas
+npx prisma migrate dev       # cria as 14 tabelas
 npm run seed                 # dados de exemplo
 npm run dev                  # http://localhost:3000
 ```
 
-Confira em `http://localhost:3000/health` — deve responder
-`{"status":"ok","banco":"conectado"}`.
+Confira em `http://localhost:3000/health`, que deve responder `{"status":"ok","banco":"conectado"}`.
 
-O front:
+A plataforma web:
 
 ```bash
 cd web
@@ -47,18 +48,19 @@ npm install
 npm run dev                  # http://localhost:5173
 ```
 
-Usuários de exemplo, senha **matech123** para todos:
+Usuários de exemplo, com a senha **matech123** no ambiente local:
 
 | Usuário | Perfil | O que pode |
 |---|---|---|
-| `rogerio.anselmo` | Operador de balança | registrar pesagem, cadastrar motorista |
-| `cristiane.modesto` | Analista de qualidade | lançar análise e aplicar o desconto |
+| `rogerio.anselmo` | Operador de balança | registrar e fechar pesagens, cadastrar motorista |
+| `cristiane.modesto` | Analista de qualidade | lançar a análise |
 | `marcos.ferrari` | Comprador / avaliador | cadastrar produtor, sincronizar o aplicativo |
-| `solange.petry` | Administrativo | tudo |
+| `solange.petry` | Administrativo | todas as operações do negócio, inclusive pagamentos |
+| `admin.matech` | Administrador | tudo, mais contas de acesso e registro de alterações |
 
-Outros comandos: `npm test`, `npm run studio`, `npm run lint` (dentro de `web`).
-O arquivo `requisicoes.http` tem requisições prontas para a extensão REST Client
-do VS Code.
+Na versão publicada, a senha dos usuários de exemplo vem da variável `SENHA_SEED` (ver [`docs/publicar.md`](../docs/publicar.md)).
+
+Outros comandos: `npm test` e `npm run studio`. O arquivo `requisicoes.http` tem requisições prontas para a extensão REST Client do VS Code.
 
 ---
 
@@ -66,83 +68,56 @@ do VS Code.
 
 ```
 src/
-├── config/env.js       lê o .env e RECUSA subir se faltar variável
-├── lib/
-│   ├── prisma.js       conexão única com o banco
-│   └── documentos.js   validação de CPF e CNPJ por dígito verificador
-├── middlewares/        autenticação · autorização · tratamento de erros
+├── config/env.js       lê o .env e recusa subir se faltar variável
+├── docs/               documentação OpenAPI das rotas
+├── lib/                regras puras: documentos, números, pagamento, auditoria...
+├── middlewares/        autenticação · autorização por perfil · tratamento de erros
 ├── modules/            um diretório por assunto do domínio
 │   └── <assunto>/      rotas · controlador · serviço · testes
-├── app.js              monta o Express — NÃO abre porta
+├── app.js              monta o Express (não abre porta)
 └── server.js           sobe na porta
+web/                    plataforma web em React + Vite
+prisma/                 schema.prisma, migrações e seed
 ```
 
-**Módulos por assunto, e não por tipo de arquivo.** A alternativa comum é
-`controllers/`, `services/`, `routes/`. O problema é que uma alteração em
-pagamentos obrigaria a abrir três pastas. Agrupando por assunto, tudo que fala
-de pagamento está num lugar só — e um módulo poderia ser extraído amanhã, se
-algum dia precisar virar serviço separado.
+**Módulos por assunto, e não por tipo de arquivo.** Tudo que fala de pagamento está num lugar só, em vez de espalhado por `controllers/`, `services/` e `routes/`.
 
-**`app.js` separado de `server.js`.** O `app.js` monta a aplicação mas não abre
-porta, o que permite a um teste importar o app e disparar requisições sem
-ocupar a 3000.
+**`app.js` separado de `server.js`.** O teste importa o app e dispara requisições sem ocupar a porta 3000.
 
-**Dentro de cada módulo:** `rota → controlador → serviço → banco`. A rota diz
-quem pode acessar. O controlador traduz HTTP. O serviço guarda a regra e não
-sabe o que é `req` ou `res` — é por isso que ele é testável sem subir servidor.
+**Dentro de cada módulo:** `rota → controlador → serviço → banco`. A rota diz quem pode acessar, o controlador traduz HTTP e o serviço guarda a regra, sem saber o que é `req` ou `res`. Por isso a regra é testável sem subir servidor.
+
+---
+
+## Regras de negócio
+
+**Preço acordado por carga.** Não existe tabela fixa: o preço por quilo é combinado com o produtor e informado na emissão da ordem.
+
+```
+peso líquido = peso bruto − tara
+valor total  = peso líquido × preço acordado por quilo
+```
+
+**Pesagem em duas etapas.** A entrada registra o peso bruto com o caminhão carregado; a carga fica "aguardando tara" até o caminhão voltar vazio. Os pesos aceitos ficam entre 1.000 e 80.000 kg, e a tara não pode ser maior que o bruto.
+
+**Valores gravados já calculados.** Peso líquido e valor não são recalculados a cada consulta: ficam como estavam no momento do recebimento.
+
+**Destino do pagamento copiado na ordem.** A ordem guarda a forma de pagamento, a chave Pix ou os dados da conta no momento da emissão. Se o produtor trocar de chave depois, a ordem antiga continua mostrando para onde o dinheiro foi.
 
 ---
 
 ## Decisões que valem conhecer antes de mexer
 
-**A senha nunca é guardada.** Só o hash bcrypt, com custo 10. E a mensagem de
-erro é idêntica para "usuário não existe" e "senha errada" — se fossem
-diferentes, alguém descobriria quais usuários existem testando nomes.
+**A senha nunca é guardada.** Só o hash bcrypt. A mensagem de erro é a mesma para "usuário não existe" e "senha errada", para não revelar quais usuários existem.
 
-**Peso líquido e valor total são gravados calculados**, não recalculados a cada
-consulta. São dados que não mudam depois de registrados e que são lidos o tempo
-todo: é troca consciente de espaço por tempo.
+**Transações na análise e na emissão de ordem.** Criar a análise e mudar a situação da carga acontecem juntas ou não acontecem.
 
-**Transações na análise e na emissão de ordem.** Criar a análise e mudar a
-situação da carga acontecem juntas ou não acontecem. Sem isso, uma falha no meio
-deixaria uma análise apontando para uma carga ainda "aguardando" —
-inconsistência silenciosa, das piores de achar depois.
+**Numeração de ticket sob concorrência.** Se dois operadores pesarem ao mesmo tempo e o número colidir, o sistema tenta o número seguinte, até três vezes.
 
-**`chavePixSnapshot` na ordem de pagamento** copia a chave no momento da
-emissão. Se o produtor trocar de chave no mês seguinte, a ordem antiga continua
-mostrando para onde o dinheiro realmente foi.
+**A única porta de entrada de uma avaliação é `POST /api/sincronizacao`.** Assim toda avaliação chega com `clientId` e `alteradoEmOrigem`, e a garantia de não duplicar vale sempre.
 
-**Numeração de ticket sob concorrência.** Gerar o número é "ler o maior e somar
-um", e entre a leitura e a gravação há uma janela. Dois operadores pesando ao
-mesmo instante colidiam no índice único. Hoje o sistema tenta o número seguinte,
-até três vezes — e uma duplicidade em *outro* campo sobe na hora, sem retentar,
-porque insistir não conserta um CPF repetido.
+**Registro de alterações.** Cadastros, pesagens, análises, pagamentos, dados do aplicativo e contas ficam registrados com quem fez, quando e o que mudou. Senha nunca entra no registro.
 
-**A única porta de entrada de uma avaliação é `POST /api/sincronizacao`.** Não
-existe rota genérica para criar avaliação, e a ausência é proposital: uma
-segunda porta entraria sem `clientId`, sem `alteradoEmOrigem` e sem auditoria —
-e a garantia de não duplicar valeria metade do tempo.
-
-**`env.js` recusa subir sem `DATABASE_URL` ou `JWT_SECRET`**, com mensagem
-clara, em vez de quebrar no meio de uma requisição meia hora depois.
-
----
-
-## A regra do palito
-
-O percentual de palito medido no laboratório desconta o preço por quilo:
-
-```
-excedente      = palito medido − limite aceito     (nunca negativo)
-desconto (%)   = excedente × percentual por ponto
-preço ajustado = preço base × (1 − desconto/100)
-valor total    = peso líquido × preço ajustado
-```
-
-**Limite de 30% e 1% por ponto percentual são provisórios** — a fórmula oficial
-ainda será confirmada com a ervateira. Está isolada em `cargas.service.js` e
-espelhada em `web/src/lib/calculo.js` apenas para pré-visualização enquanto o
-analista digita. O servidor recalcula e é quem vale.
+**`env.js` recusa subir sem `DATABASE_URL` ou `JWT_SECRET`**, com mensagem clara, em vez de quebrar no meio de uma requisição.
 
 ---
 
@@ -152,21 +127,13 @@ analista digita. O servidor recalcula e é quem vale.
 npm test
 ```
 
-33 casos, sem banco e sem servidor — só é possível porque a regra está isolada
-nos serviços. Cobrem o cálculo de pagamento (RF10), a validação de documentos e
-a numeração sequencial sob concorrência.
+193 testes com `node:test` (164 da API e 29 da web), sem banco e sem servidor. Cobrem o cálculo de peso e valor, a leitura de números no padrão brasileiro, as faixas de peso, tara e preço, a validação de CPF e CNPJ, as regras de pagamento, a numeração de tickets e ordens, as permissões de cada perfil, o tipo das fotos e, na web, a formatação, a paginação e os filtros.
 
 ---
 
 ## Segurança
 
-- O `.env` **nunca** vai para o repositório: tem a senha do banco e a chave que
-  assina os tokens. Quem tiver essa chave forja um token e entra como qualquer
-  usuário.
-- Esconder um botão por perfil no front é conveniência. Quem protege é o
-  `permitir()` no back-end — uma requisição forjada toma 403 do mesmo jeito.
-- CPF e CNPJ são validados no servidor, e não só na tela, porque o aplicativo
-  móvel também grava produtor.
-- `usesCleartextTraffic` no Android e o CORS aberto valem **para
-  desenvolvimento**. Em produção a API precisa de certificado e de origem
-  restrita.
+- O `.env` **nunca** vai para o repositório: tem a senha do banco e a chave que assina os tokens.
+- Esconder um botão por perfil no front é conveniência. Quem protege é o `permitir()` no back-end: uma requisição forjada recebe 403 do mesmo jeito.
+- CPF, CNPJ, pesos e preços são validados no servidor, e não só na tela, porque o aplicativo também grava dados.
+- Em produção, o CORS aceita só as origens configuradas e a comunicação é feita por HTTPS.
