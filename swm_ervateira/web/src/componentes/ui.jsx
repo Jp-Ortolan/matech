@@ -123,7 +123,18 @@ const OCULTAR_ABAIXO_DE = {
   xl: 'hidden xl:table-cell',
 }
 
-export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', rodape, aoClicarLinha, linhaAtiva }) {
+export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', rodape, aoClicarLinha, linhaAtiva, porPagina = 20 }) {
+  // lista longa vira páginas de 20 linhas (porPagina={0} desliga)
+  const [pagina, setPagina] = useState(1)
+  const total = dados.length
+  useEffect(() => { setPagina(1) }, [total])
+
+  const paginas = porPagina ? Math.max(1, Math.ceil(total / porPagina)) : 1
+  const atual = Math.min(pagina, paginas)
+  const inicio = (atual - 1) * porPagina
+  // fora da página some da tela, mas continua saindo na impressão
+  const foraDaPagina = (i) => porPagina > 0 && (i < inicio || i >= inicio + porPagina)
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left">
@@ -164,7 +175,7 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
                 onClick={aoClicarLinha ? () => aoClicarLinha(linha) : undefined}
                 className={`group border-b border-borda ${fundo} ${
                   aoClicarLinha ? 'cursor-pointer hover:bg-cabecalho' : ''
-                }`}
+                } ${foraDaPagina(i) ? 'hidden print:table-row' : ''}`}
               >
                 {colunas.map((c) => (
                   <td
@@ -203,6 +214,9 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
         <div className="flex items-center justify-between gap-3 px-3 py-2 text-[0.75rem] text-cinza-400">
           {rodape}
         </div>
+      )}
+      {porPagina > 0 && (
+        <Paginacao pagina={atual} porPagina={porPagina} total={total} aoTrocar={setPagina} />
       )}
     </div>
   )
@@ -453,7 +467,7 @@ export function Paginacao({ pagina, porPagina, total, aoTrocar }) {
   const ultimaLinha = Math.min(pagina * porPagina, total)
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-borda px-3 py-2.5">
+    <div data-fora-da-impressao className="flex flex-wrap items-center justify-between gap-3 border-t border-borda px-3 py-2.5 print:hidden">
       <span className="text-[0.8125rem] text-cinza-600">
         {primeiraLinha}–{ultimaLinha} de {total.toLocaleString('pt-BR')}
       </span>
@@ -507,7 +521,10 @@ export function Janela({ titulo, subtitulo, acao, largura = 820, aoFechar, child
 
   useEffect(() => {
     function aoTeclar(e) {
-      if (e.key === 'Escape') aoFechar()
+      if (e.key !== 'Escape') return
+      // com uma janela sobre a outra, o Esc fecha só a de cima
+      const abertas = document.querySelectorAll('[role="dialog"]')
+      if (abertas[abertas.length - 1] === painel.current) aoFechar()
     }
     document.addEventListener('keydown', aoTeclar)
 
@@ -517,7 +534,10 @@ export function Janela({ titulo, subtitulo, acao, largura = 820, aoFechar, child
 
     return () => {
       document.removeEventListener('keydown', aoTeclar)
-      document.body.removeAttribute('data-janela-aberta')
+      // só libera a tela quando não sobrar nenhuma janela aberta
+      if (!document.querySelector('[role="dialog"]')) {
+        document.body.removeAttribute('data-janela-aberta')
+      }
     }
   }, [aoFechar])
 

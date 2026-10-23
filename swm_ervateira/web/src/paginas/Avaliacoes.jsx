@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { qualidade as apiQualidade } from '../api/recursos'
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
-import { Painel, Tabela, Campo, Botao, Carregando, Erro } from '../componentes/ui'
+import { Painel, Tabela, Campo, Botao, Carregando, Erro, Janela } from '../componentes/ui'
 import { formatar, contagem } from '../lib/formatar'
 
 export default function Avaliacoes() {
@@ -19,10 +19,8 @@ export default function Avaliacoes() {
     try {
       const r = await apiQualidade.fila()
       setFila(r.cargas)
-      setSelecionada((atual) => {
-        const aindaExiste = r.cargas.find((c) => c.id === atual?.id)
-        return aindaExiste || r.cargas[0] || null
-      })
+      // a análise só abre quando o usuário clica numa amostra
+      setSelecionada((atual) => r.cargas.find((c) => c.id === atual?.id) || null)
     } catch (e) {
       setErro(e)
     } finally {
@@ -31,6 +29,9 @@ export default function Avaliacoes() {
   }, [])
 
   useEffect(() => { buscarFila() }, [buscarFila])
+
+  // função fixa para a janela não roubar o foco dos campos
+  const fecharAnalise = useCallback(() => setSelecionada(null), [])
 
   return (
     <>
@@ -41,8 +42,7 @@ export default function Avaliacoes() {
 
       <Erro erro={erro} />
 
-      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_420px]">
-        <Painel titulo="Fila de amostras" acao={`${fila.length} pendentes`}>
+      <Painel titulo="Fila de amostras" acao={`${fila.length} pendentes`}>
           {carregando ? (
             <Carregando />
           ) : (
@@ -57,35 +57,36 @@ export default function Avaliacoes() {
                   chave: 'acao', titulo: '', render: (c) => (
                     <button
                       onClick={() => setSelecionada(c)}
-                      className={`text-[0.8125rem] font-semibold ${
-                        selecionada?.id === c.id ? 'text-mate-700' : 'text-cinza-400 hover:text-mate-700'
-                      }`}
+                      className="text-[0.8125rem] font-semibold text-mate-700 hover:underline"
                     >
-                      {selecionada?.id === c.id ? 'aberta' : 'abrir'}
+                      analisar
                     </button>
                   ),
                 },
               ]}
               dados={fila}
+              aoClicarLinha={(c) => setSelecionada(c)}
+              linhaAtiva={selecionada?.id}
               vazio="Nenhuma amostra aguardando. Toda carga recebida já foi analisada."
             />
           )}
-        </Painel>
+      </Painel>
 
-        {selecionada ? (
+      {/* a análise abre numa janela por cima da fila */}
+      {selecionada && (
+        <Janela
+          titulo={`Análise da carga ${selecionada.numeroTicket}`}
+          subtitulo={selecionada.produtor?.nome}
+          largura={620}
+          aoFechar={fecharAnalise}
+        >
           <FormularioAnalise
             carga={selecionada}
             podeLancar={podeFazer('ANALISTA_QUALIDADE')}
             aoConcluir={buscarFila}
           />
-        ) : (
-          <Painel titulo="Análise">
-            <p className="px-4 py-10 text-center text-sm text-cinza-400">
-              Selecione uma amostra na fila.
-            </p>
-          </Painel>
-        )}
-      </div>
+        </Janela>
+      )}
     </>
   )
 }

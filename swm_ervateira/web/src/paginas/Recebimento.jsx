@@ -90,16 +90,19 @@ export default function Recebimento() {
     setPagina(1)
   }
 
+  // função fixa para a janela não roubar o foco dos campos
+  const fecharForm = useCallback(() => setMostrarForm(false), [])
+
   return (
     <>
       <CabecalhoPagina titulo="Pesagem">
         {podeFazer('OPERADOR_BALANCA') && (
           <Botao
             variante="primario"
-            onClick={() => { setConfirmacao(null); setMostrarForm((v) => !v) }}
-            icone={mostrarForm ? ICONE_DA_ACAO.limpar : ICONE_DA_ACAO.registrar}
+            onClick={() => { setConfirmacao(null); setMostrarForm(true) }}
+            icone={ICONE_DA_ACAO.registrar}
           >
-            {mostrarForm ? 'Fechar' : 'Registrar entrada'}
+            Registrar entrada
           </Botao>
         )}
       </CabecalhoPagina>
@@ -146,18 +149,25 @@ export default function Recebimento() {
         </Painel>
       )}
 
+      {/* o formulário abre numa janela por cima da tela */}
       {mostrarForm && (
-        <FormularioEntrada
-          produtores={listaProdutores}
-          motoristas={listaMotoristas}
-          aoCadastrarMotorista={carregarMotoristas}
-          aoRegistrar={(criada) => {
-            setMostrarForm(false)
-            setConfirmacao(criada)
-            buscar()
-            buscarFila()
-          }}
-        />
+        <Janela
+          titulo="Registrar entrada"
+          subtitulo="Primeira pesagem do caminhão carregado"
+          aoFechar={fecharForm}
+        >
+          <FormularioEntrada
+            produtores={listaProdutores}
+            motoristas={listaMotoristas}
+            aoCadastrarMotorista={carregarMotoristas}
+            aoRegistrar={(criada) => {
+              setMostrarForm(false)
+              setConfirmacao(criada)
+              buscar()
+              buscarFila()
+            }}
+          />
+        </Janela>
       )}
 
       <FilaDeTara
@@ -220,6 +230,7 @@ export default function Recebimento() {
             aoClicarLinha={(c) => setFichaId(c.id)}
             linhaAtiva={fichaId}
             vazio="Nenhuma carga encontrada com esses filtros."
+            porPagina={0}
           />
           <Paginacao
             pagina={dados?.pagina ?? 1}
@@ -414,7 +425,7 @@ function FormularioEntrada({ produtores, motoristas, aoCadastrarMotorista, aoReg
   }
 
   return (
-    <Painel titulo="Entrada do veículo" className="mb-6">
+    <Painel titulo="Entrada do veículo">
       <form onSubmit={enviar} className="flex flex-col gap-3 px-4 py-4">
         <Erro erro={erro} />
 

@@ -53,6 +53,9 @@ export default function Produtores() {
     return () => clearTimeout(relogio)
   }, [busca, buscar])
 
+  // função fixa para a janela não roubar o foco dos campos
+  const fecharFormulario = useCallback(() => setFormulario(null), [])
+
   function aoSalvar(mensagem) {
     setFormulario(null)
     setAviso(mensagem)
@@ -65,10 +68,10 @@ export default function Produtores() {
         {podeCadastrar && (
           <Botao
             variante="primario"
-            onClick={() => { setAviso(''); setFormulario((f) => (f === 'novo' ? null : 'novo')) }}
-            icone={formulario === 'novo' ? ICONE_DA_ACAO.limpar : ICONE_DA_ACAO.registrar}
+            onClick={() => { setAviso(''); setFormulario('novo') }}
+            icone={ICONE_DA_ACAO.registrar}
           >
-            {formulario === 'novo' ? 'Fechar' : 'Novo produtor'}
+            Novo produtor
           </Botao>
         )}
       </CabecalhoPagina>
@@ -85,13 +88,20 @@ export default function Produtores() {
         )}
       />
 
+      {/* cadastro e edição abrem numa janela por cima da tela */}
       {formulario && (
-        <FormularioProdutor
-          key={formulario === 'novo' ? 'novo' : formulario.id}
-          produtor={formulario === 'novo' ? null : formulario}
-          aoSalvar={aoSalvar}
-          aoCancelar={() => setFormulario(null)}
-        />
+        <Janela
+          titulo={formulario === 'novo' ? 'Novo produtor' : 'Editar produtor'}
+          subtitulo={formulario === 'novo' ? 'Cadastro, endereço e dados de pagamento' : formulario.nome}
+          aoFechar={fecharFormulario}
+        >
+          <FormularioProdutor
+            key={formulario === 'novo' ? 'novo' : formulario.id}
+            produtor={formulario === 'novo' ? null : formulario}
+            aoSalvar={aoSalvar}
+            aoCancelar={fecharFormulario}
+          />
+        </Janela>
       )}
 
       {aviso && <div className="mb-3"><Sucesso texto={aviso} /></div>}
@@ -467,7 +477,6 @@ function FormularioProdutor({ produtor, aoSalvar, aoCancelar }) {
   return (
     <Painel
       titulo={editando ? `Editar · ${produtor.nome}` : 'Novo produtor'}
-      className="mb-6"
     >
       <form onSubmit={enviar} className="flex flex-col gap-3 px-4 py-4">
         <Erro erro={erro} />

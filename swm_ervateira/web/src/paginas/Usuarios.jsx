@@ -38,6 +38,10 @@ export default function Usuarios() {
 
   useEffect(() => { buscar() }, [buscar])
 
+  // funções fixas para a janela não roubar o foco dos campos
+  const fecharFormulario = useCallback(() => setFormulario(null), [])
+  const fecharSenha = useCallback(() => setTrocandoSenha(null), [])
+
   const termo = busca.trim().toLowerCase()
   const visiveis = lista.filter(
     (u) =>
@@ -69,10 +73,10 @@ export default function Usuarios() {
       <CabecalhoPagina titulo="Usuários">
         <Botao
           variante="primario"
-          onClick={() => { setAviso(''); setTrocandoSenha(null); setFormulario((f) => (f === 'novo' ? null : 'novo')) }}
-          icone={formulario === 'novo' ? ICONE_DA_ACAO.limpar : ICONE_DA_ACAO.registrar}
+          onClick={() => { setAviso(''); setTrocandoSenha(null); setFormulario('novo') }}
+          icone={ICONE_DA_ACAO.registrar}
         >
-          {formulario === 'novo' ? 'Fechar' : 'Novo usuário'}
+          Novo usuário
         </Botao>
       </CabecalhoPagina>
 
@@ -100,23 +104,38 @@ export default function Usuarios() {
         </Selecao>
       </Filtros>
 
+      {/* cadastro, edição e senha abrem numa janela por cima da tela */}
       {formulario && (
-        <FormularioUsuario
-          key={formulario === 'novo' ? 'novo' : formulario.id}
-          usuario={formulario === 'novo' ? null : formulario}
-          souEu={formulario !== 'novo' && formulario.id === eu?.id}
-          aoConcluir={concluir}
-          aoCancelar={() => setFormulario(null)}
-        />
+        <Janela
+          titulo={formulario === 'novo' ? 'Novo usuário' : 'Editar usuário'}
+          subtitulo={formulario === 'novo' ? 'Nova conta de acesso ao sistema' : formulario.nome}
+          largura={760}
+          aoFechar={fecharFormulario}
+        >
+          <FormularioUsuario
+            key={formulario === 'novo' ? 'novo' : formulario.id}
+            usuario={formulario === 'novo' ? null : formulario}
+            souEu={formulario !== 'novo' && formulario.id === eu?.id}
+            aoConcluir={concluir}
+            aoCancelar={fecharFormulario}
+          />
+        </Janela>
       )}
 
       {trocandoSenha && (
-        <FormularioSenha
-          key={trocandoSenha.id}
-          usuario={trocandoSenha}
-          aoConcluir={concluir}
-          aoCancelar={() => setTrocandoSenha(null)}
-        />
+        <Janela
+          titulo="Redefinir senha"
+          subtitulo={trocandoSenha.nome}
+          largura={620}
+          aoFechar={fecharSenha}
+        >
+          <FormularioSenha
+            key={trocandoSenha.id}
+            usuario={trocandoSenha}
+            aoConcluir={concluir}
+            aoCancelar={fecharSenha}
+          />
+        </Janela>
       )}
 
       {aviso && <div className="mb-3"><Sucesso texto={aviso} /></div>}
@@ -271,7 +290,7 @@ function FormularioUsuario({ usuario, souEu, aoConcluir, aoCancelar }) {
   }
 
   return (
-    <Painel titulo={editando ? `Editar · ${usuario.usuario}` : 'Novo usuário'} className="mb-6">
+    <Painel titulo={editando ? `Editar · ${usuario.usuario}` : 'Novo usuário'}>
       <form onSubmit={enviar} className="flex flex-col gap-3 px-3 py-3">
         <Erro erro={erro} />
 
@@ -380,7 +399,7 @@ function FormularioSenha({ usuario, aoConcluir, aoCancelar }) {
   }
 
   return (
-    <Painel titulo={`Nova senha · ${usuario.usuario}`} className="mb-6">
+    <Painel titulo={`Nova senha · ${usuario.usuario}`}>
       <form onSubmit={enviar} className="flex flex-col gap-3 px-3 py-3">
         <Erro erro={erro} />
 

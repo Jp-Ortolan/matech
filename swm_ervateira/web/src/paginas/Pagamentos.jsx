@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { pagamentos as apiPagamentos, produtores as apiProdutores } from '../api/recursos'
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { CabecalhoPagina } from '../componentes/Layout'
-import { FaixaDeIndicadores, Painel, Filtros, Tabela, Indicador, Situacao, Campo, Selecao, Botao, Etiqueta, Vazio, Carregando, Erro, Aviso, Janela, LinhaDado } from '../componentes/ui'
+import { FaixaDeIndicadores, Painel, Filtros, Tabela, Indicador, Situacao, Campo, Selecao, Botao, Etiqueta, Vazio, Carregando, Erro, Aviso, Janela, LinhaDado, Abas } from '../componentes/ui'
 import OrdemImpressa from '../componentes/OrdemImpressa'
 import { descreverDestino } from '../lib/destino'
 import { formatar, contagem } from '../lib/formatar'
@@ -17,6 +17,7 @@ export default function Pagamentos() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [aba, setAba] = useState(() => (podeFazer('ADMINISTRATIVO') ? 'precificar' : 'abertas'))
   const [erroProdutores, setErroProdutores] = useState(null)
   const [recorte, setRecorte] = useState({ situacao: '', produtorId: '' })
   const [fila, setFila] = useState(null)
@@ -62,6 +63,50 @@ export default function Pagamentos() {
       (!recorte.produtorId || o.produtorId === recorte.produtorId)
   )
 
+  // função fixa para a janela não roubar o foco dos campos
+  const fecharForm = useCallback(() => setMostrarForm(false), [])
+
+  // abas: quem não é do administrativo não precifica, então só vê as ordens
+  const abas = [
+    ...(podeFazer('ADMINISTRATIVO')
+      ? [{ id: 'precificar', rotulo: `Aguardando precificação${fila?.totalCargas ? ` (${fila.totalCargas})` : ''}` }]
+      : []),
+    { id: 'abertas', rotulo: `Ordens em aberto${pendentes.length ? ` (${pendentes.length})` : ''}` },
+    { id: 'todas', rotulo: 'Todas as ordens' },
+  ]
+
+  // mesmas colunas nas abas "em aberto" e "todas"
+  const colunasDasOrdens = [
+    { chave: 'numero', titulo: 'Ordem', forte: true },
+    { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 200, render: (o) => o.produtor?.nome },
+    {
+      chave: 'periodo', titulo: 'Período', oculta: 'lg',
+      render: (o) => `${formatar.data(o.periodoInicio)} a ${formatar.data(o.periodoFim)}`,
+    },
+    { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', render: (o) => o._count?.itens ?? '—' },
+    { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (o) => formatar.reais(o.valorTotal) },
+    {
+      chave: 'pix', titulo: 'Pagar para', truncar: 220, oculta: 'xl',
+      render: (o) => <span className="tabular">{descreverDestino(o)}</span>,
+    },
+    {
+      chave: 'acao', titulo: '', alinhar: 'direita',
+      render: (o) => (
+        o.situacao === 'PENDENTE' && podeFazer('ADMINISTRATIVO')
+          ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); confirmar(o.id) }}
+              className="whitespace-nowrap text-[0.8125rem] font-semibold text-mate-700 hover:underline"
+            >
+              Dar baixa
+            </button>
+          )
+          : null
+      ),
+    },
+    { chave: 'situacao', titulo: 'Situação', fixar: 'direita', render: (o) => <Situacao valor={o.situacao} /> },
+  ]
+
   function precificar(grupo) {
     const hoje = new Date()
     const inicio = grupo.maisAntiga ? new Date(grupo.maisAntiga) : hoje
@@ -90,9 +135,9 @@ export default function Pagamentos() {
         subtitulo={pendentes.length ? `${pendentes.length} em aberto` : null}
       >
         {podeFazer('ADMINISTRATIVO') && (
-          <Botao variante="primario" onClick={() => { setInicialDoForm(null); setMostrarForm((v) => !v) }}
-            icone={mostrarForm ? ICONE_DA_ACAO.limpar : ICONE_DA_ACAO.registrar}>
-            {mostrarForm ? 'Fechar' : 'Gerar ordem do período'}
+          <Botao variante="primario" onClick={() => { setInicialDoForm(null); setMostrarForm(true) }}
+            icone={ICONE_DA_ACAO.registrar}>
+            Gerar ordem do período
           </Botao>
         )}
       </CabecalhoPagina>
@@ -105,22 +150,26 @@ export default function Pagamentos() {
                    cor="text-alerta" />
       </FaixaDeIndicadores>
 
+      {/* o formulário abre numa janela por cima da tela */}
       {mostrarForm && (
-        <FormularioOrdem
-          key={inicialDoForm?.produtorId ?? -1}
-          produtores={listaProdutores}
-          inicial={inicialDoForm}
-          aoGerar={(ordem) => {
-            setMostrarForm(false)
-            setInicialDoForm(null)
-            buscar()
-            if (ordem) setParaImprimir(ordem)
-          }}
-        />
-      )}
-
-      {podeFazer('ADMINISTRATIVO') && (
-        <FilaDePrecificacao fila={fila} erro={erroFila} carregando={carregando} aoPrecificar={precificar} />
+        <Janela
+          titulo="Gerar ordem do período"
+          subtitulo="Cargas analisadas do produtor no período escolhido"
+          aoFechar={fecharForm}
+        >
+          <FormularioOrdem
+            key={inicialDoForm?.produtorId ?? -1}
+            produtores={listaProdutores}
+            inicial={inicialDoForm}
+            aoGerar={(ordem) => {
+              setMostrarForm(false)
+              setInicialDoForm(null)
+              setAba('abertas')   // a ordem nova aparece na aba "em aberto"
+              buscar()
+              if (ordem) setParaImprimir(ordem)
+            }}
+          />
+        </Janela>
       )}
 
       <Erro erro={erro} />
@@ -133,6 +182,41 @@ export default function Pagamentos() {
         </div>
       )}
 
+      {/* uma aba para cada etapa do pagamento, como nos Relatórios */}
+      <Abas abas={abas} ativa={aba} aoTrocar={setAba} />
+
+      {aba === 'precificar' && (
+        <>
+          <p className="mb-3 text-[0.8125rem] text-cinza-600">
+            Cargas já analisadas que ainda não viraram ordem. Clique em "Precificar e emitir" para gerar a ordem do produtor.
+          </p>
+          <FilaDePrecificacao fila={fila} erro={erroFila} carregando={carregando} aoPrecificar={precificar} />
+        </>
+      )}
+
+      {aba === 'abertas' && (
+        <>
+          <p className="mb-3 text-[0.8125rem] text-cinza-600">
+            Ordens emitidas esperando o pagamento. Depois de pagar o produtor, clique em "Dar baixa".
+          </p>
+          <Painel titulo="Ordens em aberto" acao={carregando ? 'buscando...' : contagem(pendentes.length, 'ordem', 'ordens')}>
+            {carregando ? (
+              <Carregando />
+            ) : (
+              <Tabela
+                colunas={colunasDasOrdens}
+                dados={pendentes}
+                aoClicarLinha={(o) => setFicha(o)}
+                linhaAtiva={ficha?.id}
+                vazio="Nenhuma ordem esperando pagamento."
+              />
+            )}
+          </Painel>
+        </>
+      )}
+
+      {aba === 'todas' && (
+      <>
       <Filtros
         ativos={resumirFiltros(recorte, {
           produtorId: (v) => nomeNaLista(listaProdutores, v),
@@ -160,36 +244,7 @@ export default function Pagamentos() {
           <Carregando />
         ) : (
           <Tabela
-            colunas={[
-              { chave: 'numero', titulo: 'Ordem', forte: true },
-              { chave: 'produtor', titulo: 'Produtor', forte: true, truncar: 200, render: (o) => o.produtor?.nome },
-              {
-                chave: 'periodo', titulo: 'Período', oculta: 'lg',
-                render: (o) => `${formatar.data(o.periodoInicio)} a ${formatar.data(o.periodoFim)}`,
-              },
-              { chave: 'cargas', titulo: 'Cargas', alinhar: 'direita', render: (o) => o._count?.itens ?? '—' },
-              { chave: 'valor', titulo: 'Valor', alinhar: 'direita', forte: true, render: (o) => formatar.reais(o.valorTotal) },
-              {
-                chave: 'pix', titulo: 'Pagar para', truncar: 220, oculta: 'xl',
-                render: (o) => <span className="tabular">{descreverDestino(o)}</span>,
-              },
-              {
-                chave: 'acao', titulo: '', alinhar: 'direita',
-                render: (o) => (
-                  o.situacao === 'PENDENTE' && podeFazer('ADMINISTRATIVO')
-                    ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); confirmar(o.id) }}
-                        className="whitespace-nowrap text-[0.8125rem] font-semibold text-mate-700 hover:underline"
-                      >
-                        Dar baixa
-                      </button>
-                    )
-                    : null
-                ),
-              },
-              { chave: 'situacao', titulo: 'Situação', fixar: 'direita', render: (o) => <Situacao valor={o.situacao} /> },
-            ]}
+            colunas={colunasDasOrdens}
             dados={visiveis}
             aoClicarLinha={(o) => setFicha(o)}
             linhaAtiva={ficha?.id}
@@ -197,6 +252,8 @@ export default function Pagamentos() {
           />
         )}
       </Painel>
+      </>
+      )}
 
       {ficha && (
         <Janela
@@ -398,7 +455,7 @@ function FormularioOrdem({ produtores, inicial, aoGerar }) {
   }
 
   return (
-    <Painel titulo="Gerar ordem do período" className="mb-6">
+    <Painel titulo="Gerar ordem do período">
       <div className="flex flex-col gap-3 px-4 py-4">
         <form onSubmit={buscarPrevia} className="flex flex-wrap items-end gap-2 xl:gap-2.5">
           <Selecao rotulo="Produtor" className="min-w-[220px] flex-[2]" required
@@ -473,6 +530,7 @@ function FormularioOrdem({ produtores, inicial, aoGerar }) {
                 },
               ]}
               dados={cargas}
+              porPagina={0}
               rodape={
                 <>
                   <span>{contagem(cargas.length, 'carga', 'cargas')} no período</span>

@@ -7,7 +7,7 @@ import {
 import { CabecalhoPagina } from '../componentes/Layout'
 import {
   FaixaDeIndicadores, Painel, Filtros, SaidaDoPainel, Tabela, Indicador, Situacao, Campo, Selecao, Abas, Barra,
-  Carregando, Erro, Vazio, Etiqueta, Aviso
+  Carregando, Erro, Vazio, Etiqueta, Aviso, Paginacao
 } from '../componentes/ui'
 import { useAutenticacao } from '../contexto/Autenticacao'
 import { baixarCsv, numeroCsv } from '../lib/exportar'
@@ -132,6 +132,14 @@ function Recebimento({ lista, veDinheiro }) {
   const maiorProdutor = Math.max(1, ...porProdutor.map((g) => g.peso))
   const maiorDia = Math.max(1, ...porDia.map((g) => g.peso))
 
+  // dias mais recentes primeiro, 20 por página, igual às tabelas
+  const [paginaDia, setPaginaDia] = useState(1)
+  const DIAS_POR_PAGINA = 20
+  const diasOrdenados = porDia.slice().sort((a, b) => (a.chave < b.chave ? 1 : -1))
+  const ultimaPaginaDia = Math.max(1, Math.ceil(diasOrdenados.length / DIAS_POR_PAGINA))
+  const paginaDiaAtual = Math.min(paginaDia, ultimaPaginaDia)
+  const inicioDia = (paginaDiaAtual - 1) * DIAS_POR_PAGINA
+
   if (!lista.length) {
     return <Painel titulo="Recebimento"><Vazio texto="Nenhuma carga registrada no período selecionado." /></Painel>
   }
@@ -213,17 +221,22 @@ function Recebimento({ lista, veDinheiro }) {
 
       <Painel className="mb-6" titulo="Recebimento por dia" acao={<SaidaDoPainel aoExportar={exportar} />}>
         <div className="flex flex-col gap-3 px-4 py-4">
-          {porDia
-            .slice()
-            .sort((a, b) => (a.chave < b.chave ? -1 : 1))
-            .map((g) => (
-              <Barra key={g.chave}
-                     rotulo={`${formatar.data(g.chave)} · ${contagem(g.cargas, 'carga', 'cargas')}`}
+          {/* fora da página some da tela, mas sai na impressão */}
+          {diasOrdenados.map((g, i) => (
+            <div key={g.chave} className={i >= inicioDia && i < inicioDia + DIAS_POR_PAGINA ? '' : 'hidden print:block'}>
+              <Barra rotulo={`${formatar.data(g.chave)} · ${contagem(g.cargas, 'carga', 'cargas')}`}
                      valor={formatar.kg(g.peso)}
                      proporcao={(g.peso / maiorDia) * 100}
                      cor="bg-mate-500" />
-            ))}
+            </div>
+          ))}
         </div>
+        <Paginacao
+          pagina={paginaDiaAtual}
+          porPagina={DIAS_POR_PAGINA}
+          total={diasOrdenados.length}
+          aoTrocar={setPaginaDia}
+        />
       </Painel>
     </>
   )
