@@ -1,0 +1,6 @@
+Data: 22/10/2026 17:14
+Processador: AMD Ryzen 7 6800H with Radeon Graphics          (8 nucleos, 16 threads)
+Memoria: 15 GB
+Sistema: Microsoft Windows 11 Home
+Node.js: v24.11.0
+psql (PostgreSQL) 18.6

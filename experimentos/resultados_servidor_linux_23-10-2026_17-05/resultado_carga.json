@@ -1,0 +1,38 @@
+[
+  {
+    "usuarios": 1,
+    "requisicoes": 9233,
+    "porSegundo": 307.8,
+    "medianaMs": 2.8,
+    "p95Ms": 6.2,
+    "maxMs": 43.1,
+    "erros": 0
+  },
+  {
+    "usuarios": 10,
+    "requisicoes": 17405,
+    "porSegundo": 580.2,
+    "medianaMs": 13.9,
+    "p95Ms": 35.9,
+    "maxMs": 90.5,
+    "erros": 0
+  },
+  {
+    "usuarios": 25,
+    "requisicoes": 16383,
+    "porSegundo": 546.1,
+    "medianaMs": 44,
+    "p95Ms": 68.2,
+    "maxMs": 149.7,
+    "erros": 0
+  },
+  {
+    "usuarios": 50,
+    "requisicoes": 16222,
+    "porSegundo": 540.7,
+    "medianaMs": 89.3,
+    "p95Ms": 130.7,
+    "maxMs": 218.8,
+    "erros": 0
+  }
+]

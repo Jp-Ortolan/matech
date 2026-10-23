@@ -1,0 +1,6 @@
+Data: 23/10/2026 17:08
+Processador: Intel(R) Xeon(R) Processor @ 2.80GHz (2 nucleos disponiveis)
+Memoria: 7 GB
+Sistema: Ubuntu 24.04.5 LTS, Linux 6.18.44-fc-v153
+Node.js: v22.22.0
+psql (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)

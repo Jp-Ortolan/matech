@@ -1,0 +1,48 @@
+{
+  "ambiente": "local",
+  "base": "http://localhost:3333",
+  "resultados": [
+    {
+      "operacao": "Login",
+      "n": 200,
+      "medianaMs": 92.8,
+      "p95Ms": 127,
+      "maxMs": 160.3
+    },
+    {
+      "operacao": "Listar cargas (página de 20)",
+      "n": 200,
+      "medianaMs": 6.2,
+      "p95Ms": 11.2,
+      "maxMs": 44.3
+    },
+    {
+      "operacao": "Registrar entrada na balança",
+      "n": 200,
+      "medianaMs": 8.1,
+      "p95Ms": 11.8,
+      "maxMs": 23.1
+    },
+    {
+      "operacao": "Listar produtores",
+      "n": 200,
+      "medianaMs": 45.5,
+      "p95Ms": 64,
+      "maxMs": 102.4
+    },
+    {
+      "operacao": "Painel de pagamentos em aberto",
+      "n": 200,
+      "medianaMs": 2.6,
+      "p95Ms": 6.1,
+      "maxMs": 10.4
+    },
+    {
+      "operacao": "Sincronizar lote de 20 operações",
+      "n": 200,
+      "medianaMs": 38.4,
+      "p95Ms": 49,
+      "maxMs": 56.8
+    }
+  ]
+}

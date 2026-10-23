@@ -1,0 +1,18 @@
+{
+  "ordensGeradas": 12,
+  "ordens": 31,
+  "itens": 49,
+  "itensCertos": 49,
+  "totaisCertos": 31,
+  "cargasConferidas": 49,
+  "liquidoCerto": 49,
+  "funcao": {
+    "regra": "ABNT NBR 5891 (meio centavo para o par)",
+    "meiosCentavos": 8,
+    "combinacoes": 10000,
+    "iguais": 10000,
+    "diferentes": 0,
+    "maiorDiferenca": 0,
+    "exemplos": []
+  }
+}

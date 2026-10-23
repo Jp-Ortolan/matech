@@ -1,0 +1,1691 @@
+{
+  "tabela": [
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "casos": 20,
+      "corretos": 20,
+      "status": "201"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "casos": 20,
+      "corretos": 20,
+      "status": "400"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com todos os dígitos iguais",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CNPJ com dígito verificador errado",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF/CNPJ já cadastrado",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "409"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome sem sentido (curto, repetido ou palavra longa)",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome acima do limite de caracteres",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "casos": 20,
+      "corretos": 20,
+      "status": "201"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "casos": 10,
+      "corretos": 10,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto zero ou negativo",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto fora da faixa de 1.000 a 80.000 kg",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço acima de R$ 100,00 por quilograma",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço zero, negativo ou ambíguo",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem informada para erva-mate",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem de lenha acima do plausível",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "casos": 10,
+      "corretos": 10,
+      "status": "400"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "casos": 20,
+      "corretos": 20,
+      "status": "200"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "casos": 10,
+      "corretos": 10,
+      "status": "400"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "casos": 10,
+      "corretos": 10,
+      "status": "201"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Segunda análise para a mesma carga",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "409"
+    },
+    {
+      "grupo": "Fotos",
+      "categoria": "Arquivo que não é imagem enviado como JPEG",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "415"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Requisição sem login",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "401"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Perfil sem permissão para a rota",
+      "esperado": "bloquear",
+      "casos": 5,
+      "corretos": 5,
+      "status": "403"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Token adulterado",
+      "esperado": "bloquear",
+      "casos": 1,
+      "corretos": 1,
+      "status": "401"
+    }
+  ],
+  "linhas": [
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Produtor válido (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com todos os dígitos iguais",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com todos os dígitos iguais",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com todos os dígitos iguais",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com todos os dígitos iguais",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF com todos os dígitos iguais",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "CPF inválido: confira os números, algum dígito está trocado"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CNPJ com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Valor inválido para o tipo da chave Pix"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CNPJ com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Valor inválido para o tipo da chave Pix"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CNPJ com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Valor inválido para o tipo da chave Pix"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CNPJ com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Valor inválido para o tipo da chave Pix"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CNPJ com dígito verificador errado",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Valor inválido para o tipo da chave Pix"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF/CNPJ já cadastrado",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Este CPF/CNPJ já está cadastrado para Valdir Wosniak. Procure o produtor na lista para editar o cadastro."
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF/CNPJ já cadastrado",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Este CPF/CNPJ já está cadastrado para Irene Camargo. Procure o produtor na lista para editar o cadastro."
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF/CNPJ já cadastrado",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Este CPF/CNPJ já está cadastrado para Claudemir Andrade. Procure o produtor na lista para editar o cadastro."
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF/CNPJ já cadastrado",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Este CPF/CNPJ já está cadastrado para Ana Schmidt. Procure o produtor na lista para editar o cadastro."
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "CPF/CNPJ já cadastrado",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Este CPF/CNPJ já está cadastrado para Luciana Ribeiro dos Santos. Procure o produtor na lista para editar o cadastro."
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome sem sentido (curto, repetido ou palavra longa)",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Confira o nome: precisa ter pelo menos 3 letras"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome sem sentido (curto, repetido ou palavra longa)",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Confira o nome: há uma letra repetida muitas vezes seguidas"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome sem sentido (curto, repetido ou palavra longa)",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Confira o nome: há uma letra repetida muitas vezes seguidas"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome sem sentido (curto, repetido ou palavra longa)",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Confira o nome: precisa ter pelo menos 3 letras"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome sem sentido (curto, repetido ou palavra longa)",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Confira o nome: há uma letra repetida muitas vezes seguidas"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome acima do limite de caracteres",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Reduza o nome: o limite é 120 caracteres"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome acima do limite de caracteres",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Reduza o nome: o limite é 120 caracteres"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome acima do limite de caracteres",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Reduza o nome: o limite é 120 caracteres"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome acima do limite de caracteres",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Reduza o nome: o limite é 120 caracteres"
+    },
+    {
+      "grupo": "Cadastro de produtor",
+      "categoria": "Nome acima do limite de caracteres",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Reduza o nome: o limite é 120 caracteres"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Entrada válida, padrão brasileiro (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Número em formato ambíguo ou inválido",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto zero ou negativo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser maior que zero"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto zero ou negativo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser maior que zero"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto zero ou negativo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser maior que zero"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto zero ou negativo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser maior que zero"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto zero ou negativo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser maior que zero"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto fora da faixa de 1.000 a 80.000 kg",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser de pelo menos 1.000 kg"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto fora da faixa de 1.000 a 80.000 kg",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser de pelo menos 1.000 kg"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto fora da faixa de 1.000 a 80.000 kg",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser de no máximo 80.000 kg"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto fora da faixa de 1.000 a 80.000 kg",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser de no máximo 80.000 kg"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Peso bruto fora da faixa de 1.000 a 80.000 kg",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O peso bruto deve ser de no máximo 80.000 kg"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço acima de R$ 100,00 por quilograma",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma deve ser de no máximo R$ 100,00"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço acima de R$ 100,00 por quilograma",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma deve ser de no máximo R$ 100,00"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço acima de R$ 100,00 por quilograma",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma deve ser de no máximo R$ 100,00"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço acima de R$ 100,00 por quilograma",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma deve ser de no máximo R$ 100,00"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço acima de R$ 100,00 por quilograma",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma deve ser de no máximo R$ 100,00"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço zero, negativo ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma deve ser maior que zero"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço zero, negativo ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma deve ser maior que zero"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço zero, negativo ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço zero, negativo ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Preço zero, negativo ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O preço por quilograma precisa ser um número"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem informada para erva-mate",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A metragem só existe para lenha"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem informada para erva-mate",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A metragem só existe para lenha"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem informada para erva-mate",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A metragem só existe para lenha"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem informada para erva-mate",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A metragem só existe para lenha"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem informada para erva-mate",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A metragem só existe para lenha"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem de lenha acima do plausível",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Metragem acima do plausível para uma carga"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem de lenha acima do plausível",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Metragem acima do plausível para uma carga"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem de lenha acima do plausível",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Metragem acima do plausível para uma carga"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem de lenha acima do plausível",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Metragem acima do plausível para uma carga"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Metragem de lenha acima do plausível",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "Metragem acima do plausível para uma carga"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara maior ou igual ao peso bruto",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "A tara não pode ser maior ou igual ao peso bruto"
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Pesagem",
+      "categoria": "Tara válida (controle)",
+      "esperado": "aceitar",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito deve ficar entre 0 e 100"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito deve ficar entre 0 e 100"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito deve ficar entre 0 e 100"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito deve ficar entre 0 e 100"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito deve ficar entre 0 e 100"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito precisa ser um número"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito precisa ser um número"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito deve ficar entre 0 e 100"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito deve ficar entre 0 e 100"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Percentual fora de 0–100 ou ambíguo",
+      "esperado": "bloquear",
+      "status": 400,
+      "ok": true,
+      "msg": "O percentual de palito deve ficar entre 0 e 100"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Análise válida (controle)",
+      "esperado": "aceitar",
+      "status": 201,
+      "ok": true
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Segunda análise para a mesma carga",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Esta carga já possui análise registrada"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Segunda análise para a mesma carga",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Esta carga já possui análise registrada"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Segunda análise para a mesma carga",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Esta carga já possui análise registrada"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Segunda análise para a mesma carga",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Esta carga já possui análise registrada"
+    },
+    {
+      "grupo": "Análise de qualidade",
+      "categoria": "Segunda análise para a mesma carga",
+      "esperado": "bloquear",
+      "status": 409,
+      "ok": true,
+      "msg": "Esta carga já possui análise registrada"
+    },
+    {
+      "grupo": "Fotos",
+      "categoria": "Arquivo que não é imagem enviado como JPEG",
+      "esperado": "bloquear",
+      "status": 415,
+      "ok": true
+    },
+    {
+      "grupo": "Fotos",
+      "categoria": "Arquivo que não é imagem enviado como JPEG",
+      "esperado": "bloquear",
+      "status": 415,
+      "ok": true
+    },
+    {
+      "grupo": "Fotos",
+      "categoria": "Arquivo que não é imagem enviado como JPEG",
+      "esperado": "bloquear",
+      "status": 415,
+      "ok": true
+    },
+    {
+      "grupo": "Fotos",
+      "categoria": "Arquivo que não é imagem enviado como JPEG",
+      "esperado": "bloquear",
+      "status": 415,
+      "ok": true
+    },
+    {
+      "grupo": "Fotos",
+      "categoria": "Arquivo que não é imagem enviado como JPEG",
+      "esperado": "bloquear",
+      "status": 415,
+      "ok": true
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Requisição sem login",
+      "esperado": "bloquear",
+      "status": 401,
+      "ok": true,
+      "msg": "Não autenticado"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Requisição sem login",
+      "esperado": "bloquear",
+      "status": 401,
+      "ok": true,
+      "msg": "Não autenticado"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Requisição sem login",
+      "esperado": "bloquear",
+      "status": 401,
+      "ok": true,
+      "msg": "Não autenticado"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Requisição sem login",
+      "esperado": "bloquear",
+      "status": 401,
+      "ok": true,
+      "msg": "Não autenticado"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Requisição sem login",
+      "esperado": "bloquear",
+      "status": 401,
+      "ok": true,
+      "msg": "Não autenticado"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Perfil sem permissão para a rota",
+      "esperado": "bloquear",
+      "status": 403,
+      "ok": true,
+      "msg": "Sem permissão"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Perfil sem permissão para a rota",
+      "esperado": "bloquear",
+      "status": 403,
+      "ok": true,
+      "msg": "Sem permissão"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Perfil sem permissão para a rota",
+      "esperado": "bloquear",
+      "status": 403,
+      "ok": true,
+      "msg": "Sem permissão"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Perfil sem permissão para a rota",
+      "esperado": "bloquear",
+      "status": 403,
+      "ok": true,
+      "msg": "Sem permissão"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Perfil sem permissão para a rota",
+      "esperado": "bloquear",
+      "status": 403,
+      "ok": true,
+      "msg": "Sem permissão"
+    },
+    {
+      "grupo": "Acesso",
+      "categoria": "Token adulterado",
+      "esperado": "bloquear",
+      "status": 401,
+      "ok": true,
+      "msg": "Token inválido"
+    }
+  ]
+}
