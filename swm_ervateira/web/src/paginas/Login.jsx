@@ -9,8 +9,8 @@ export default function Login() {
   const { entrar } = useAutenticacao()
   const navegar = useNavigate()
 
-  const [usuario, setUsuario] = useState('rogerio.anselmo')
-  const [senha, setSenha] = useState('matech123')
+  const [usuario, setUsuario] = useState('')
+  const [senha, setSenha] = useState('')
   const [erro, setErro] = useState(null)
   const [enviando, setEnviando] = useState(false)
 

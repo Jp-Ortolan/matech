@@ -37,8 +37,9 @@ export default function Produtores() {
       const r = await apiProdutores.listar(termo)
       setLista(r.produtores)
       setTotal(r.total)
+      // a ficha só abre quando o usuário clica num produtor
       setSelecionadoId((atual) =>
-        r.produtores.some((p) => p.id === atual) ? atual : r.produtores[0]?.id ?? null
+        r.produtores.some((p) => p.id === atual) ? atual : null
       )
     } catch (e) {
       setErro(e)
