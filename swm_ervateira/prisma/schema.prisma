@@ -563,10 +563,12 @@ model RegistroAuditoria {
   usuarioPerfil PerfilUsuario
 
   /// O que aconteceu, em maiúsculas e sem espaço: USUARIO_CRIADO,
-  /// USUARIO_ALTERADO, SENHA_REDEFINIDA.
+  /// PRODUTOR_ALTERADO, PESAGEM_FECHADA... A lista completa fica em
+  /// src/lib/auditoria.js.
   acao String
 
-  /// Sobre o quê: hoje sempre Usuario.
+  /// Sobre o quê: Usuario, Produtor, Motorista, Veiculo, Carga,
+  /// OrdemPagamento ou Sincronizacao.
   entidade   String
   entidadeId String?
 

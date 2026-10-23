@@ -2,6 +2,7 @@ const servico = require('./cargas.service')
 const { podeNegocio } = require('../../middlewares/autorizacao')
 const { ocultarDaCarga } = require('../../lib/sigilo')
 const { paginacao } = require('../../lib/validacao')
+const { registrar: registrarAlteracao, apenasCampos, ACOES } = require('../../lib/auditoria')
 
 function comoEsteUsuarioPodeVer(req) {
   return { veDinheiro: podeNegocio(req.usuario.perfil, 'ADMINISTRATIVO') }
@@ -25,8 +26,23 @@ async function buscar(req, res) {
   res.json(ocultarDaCarga(carga, comoEsteUsuarioPodeVer(req)))
 }
 
+// descrição da carga no registro: "PES-2026-01191 · Marlene Kaviski"
+const descreverCarga = (c) => [c.numeroTicket, c.produtor?.nome].filter(Boolean).join(' · ')
+
 async function registrar(req, res) {
   const carga = await servico.registrarEntrada(req.body, req.usuario.id)
+
+  await registrarAlteracao(req, {
+    acao: ACOES.ENTRADA_REGISTRADA,
+    entidade: 'Carga',
+    entidadeId: carga.id,
+    alvo: descreverCarga(carga),
+    depois: {
+      ...apenasCampos(carga, ['tipoMateriaPrima', 'pesoBrutoKg']),
+      ...(carga.veiculo?.placa ? { placa: carga.veiculo.placa } : {}),
+    },
+  })
+
   res.status(201).json(ocultarDaCarga(carga, comoEsteUsuarioPodeVer(req)))   // 201 = criado
 }
 
@@ -45,6 +61,15 @@ async function calculo(req, res) {
 
 async function fecharTara(req, res) {
   const carga = await servico.fecharPesagem(req.params.id, req.body, req.usuario.id)
+
+  await registrarAlteracao(req, {
+    acao: ACOES.PESAGEM_FECHADA,
+    entidade: 'Carga',
+    entidadeId: carga.id,
+    alvo: descreverCarga(carga),
+    depois: apenasCampos(carga, ['pesoBrutoKg', 'taraKg', 'pesoLiquidoKg']),
+  })
+
   res.json(ocultarDaCarga(carga, comoEsteUsuarioPodeVer(req)))
 }
 

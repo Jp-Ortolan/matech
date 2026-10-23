@@ -6,6 +6,10 @@ const { ErroDeNegocio } = require('../../middlewares/erros')
 const { apenasDigitos, cpfValido } = require('../../lib/documentos')
 const { erroNosTextos } = require('../../lib/textos')
 const { lerData } = require('../../lib/validacao')
+const { registrar, diferencas, apenasCampos, ACOES } = require('../../lib/auditoria')
+
+// campos do motorista que aparecem no registro de alterações
+const CAMPOS_DO_MOTORISTA = ['nome', 'cpf', 'telefone', 'cnhCategoria', 'cnhValidade', 'ativo']
 
 const CNH = /^(A|B|C|D|E|AB|AC|AD|AE)$/
 
@@ -99,6 +103,18 @@ router.post('/', permitir('OPERADOR_BALANCA'), async (req, res) => {
   }
 
   const criado = await prisma.motorista.create({ data: dados, include: COM_VEICULOS })
+
+  await registrar(req, {
+    acao: ACOES.MOTORISTA_CADASTRADO,
+    entidade: 'Motorista',
+    entidadeId: criado.id,
+    alvo: criado.nome,
+    depois: {
+      ...apenasCampos(criado, CAMPOS_DO_MOTORISTA),
+      ...(criado.veiculos?.[0] ? { placa: criado.veiculos[0].placa } : {}),
+    },
+  })
+
   res.status(201).json(criado)
 })
 
@@ -122,6 +138,15 @@ router.post('/:id/veiculos', permitir('OPERADOR_BALANCA'), async (req, res) => {
       principal: Boolean(principal),
     },
   })
+
+  await registrar(req, {
+    acao: ACOES.VEICULO_CADASTRADO,
+    entidade: 'Veiculo',
+    entidadeId: criado.id,
+    alvo: motorista.nome,
+    depois: apenasCampos(criado, ['placa', 'tipo']),
+  })
+
   res.status(201).json(criado)
 })
 
@@ -142,11 +167,27 @@ router.put('/:id', permitir('OPERADOR_BALANCA'), async (req, res) => {
 
   if (Object.keys(dados).length === 0) throw new ErroDeNegocio('Nada a atualizar', 400)
 
+  const antes = await prisma.motorista.findUnique({ where: { id: req.params.id } })
+
   const atualizado = await prisma.motorista.update({
     where: { id: req.params.id },
     data: dados,
     include: COM_VEICULOS,
   })
+
+  // grava só os campos que mudaram de verdade
+  const mudou = diferencas(apenasCampos(antes, CAMPOS_DO_MOTORISTA), apenasCampos(atualizado, CAMPOS_DO_MOTORISTA))
+  if (mudou) {
+    await registrar(req, {
+      acao: ACOES.MOTORISTA_ALTERADO,
+      entidade: 'Motorista',
+      entidadeId: atualizado.id,
+      alvo: atualizado.nome,
+      antes: mudou.antes,
+      depois: mudou.depois,
+    })
+  }
+
   res.json(atualizado)
 })
 

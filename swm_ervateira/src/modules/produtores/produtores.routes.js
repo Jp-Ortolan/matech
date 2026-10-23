@@ -8,6 +8,7 @@ const { erroNosTextos } = require('../../lib/textos')
 const { daLista } = require('../../lib/validacao')
 const { UFS } = require('../../lib/ufs')
 const { ajustarPagamento } = require('../../lib/pagamento')
+const { registrar, diferencas, apenasCampos, ACOES } = require('../../lib/auditoria')
 
 const router = Router()
 router.use(autenticar)
@@ -121,6 +122,15 @@ router.post('/', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   ajustarPagamento(dados)
 
   const criado = await prisma.produtor.create({ data: dados })
+
+  await registrar(req, {
+    acao: ACOES.PRODUTOR_CADASTRADO,
+    entidade: 'Produtor',
+    entidadeId: criado.id,
+    alvo: criado.nome,
+    depois: apenasCampos(criado, CAMPOS_CADASTRAIS),
+  })
+
   res.status(201).json(criado)
 })
 
@@ -147,10 +157,26 @@ router.put('/:id', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   }
   ajustarPagamento(dados)
 
+  const antes = await prisma.produtor.findUnique({ where: { id: req.params.id } })
+
   const atualizado = await prisma.produtor.update({
     where: { id: req.params.id },
     data: dados,
   })
+
+  // grava só os campos que mudaram de verdade
+  const mudou = diferencas(apenasCampos(antes, CAMPOS_CADASTRAIS), apenasCampos(atualizado, CAMPOS_CADASTRAIS))
+  if (mudou) {
+    await registrar(req, {
+      acao: ACOES.PRODUTOR_ALTERADO,
+      entidade: 'Produtor',
+      entidadeId: atualizado.id,
+      alvo: atualizado.nome,
+      antes: mudou.antes,
+      depois: mudou.depois,
+    })
+  }
+
   res.json(atualizado)
 })
 

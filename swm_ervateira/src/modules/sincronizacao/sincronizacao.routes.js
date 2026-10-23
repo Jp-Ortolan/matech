@@ -6,12 +6,28 @@ const servico = require('./sincronizacao.service')
 const { autenticar } = require('../../middlewares/autenticacao')
 const { permitir } = require('../../middlewares/autorizacao')
 const { tipoDaImagem, EXTENSOES } = require('../../lib/imagens')
+const { registrar, ACOES } = require('../../lib/auditoria')
 
 const router = Router()
 router.use(autenticar)
 
 router.post('/', permitir('COMPRADOR_AVALIADOR'), async (req, res) => {
   const resultado = await servico.receberLote(req.body, req.usuario.id)
+
+  // só entra no registro quando algo novo chegou (reenvio repetido não conta)
+  if (resultado.aceitas > 0) {
+    const porTipo = {}
+    for (const r of resultado.resultados) {
+      if (r.situacao === 'ACEITO') porTipo[r.entidade] = (porTipo[r.entidade] ?? 0) + 1
+    }
+    await registrar(req, {
+      acao: ACOES.SINCRONIZACAO_RECEBIDA,
+      entidade: 'Sincronizacao',
+      alvo: `Aparelho ${String(req.body.dispositivoId).slice(0, 12)}`,
+      depois: porTipo,
+    })
+  }
+
   res.json(resultado)
 })
 

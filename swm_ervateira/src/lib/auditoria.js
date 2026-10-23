@@ -1,9 +1,35 @@
 const { prisma } = require('./prisma')
 
 const ACOES = {
+  // contas
   USUARIO_CRIADO: 'USUARIO_CRIADO',
   USUARIO_ALTERADO: 'USUARIO_ALTERADO',
   SENHA_REDEFINIDA: 'SENHA_REDEFINIDA',
+  SENHA_TROCADA: 'SENHA_TROCADA',
+  // cadastros
+  PRODUTOR_CADASTRADO: 'PRODUTOR_CADASTRADO',
+  PRODUTOR_ALTERADO: 'PRODUTOR_ALTERADO',
+  MOTORISTA_CADASTRADO: 'MOTORISTA_CADASTRADO',
+  MOTORISTA_ALTERADO: 'MOTORISTA_ALTERADO',
+  VEICULO_CADASTRADO: 'VEICULO_CADASTRADO',
+  // balança
+  ENTRADA_REGISTRADA: 'ENTRADA_REGISTRADA',
+  PESAGEM_FECHADA: 'PESAGEM_FECHADA',
+  // qualidade e pagamento
+  ANALISE_LANCADA: 'ANALISE_LANCADA',
+  ORDEM_EMITIDA: 'ORDEM_EMITIDA',
+  ORDEM_PAGA: 'ORDEM_PAGA',
+  // app de campo
+  SINCRONIZACAO_RECEBIDA: 'SINCRONIZACAO_RECEBIDA',
+}
+
+// Copia só os campos pedidos e preenchidos (para gravar no registro).
+function apenasCampos(obj, campos) {
+  const saida = {}
+  for (const campo of campos) {
+    if (obj && obj[campo] != null && obj[campo] !== '') saida[campo] = normalizar(obj[campo])
+  }
+  return saida
 }
 
 function diferencas(antes, depois) {
@@ -51,4 +77,4 @@ async function registrar(req, { acao, entidade, entidadeId, alvo, antes, depois 
 
 const descreverUsuario = (u) => (u ? `${u.nome} (${u.usuario})` : null)
 
-module.exports = { registrar, diferencas, descreverUsuario, ACOES }
+module.exports = { registrar, diferencas, apenasCampos, descreverUsuario, ACOES }
