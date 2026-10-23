@@ -12,21 +12,16 @@ matech_app/.dart_tool/
 # Fotos gravadas em disco pela API (dado de operação, não código)
 swm_ervateira/uploads/
 
-# Documentação de ferramentas copiada para dentro do projeto por
-# assistentes de código. Não é do MATECH.
-#
-# O "**/" é necessário: um padrão que já contém barra é ancorado na pasta do
-# .gitignore, e sem ele estas linhas só valeriam para a raiz.
-**/.claude/skills/
-**/.windsurf/skills/
+# Configuração local de editores e ferramentas
+**/.claude/
+**/.windsurf/
 **/.agents/
+skills-lock.json
 
-# Notas de contexto escritas para retomar conversa com assistente de código.
-# Valem para o dia em que foram escritas, não para quem lê o repositório.
+# Anotações de trabalho que não fazem parte do sistema
 CONTEXTO_*.md
 
-# Material da banca: roteiro de apresentação e PDFs gerados a partir dele.
-# É entrega da faculdade, não do sistema.
+# Material de apresentação (fica fora do repositório)
 Guia_apresentacao_*.md
 MATECH_estudo.pdf
 MATECH_guia_banca.pdf

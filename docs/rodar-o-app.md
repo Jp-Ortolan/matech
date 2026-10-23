@@ -1,15 +1,12 @@
-# MATECH — rodar o aplicativo na apresentação
+# Rodar o MATECH localmente, com o aplicativo
 
-Escrito em 01/09/2026, para a apresentação de 02/09.
+Como subir a API, a web e o aplicativo na mesma máquina, no emulador Android ou no navegador.
 
-> **Faça a primeira execução HOJE, não amanhã.** A primeira vez que o
-> `flutter run` roda contra um emulador novo, o Gradle compila o projeto
-> Android inteiro — costuma levar de 3 a 10 minutos. Depois disso fica rápido.
-> Descobrir isso com a sala esperando é o pior momento possível.
+> A primeira vez que o `flutter run` roda contra um emulador novo, o Gradle compila o projeto Android inteiro, o que leva de 3 a 10 minutos. Depois disso fica rápido.
 
 ---
 
-## Ordem de tudo, no dia
+## Ordem de subida
 
 1. Subir o **PostgreSQL** (ele já sobe com o Windows, normalmente).
 2. Subir a **API**: na pasta `swm_ervateira`, `npm run dev`. Confira em
@@ -55,7 +52,7 @@ flutter run --release
 
 `--release` de propósito: tira a faixa vermelha de DEBUG do canto e o
 aplicativo fica visivelmente mais fluido na projeção. Você perde o hot reload,
-que numa apresentação não faz falta.
+que nesse caso não faz falta.
 
 ### O endereço do servidor
 
@@ -75,7 +72,7 @@ endereço do servidor. Coloque `http://10.0.2.2:3000` e siga.
 ## Plano B — o aplicativo no navegador
 
 Se o emulador não cooperar, o mesmo aplicativo roda em Chrome. É o caminho mais
-confiável para projetar, porque não depende do SDK do Android.
+confiável para mostrar o sistema num projetor, porque não depende do SDK do Android.
 
 Uma vez só, na pasta `matech_app`:
 
@@ -121,8 +118,8 @@ desculpa: é a camada de arquivos que troca, com
 
 ## Atualizar o APK no celular físico
 
-Só vale a pena se você quiser mostrar o aparelho de verdade. Para projetar, o
-emulador é melhor.
+Para mostrar o sistema num projetor, o emulador é mais prático. O celular
+físico vale quando é preciso testar câmera, GPS e falta de sinal de verdade.
 
 ```
 cd matech_app
@@ -155,8 +152,8 @@ http://192.168.0.42:3000
 
 Três coisas que costumam impedir isso de funcionar:
 
-1. **Celular e PC precisam estar na mesma rede Wi-Fi.** Rede de faculdade
-   costuma isolar os aparelhos entre si — se isolar, não há o que fazer pelo
+1. **Celular e PC precisam estar na mesma rede Wi-Fi.** Redes públicas
+   costumam isolar os aparelhos entre si — se isolar, não há o que fazer pelo
    aplicativo.
 2. **O firewall do Windows bloqueia a porta 3000 na primeira vez.** Quando o
    Node subir, o Windows pergunta se libera; se você já disse "não" alguma vez,
@@ -171,16 +168,15 @@ adb reverse tcp:3000 tcp:3000
 ```
 
 Aí o endereço no aplicativo vira `http://localhost:3000`, e o tráfego vai pelo
-cabo. Funciona mesmo com o Wi-Fi da faculdade isolando tudo.
+cabo. Funciona mesmo quando o Wi-Fi isola os aparelhos.
 
 ---
 
-## Checklist de cinco minutos antes
+## Conferência rápida
 
 - [ ] PostgreSQL de pé
 - [ ] API respondendo em `http://localhost:3000/health`
 - [ ] Web abrindo em `http://localhost:5173`
 - [ ] Emulador ligado e aplicativo aberto na tela de login
-- [ ] Login feito no aplicativo **antes** da apresentação começar — o login é a
-      única operação que exige rede, e é a que dá erro se algo estiver errado
-- [ ] Janelas já posicionadas: web num monitor, emulador ao lado
+- [ ] Login feito no aplicativo com a rede funcionando: o login é a única
+      operação que exige conexão

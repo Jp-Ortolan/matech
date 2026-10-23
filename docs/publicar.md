@@ -68,7 +68,7 @@ flutter run --release --dart-define=MATECH_API=https://matech-xxxx.onrender.com
 ## Cuidados
 
 - **O plano grátis dorme** depois de 15 minutos sem uso. A primeira chamada
-  depois disso leva uns 50 segundos. Antes da banca, abra o site uns minutos
+  depois disso leva uns 50 segundos. Antes de uma demonstração, abra o site uns minutos
   antes. O app não perde nada nesse tempo: a fila espera e envia depois.
 - **Fotos** ficam no banco (o disco do Render é apagado a cada reinício).
   O Neon grátis tem 0,5 GB, o que dá alguns milhares de fotos.
