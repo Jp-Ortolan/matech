@@ -46,6 +46,18 @@ Cada dado é digitado uma única vez, por quem está onde ele é produzido, e to
 - Cadastro de produtores e ervais, avaliação com fotos e localização
 - Sincronização automática quando o sinal volta, **sem duplicar e sem perder** registros
 
+## Telas
+
+| Pesagem | Registrar entrada |
+|---|---|
+| ![Pesagem](docs/telas/02-pesagem.png) | ![Registrar entrada](docs/telas/03-pesagem-registrar-entrada.png) |
+| **Ordens de pagamento** | **Relatórios** |
+| ![Ordens de pagamento](docs/telas/06-pagamentos-aguardando.png) | ![Relatórios](docs/telas/12-relatorios-recebimento.png) |
+| **Produtores** | **Registro de alterações** |
+| ![Ficha do produtor](docs/telas/10-produtores-ficha.png) | ![Registro de alterações](docs/telas/16-registro-de-alteracoes.png) |
+
+Todas as telas estão em [`docs/telas`](docs/telas).
+
 ## Arquitetura
 
 ```
@@ -96,6 +108,7 @@ matech/
 ├── matech_app/         aplicativo móvel em Flutter
 ├── docs/
 │   ├── diagramas/      diagramas UML
+│   ├── telas/          capturas de tela da plataforma web
 │   ├── publicar.md     como publicar no Render e no Neon
 │   └── rodar-o-app.md  como rodar o aplicativo no emulador ou no navegador
 ├── render.yaml         configuração da publicação
