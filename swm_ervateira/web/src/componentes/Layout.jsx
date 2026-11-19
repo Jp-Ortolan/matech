@@ -135,7 +135,7 @@ export default function Layout() {
   return (
     <ContextoDoCabecalho.Provider value={noDoCabecalho}>
     <div className="flex h-screen flex-col">
-      <header className="flex h-[58px] shrink-0 items-center border-b border-borda bg-white pr-3 md:pr-5 print:h-auto print:border-b-2 print:pl-0">
+      <header className="flex min-h-[58px] shrink-0 items-center border-b py-2 md:h-[58px] md:py-0 border-borda bg-white pr-3 md:pr-5 print:h-auto print:border-b-2 print:pl-0">
         <div
           data-fora-da-impressao
           className={`hidden h-full shrink-0 items-center gap-2.5 border-r border-barra-borda bg-barra-900 md:flex ${larguraDoMenu} ${
@@ -271,9 +271,11 @@ export function CabecalhoPagina({ titulo, subtitulo, children }) {
 
   const conteudo = (
     <>
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[1.0625rem] font-bold leading-tight text-tinta xl:text-base">{titulo}</h1>
-        {subtitulo && <p className="truncate text-[0.8125rem] leading-tight text-cinza-600">{subtitulo}</p>}
+      {/* No celular, quando há botões, o título ocupa a linha toda e os botões
+          descem para a linha de baixo, em vez de o título virar "P…". */}
+      <div className={`min-w-0 flex-1 ${children ? 'max-md:basis-full' : ''}`}>
+        <h1 className="text-[1.0625rem] font-bold leading-tight text-tinta md:truncate xl:text-base">{titulo}</h1>
+        {subtitulo && <p className="text-[0.8125rem] leading-tight text-cinza-600 md:truncate">{subtitulo}</p>}
       </div>
       {children && (
         <div data-fora-da-impressao className="flex shrink-0 flex-wrap items-center gap-2">{children}</div>
