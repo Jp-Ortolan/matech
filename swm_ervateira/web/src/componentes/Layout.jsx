@@ -46,6 +46,23 @@ function ItemMenu({ rotulo, para, recolhido }) {
 
 const LARGURA_DE_RECOLHER = 1180
 
+// Abaixo de 768 px (o "md" do Tailwind) a tela é de celular: o menu deixa de
+// ocupar uma faixa fixa e vira uma gaveta que abre por cima do conteúdo.
+const CONSULTA_CELULAR = '(max-width: 767px)'
+
+function useEhCelular() {
+  const [ehCelular, setEhCelular] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(CONSULTA_CELULAR).matches
+  )
+  useEffect(() => {
+    const consulta = window.matchMedia(CONSULTA_CELULAR)
+    const aoMudar = () => setEhCelular(consulta.matches)
+    consulta.addEventListener('change', aoMudar)
+    return () => consulta.removeEventListener('change', aoMudar)
+  }, [])
+  return ehCelular
+}
+
 function useMenuRecolhido() {
   const [recolhido, setRecolhido] = useState(
     () => typeof window !== 'undefined' && window.innerWidth < LARGURA_DE_RECOLHER
@@ -74,6 +91,18 @@ export default function Layout() {
   const navegar = useNavigate()
   const local = useLocation()
   const { recolhido, alternar } = useMenuRecolhido()
+  const ehCelular = useEhCelular()
+  const [gavetaAberta, setGavetaAberta] = useState(false)
+
+  // Fecha a gaveta ao trocar de tela e quando a janela deixa de ser de celular.
+  useEffect(() => { setGavetaAberta(false) }, [local.pathname, ehCelular])
+
+  function aoClicarNoMenu() {
+    if (ehCelular) setGavetaAberta((a) => !a)
+    else alternar()
+  }
+
+  const menuFechado = ehCelular ? !gavetaAberta : recolhido
 
   const [noDoCabecalho] = useState(() => {
     if (typeof document === 'undefined') return null
@@ -109,7 +138,7 @@ export default function Layout() {
       <header className="flex h-[58px] shrink-0 items-center border-b border-borda bg-white pr-3 md:pr-5 print:h-auto print:border-b-2 print:pl-0">
         <div
           data-fora-da-impressao
-          className={`flex h-full shrink-0 items-center gap-2.5 border-r border-barra-borda bg-barra-900 ${larguraDoMenu} ${
+          className={`hidden h-full shrink-0 items-center gap-2.5 border-r border-barra-borda bg-barra-900 md:flex ${larguraDoMenu} ${
             recolhido ? 'justify-center px-0' : 'px-5'
           }`}
         >
@@ -125,14 +154,15 @@ export default function Layout() {
         <div className="flex min-w-0 flex-1 items-center gap-3 pl-3 md:gap-4 md:pl-5 print:pl-0">
           <button
             data-fora-da-impressao
-            onClick={alternar}
-            title={recolhido ? 'Expandir o menu' : 'Recolher o menu'}
-            aria-label={recolhido ? 'Expandir o menu' : 'Recolher o menu'}
+            onClick={aoClicarNoMenu}
+            title={menuFechado ? 'Abrir o menu' : 'Fechar o menu'}
+            aria-label={menuFechado ? 'Abrir o menu' : 'Fechar o menu'}
+            aria-expanded={!menuFechado}
             className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-[3px] border border-borda text-cinza-600 hover:border-mate-500 hover:text-mate-700"
           >
             <span className="flex flex-col gap-[3px]">
               <span className="block h-[1.5px] w-[13px] bg-current" />
-              <span className={`block h-[1.5px] bg-current ${recolhido ? 'w-[8px]' : 'w-[13px]'}`} />
+              <span className={`block h-[1.5px] bg-current ${menuFechado ? 'w-[8px]' : 'w-[13px]'}`} />
               <span className="block h-[1.5px] w-[13px] bg-current" />
             </span>
           </button>
@@ -171,7 +201,7 @@ export default function Layout() {
       <div className="flex min-h-0 flex-1">
         <nav
           data-fora-da-impressao
-          className={`flex shrink-0 flex-col overflow-y-auto border-r border-barra-borda bg-barra-900 pb-4 pt-2 ${larguraDoMenu}`}
+          className={`hidden shrink-0 flex-col overflow-y-auto border-r border-barra-borda bg-barra-900 pb-4 pt-2 md:flex ${larguraDoMenu}`}
         >
           {secoes.map((grupo) => (
             <div key={grupo.secao}>
@@ -190,6 +220,40 @@ export default function Layout() {
           <div className="flex-1" />
           <ItemMenu rotulo="Configurações" para="/configuracoes" recolhido={recolhido} />
         </nav>
+
+        {ehCelular && gavetaAberta && (
+          <div data-fora-da-impressao className="fixed inset-0 z-40 flex md:hidden">
+            <nav
+              aria-label="Menu"
+              className="flex w-[260px] max-w-[82%] flex-col overflow-y-auto bg-barra-900 pb-4 shadow-xl"
+            >
+              <div className="flex h-[58px] shrink-0 items-center gap-2.5 border-b border-barra-borda px-5">
+                <Marca className="h-[34px] w-[34px]" />
+                <span className="leading-tight">
+                  <span className="block text-[1.0625rem] font-bold tracking-wider text-barra-tinta">MATECH</span>
+                  <span className="block text-[0.6875rem] font-medium text-barra-tenue">Gestão de matéria-prima</span>
+                </span>
+              </div>
+              {secoes.map((grupo) => (
+                <div key={grupo.secao}>
+                  <p className="px-4 pb-1.5 pt-4 text-[0.6875rem] font-semibold tracking-wider text-barra-tenue">
+                    {grupo.secao}
+                  </p>
+                  {grupo.itens.map((i) => (
+                    <ItemMenu key={i.para} {...i} recolhido={false} />
+                  ))}
+                </div>
+              ))}
+              <div className="flex-1" />
+              <ItemMenu rotulo="Configurações" para="/configuracoes" recolhido={false} />
+            </nav>
+            <button
+              aria-label="Fechar o menu"
+              className="flex-1 bg-black/40"
+              onClick={() => setGavetaAberta(false)}
+            />
+          </div>
+        )}
 
         <main className="min-w-0 flex-1 overflow-y-auto bg-fundo p-3 md:p-4 xl:p-5">
           <LimiteDeErro key={local.pathname}>
