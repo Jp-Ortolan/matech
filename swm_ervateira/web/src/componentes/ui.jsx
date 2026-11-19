@@ -609,12 +609,14 @@ export function Janela({ titulo, subtitulo, acao, largura = 820, aoFechar, child
         aria-label={titulo}
         tabIndex={-1}
         style={{ maxWidth: largura }}
-        className="flex max-h-full w-full flex-col rounded-[3px] border border-borda bg-white shadow-[0_10px_40px_rgba(31,36,34,.25)] outline-none"
+        // No celular, os campos que dividem a linha (flex-1) passam a ocupar a
+        // linha inteira, um embaixo do outro, para o texto não ficar cortado.
+        className="flex max-h-full w-full flex-col rounded-[3px] border border-borda bg-white shadow-[0_10px_40px_rgba(31,36,34,.25)] outline-none max-md:[&_label.flex-1]:basis-full"
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-borda px-4 py-3">
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-[1.0625rem] font-bold text-tinta">{titulo}</h2>
-            {subtitulo && <p className="mt-0.5 truncate text-[0.8125rem] text-cinza-600">{subtitulo}</p>}
+            {subtitulo && <p className="mt-0.5 text-[0.8125rem] text-cinza-600 md:truncate">{subtitulo}</p>}
           </div>
           {acao}
           <button

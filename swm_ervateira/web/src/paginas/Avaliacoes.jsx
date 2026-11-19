@@ -164,19 +164,20 @@ function FormularioAnalise({ carga, podeLancar, aoConcluir }) {
 
         <Erro erro={erro} />
 
+        {/* min-w-0: no celular as três colunas cabem na janela sem vazar */}
         <div className="grid grid-cols-3 gap-3">
           <Campo
-            rotulo="Palito (%)" type="number" step="0.1" min="0" max="100" required autoFocus
+            className="min-w-0" rotulo="Palito (%)" type="number" step="0.1" min="0" max="100" required autoFocus
             value={form.palitoPercentual} onChange={(e) => alterar('palitoPercentual', e.target.value)}
             disabled={!podeLancar}
           />
           <Campo
-            rotulo="Umidade (%)" type="number" step="0.1" min="0" max="100"
+            className="min-w-0" rotulo="Umidade (%)" type="number" step="0.1" min="0" max="100"
             value={form.umidadePercentual} onChange={(e) => alterar('umidadePercentual', e.target.value)}
             disabled={!podeLancar}
           />
           <Campo
-            rotulo="Folha (%)" type="number" step="0.1" min="0" max="100"
+            className="min-w-0" rotulo="Folha (%)" type="number" step="0.1" min="0" max="100"
             value={form.folhaPercentual} onChange={(e) => alterar('folhaPercentual', e.target.value)}
             disabled={!podeLancar}
           />
