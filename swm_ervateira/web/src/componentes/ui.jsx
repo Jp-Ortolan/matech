@@ -135,8 +135,58 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
   // fora da página some da tela, mas continua saindo na impressão
   const foraDaPagina = (i) => porPagina > 0 && (i < inicio || i >= inicio + porPagina)
 
+  // No celular (abaixo de 768 px) cada linha vira um cartão: a primeira coluna
+  // é o título e as outras aparecem como "Coluna: valor", sem nada cortado.
+  // Colunas sem título (botões) vão para o pé do cartão; colunas que a tabela
+  // já esconde em telas menores e não têm título (ex.: barra) ficam de fora.
+  const [principal, ...demais] = colunas
+  const camposDoCartao = demais.filter((c) => c.titulo)
+  const acoesDoCartao = demais.filter((c) => !c.titulo && !c.oculta)
+
   return (
-    <div className="overflow-x-auto">
+    <div>
+      <div className="md:hidden print:hidden">
+        {dados.length === 0 && (
+          <p className="px-3 py-8 text-center text-sm text-cinza-400">{vazio}</p>
+        )}
+        {dados.map((linha, i) => {
+          if (foraDaPagina(i)) return null
+          const conteudo = (c) => (c.render ? c.render(linha) : linha[c.chave])
+          const ativa = linhaAtiva != null && linhaAtiva === linha.id
+          return (
+            <div
+              key={linha.id ?? i}
+              onClick={aoClicarLinha ? () => aoClicarLinha(linha) : undefined}
+              className={`border-b border-borda px-3 py-2.5 ${ativa ? 'bg-mate-100' : 'bg-white'} ${
+                aoClicarLinha ? 'cursor-pointer active:bg-cabecalho' : ''
+              }`}
+            >
+              <div className="min-w-0 text-[0.9375rem] font-semibold text-tinta">{conteudo(principal)}</div>
+              {camposDoCartao.length > 0 && (
+                <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[0.8125rem]">
+                  {camposDoCartao.map((c) => (
+                    <div key={c.chave} className="contents">
+                      <dt className="text-cinza-400">{c.titulo}</dt>
+                      <dd className={`min-w-0 break-words text-right ${c.forte ? 'font-semibold text-tinta' : 'text-cinza-600'} ${
+                        c.alinhar === 'direita' ? 'tabular' : ''
+                      }`}>
+                        {conteudo(c)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {acoesDoCartao.length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                  {acoesDoCartao.map((c) => <div key={c.chave}>{conteudo(c)}</div>)}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block print:block">
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b border-borda bg-cabecalho">
@@ -210,6 +260,7 @@ export function Tabela({ colunas, dados, vazio = 'Nenhum registro encontrado', r
           })}
         </tbody>
       </table>
+      </div>
       {rodape && (
         <div className="flex items-center justify-between gap-3 px-3 py-2 text-[0.75rem] text-cinza-400">
           {rodape}
